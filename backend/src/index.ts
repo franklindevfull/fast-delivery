@@ -41,8 +41,11 @@ const server = http.createServer(app);
 initSocket(server);
 
 const allowedOrigins = [
-    'https://delivery-fast-frontend.onrender.com',
-    'https://cardapio-fast-delivery.onrender.com',
+    'https://fast-delivery-frontend-iq8a.onrender.com',
+    'https://fast-delivery-menu-digital.onrender.com',
+    'https://fast-delivery-garcom.onrender.com',
+    'https://fast-delivery-entregador.onrender.com',
+    'https://fast-delivery-app.onrender.com',
     'http://localhost:5173',
     'http://localhost:3000'
 ];

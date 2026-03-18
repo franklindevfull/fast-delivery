@@ -7,8 +7,11 @@ export const initSocket = (server: http.Server) => {
     io = new Server(server, {
         cors: {
             origin: [
-                'https://delivery-fast-frontend.onrender.com',
-                'https://cardapio-fast-delivery.onrender.com',
+                'https://fast-delivery-frontend-iq8a.onrender.com',
+                'https://fast-delivery-menu-digital.onrender.com',
+                'https://fast-delivery-garcom.onrender.com',
+                'https://fast-delivery-entregador.onrender.com',
+                'https://fast-delivery-app.onrender.com',
                 'http://localhost:5173',
                 'http://localhost:3000'
             ],
