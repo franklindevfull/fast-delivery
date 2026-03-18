@@ -134,10 +134,12 @@ const Layout: React.FC<{ children: React.ReactNode }> = ({ children }) => {
 
     const isHome = location.pathname === '/';
 
+    const isAuthenticated = !!localStorage.getItem('delivery_app_client');
+
     return (
         <div className={`min-h-screen bg-slate-50 dark:bg-slate-950 transition-colors duration-300 ${shouldShowFooter ? 'pb-28' : ''}`}>
             {/* Banner de Status da Loja (Global) */}
-            {(storeStatus?.status === 'offline' || isClosingSoon) && (
+            {isAuthenticated && (storeStatus?.status === 'offline' || isClosingSoon) && (
                 <div className={`text-center py-2 text-[10px] font-black uppercase tracking-widest text-white px-4 sticky top-0 z-[60] animate-in slide-in-from-top duration-300 ${storeStatus?.status === 'offline' ? 'bg-rose-600/90 backdrop-blur-md' : 'bg-orange-500/90 backdrop-blur-md'}`}>
                     {storeStatus?.status === 'offline'
                         ? (storeStatus.is_manually_closed
