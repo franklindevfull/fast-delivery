@@ -677,68 +677,72 @@ const Logistics: React.FC = () => {
                 </tr>
               </thead>
               <tbody className="divide-y divide-slate-50 dark:divide-slate-800">
-                {historyOrders.sort((a, b) => b.createdAt.localeCompare(a.createdAt)).map(order => (
-                  <tr key={order.id} className="hover:bg-slate-50/30 dark:hover:bg-slate-800/20 group transition-colors">
-                    <td className="px-8 py-5 text-center">
-                      <span className="px-3 py-1.5 rounded-xl text-[9px] font-black uppercase text-white shadow-sm bg-emerald-500">
-                        ENTREGUE
-                      </span>
-                    </td>
-                    <td className="px-8 py-5">
-                      <p className="font-black text-slate-800 dark:text-white text-[11px] uppercase tracking-tighter">
-                        {order.id.split('-')[1] || order.id}
-                      </p>
-                      <p className="text-[9px] text-slate-400 dark:text-slate-500 font-bold uppercase truncate max-w-[180px]">
-                        {order.clientName}
-                      </p>
-                    </td>
-                    <td className="px-8 py-5">
-                      <div className="flex items-center gap-2">
-                        <div className="w-6 h-6 bg-emerald-100 dark:bg-emerald-900/30 rounded-lg flex items-center justify-center text-[9px] font-black text-emerald-600 dark:text-emerald-400">
-                          {getDriverName(order.driverId).charAt(0)}
+                {historyOrders.length > 0 ? (
+                  historyOrders.sort((a, b) => b.createdAt.localeCompare(a.createdAt)).map(order => (
+                    <tr key={order.id} className="hover:bg-slate-50/30 dark:hover:bg-slate-800/20 group transition-colors">
+                      <td className="px-8 py-5 text-center">
+                        <span className="px-3 py-1.5 rounded-xl text-[9px] font-black uppercase text-white shadow-sm bg-emerald-500">
+                          ENTREGUE
+                        </span>
+                      </td>
+                      <td className="px-8 py-5">
+                        <p className="font-black text-slate-800 dark:text-white text-[11px] uppercase tracking-tighter">
+                          {order.id.split('-')[1] || order.id}
+                        </p>
+                        <p className="text-[9px] text-slate-400 dark:text-slate-500 font-bold uppercase truncate max-w-[180px]">
+                          {order.clientName}
+                        </p>
+                      </td>
+                      <td className="px-8 py-5">
+                        <div className="flex items-center gap-2">
+                          <div className="w-6 h-6 bg-emerald-100 dark:bg-emerald-900/30 rounded-lg flex items-center justify-center text-[9px] font-black text-emerald-600 dark:text-emerald-400">
+                            {getDriverName(order.driverId).charAt(0)}
+                          </div>
+                          <p className="text-[10px] font-bold text-slate-600 dark:text-slate-400 uppercase">
+                            {getDriverName(order.driverId)}
+                          </p>
                         </div>
-                        <p className="text-[10px] font-bold text-slate-600 dark:text-slate-400 uppercase">
-                          {getDriverName(order.driverId)}
+                      </td>
+                      <td className="px-8 py-5">
+                        <div className="space-y-0.5">
+                          <p className="text-[10px] font-bold text-slate-700 dark:text-slate-300">
+                            {new Date(order.createdAt).toLocaleDateString('pt-BR')}
+                          </p>
+                          <p className="text-[9px] font-black text-slate-400 dark:text-slate-500 uppercase">
+                            {new Intl.DateTimeFormat('pt-BR', { hour: '2-digit', minute: '2-digit' }).format(new Date(order.createdAt))}
+                          </p>
+                        </div>
+                      </td>
+                      <td className="px-8 py-5">
+                        <p className="text-[11px] font-black text-blue-600 dark:text-blue-400">
+                          R$ {order.total.toFixed(2)}
                         </p>
-                      </div>
-                    </td>
-                    <td className="px-8 py-5">
-                      <div className="space-y-0.5">
-                        <p className="text-[10px] font-bold text-slate-700 dark:text-slate-300">
-                          {new Date(order.createdAt).toLocaleDateString('pt-BR')}
-                        </p>
-                        <p className="text-[9px] font-black text-slate-400 dark:text-slate-500 uppercase">
-                          {new Intl.DateTimeFormat('pt-BR', { hour: '2-digit', minute: '2-digit' }).format(new Date(order.createdAt))}
-                        </p>
-                      </div>
-                    </td>
-                    <td className="px-8 py-5">
-                      <p className="text-[11px] font-black text-blue-600 dark:text-blue-400">
-                        R$ {order.total.toFixed(2)}
-                      </p>
-                    </td>
-                    <td className="px-8 py-5">
-                      <div className="flex justify-end gap-2">
-                        <button
-                          onClick={() => setViewingHistoryOrder(order)}
-                          className="p-2.5 text-slate-400 hover:text-blue-600 dark:hover:text-blue-400 bg-slate-50 dark:bg-slate-800/50 rounded-xl transition-all"
-                          title="Ver Detalhes / Imprimir"
-                        >
-                          <Icons.Print size={18} />
-                        </button>
-                      </div>
+                      </td>
+                      <td className="px-8 py-5">
+                        <div className="flex justify-end gap-2">
+                          <button
+                            onClick={() => setViewingHistoryOrder(order)}
+                            className="p-2.5 text-slate-400 hover:text-blue-600 dark:hover:text-blue-400 bg-slate-50 dark:bg-slate-800/50 rounded-xl transition-all"
+                            title="Ver Detalhes / Imprimir"
+                          >
+                            <Icons.Print size={18} />
+                          </button>
+                        </div>
+                      </td>
+                    </tr>
+                  ))
+                ) : (
+                  <tr>
+                    <td colSpan={6} className="py-20 text-center">
+                      <Icons.Clock className="w-12 h-12 mx-auto text-slate-200 dark:text-slate-800 mb-4" />
+                      <p className="text-slate-400 dark:text-slate-600 font-bold uppercase tracking-widest text-xs">Nenhuma entrega no histórico.</p>
                     </td>
                   </tr>
-                ))}
+                )}
               </tbody>
             </table>
           </div>
-          {historyOrders.length === 0 && (
-            <div className="col-span-full py-20 text-center bg-white dark:bg-slate-900 rounded-3xl border-2 border-dashed border-slate-100 dark:border-slate-800 mt-2">
-              <Icons.Clock className="w-12 h-12 mx-auto text-slate-200 dark:text-slate-800 mb-4" />
-              <p className="text-slate-400 dark:text-slate-600 font-bold uppercase tracking-widest text-xs">Nenhuma entrega no histórico.</p>
-            </div>
-          )}
+
         </div>
       )
       }
