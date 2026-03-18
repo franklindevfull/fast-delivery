@@ -1,0 +1,273 @@
+import React, { useState } from 'react';
+import { CartItem } from '../types';
+import { submitOrder, StoreStatus } from '../api';
+
+interface CartModalProps {
+    isOpen: boolean;
+    onClose: () => void;
+    cart: CartItem[];
+    tableNumber: string;
+    updateQuantity: (id: string, qty: number) => void;
+    clearCart: () => void;
+    initialClientName?: string;
+    onOrderSuccess?: () => void;
+    storeStatus: StoreStatus;
+}
+
+const CartModal: React.FC<CartModalProps> = ({ isOpen, onClose, cart, tableNumber, updateQuantity, clearCart, initialClientName, onOrderSuccess, storeStatus }) => {
+    const [isSubmitting, setIsSubmitting] = useState(false);
+    const [observations, setObservations] = useState('');
+    const [clientName, setClientName] = useState('');
+    const [success, setSuccess] = useState(false);
+    const [showClearConfirm, setShowClearConfirm] = useState(false);
+    const [errorModal, setErrorModal] = useState<{ message: string, isPinError: boolean } | null>(null);
+
+    if (!isOpen) return null;
+
+    const total = cart.reduce((acc, i) => acc + (i.price * i.quantity), 0);
+
+    const handleSubmit = async () => {
+        setIsSubmitting(true);
+
+        const executeOrder = async (lat?: number, lng?: number) => {
+            if (storeStatus.status === 'offline') {
+                setErrorModal({ message: "O restaurante está fechado neste momento e não está aceitando pedidos.", isPinError: false });
+                setIsSubmitting(false);
+                return;
+            }
+            try {
+                const response = await submitOrder({
+                    tableNumber: parseInt(tableNumber),
+                    items: cart.map(i => ({ productId: i.id, quantity: i.quantity })),
+                    observations,
+                    clientName: initialClientName || clientName || undefined,
+                    clientLat: lat,
+                    clientLng: lng
+                });
+
+                // Update specific session token from backend response immediately
+                if (response.session?.sessionToken) {
+                    localStorage.setItem(`sessionToken_${tableNumber}`, response.session.sessionToken);
+                }
+
+                setSuccess(true);
+                if (onOrderSuccess) {
+                    onOrderSuccess();
+                }
+                setTimeout(() => {
+                    setSuccess(false);
+                    clearCart();
+                    onClose();
+                    setIsSubmitting(false);
+                }, 1500); // Faster feedback
+            } catch (e: any) {
+                console.error(e);
+                if (e.pin_required || e.message?.toLowerCase().includes('pin') || e.message?.toLowerCase().includes('sessão inválida')) {
+                    setErrorModal({ message: "Sessão expirada ou PIN necessário para enviar o pedido.", isPinError: true });
+                } else {
+                    setErrorModal({ message: e.message || "Erro ao enviar o pedido.", isPinError: false });
+                }
+                setIsSubmitting(false);
+            }
+        };
+
+        if (navigator.geolocation) {
+            navigator.geolocation.getCurrentPosition(
+                (position) => executeOrder(position.coords.latitude, position.coords.longitude),
+                (error) => {
+                    console.warn("Localização negada ou indisponível:", error);
+                    executeOrder(); // Tenta sem localização, backend recusa se geofence for estrito
+                },
+                { timeout: 10000, enableHighAccuracy: true }
+            );
+        } else {
+            executeOrder();
+        }
+    };
+
+    if (success) {
+        return (
+            <div className="fixed inset-0 z-[100] bg-slate-900/60 backdrop-blur-md flex items-center justify-center p-4">
+                <div className="bg-white rounded-[2rem] w-full max-w-md p-8 text-center shadow-2xl animate-fade-in border border-emerald-100">
+                    <div className="w-20 h-20 bg-emerald-500 rounded-full mx-auto flex items-center justify-center mb-6 shadow-lg shadow-emerald-500/30">
+                        <svg xmlns="http://www.w3.org/2000/svg" className="h-10 w-10 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M5 13l4 4L19 7" />
+                        </svg>
+                    </div>
+                    <h2 className="text-2xl font-black text-slate-800 uppercase tracking-tighter mb-2">Pedido Enviado!</h2>
+                    <p className="text-slate-500 text-sm font-bold">A cozinha já está preparando o seu pedido.</p>
+                </div>
+            </div>
+        );
+    }
+
+    if (errorModal) {
+        return (
+            <div className="fixed inset-0 z-[100] bg-slate-900/60 backdrop-blur-md flex items-center justify-center p-4 animate-in fade-in duration-200">
+                <div className="bg-white rounded-[2.5rem] w-full max-w-[320px] p-8 text-center shadow-2xl animate-in zoom-in-95 duration-200">
+                    <div className="w-20 h-20 bg-red-100 text-red-500 rounded-full mx-auto flex items-center justify-center mb-6 shadow-lg shadow-red-500/20">
+                        <svg xmlns="http://www.w3.org/2000/svg" className="h-10 w-10" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M6 18L18 6M6 6l12 12" />
+                        </svg>
+                    </div>
+                    <h2 className="text-xl font-black text-slate-800 uppercase tracking-tighter mb-4">Erro no Pedido</h2>
+                    <p className="text-slate-500 text-sm font-bold mb-8 leading-relaxed px-2">
+                        {errorModal.message}
+                    </p>
+                    <button
+                        onClick={() => {
+                            if (errorModal.isPinError) {
+                                window.location.reload();
+                            } else {
+                                setErrorModal(null);
+                                clearCart();
+                                onClose();
+                            }
+                        }}
+                        className="w-full bg-slate-900 hover:bg-black text-white font-black py-4 rounded-2xl transition-all shadow-xl active:scale-95 uppercase text-xs tracking-widest"
+                    >
+                        {errorModal.isPinError ? "Recarregar Página" : "OK"}
+                    </button>
+                </div>
+            </div>
+        );
+    }
+
+    return (
+        <div className="fixed inset-0 z-[100] bg-slate-900/60 backdrop-blur-sm flex flex-col justify-end">
+            {/* Background click to close */}
+            <div className="absolute inset-0" onClick={onClose} />
+
+            <div className="bg-white rounded-t-[2rem] w-full max-w-2xl mx-auto relative flex flex-col max-h-[90vh] shadow-2xl animate-slide-up">
+                {/* Header */}
+                <div className="p-6 pb-4 border-b border-slate-100 flex justify-between items-center shrink-0">
+                    <div>
+                        <h2 className="text-xl font-black text-slate-900 uppercase tracking-tighter">Seu Pedido</h2>
+                        <p className="text-[10px] font-bold text-slate-400 tracking-widest uppercase">Mesa {tableNumber}</p>
+                    </div>
+                    <div className="flex items-center gap-2">
+                        {cart.length > 0 && (
+                            <button
+                                onClick={() => setShowClearConfirm(true)}
+                                className="w-10 h-10 bg-rose-50 rounded-full flex items-center justify-center text-rose-500 hover:bg-rose-100 transition-all border border-rose-100"
+                                title="Limpar Carrinho"
+                            >
+                                <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                                </svg>
+                            </button>
+                        )}
+                        <button onClick={onClose} className="w-10 h-10 bg-slate-100 rounded-full flex items-center justify-center text-slate-500 hover:bg-slate-200 transition-all">
+                            ✕
+                        </button>
+                    </div>
+                </div>
+
+                {/* Itens */}
+                <div className="flex-1 overflow-y-auto p-4 space-y-2.5 hide-scrollbar">
+                    {cart.length === 0 ? (
+                        <p className="text-center text-slate-400 py-8 font-bold text-sm uppercase tracking-widest">Seu carrinho está vazio</p>
+                    ) : (
+                        cart.map(item => (
+                            <div key={item.id} className="flex gap-3 p-3 bg-slate-50 rounded-2xl border border-slate-100 items-center">
+                                <img src={item.imageUrl} alt={item.name} className="w-14 h-14 rounded-xl object-cover shadow-sm" />
+                                <div className="flex-1 min-w-0">
+                                    <h4 className="font-black text-slate-800 text-xs sm:text-sm uppercase tracking-tighter truncate">{item.name}</h4>
+                                    <p className="text-blue-600 font-black text-xs sm:text-sm">R$ {item.price.toFixed(2)}</p>
+                                </div>
+                                <div className="flex items-center bg-white rounded-xl p-1 gap-2 shadow-sm border border-slate-100 shrink-0">
+                                    <button onClick={() => updateQuantity(item.id, item.quantity - 1)} className="w-8 h-8 rounded-lg flex items-center justify-center font-black text-slate-400 active:scale-90">-</button>
+                                    <span className="w-4 text-center font-black text-xs">{item.quantity}</span>
+                                    <button onClick={() => updateQuantity(item.id, item.quantity + 1)} className="w-8 h-8 rounded-lg bg-slate-900 text-white flex items-center justify-center font-black active:scale-90">+</button>
+                                </div>
+                            </div>
+                        ))
+                    )}
+
+                    {cart.length > 0 && (
+                        <div className="mt-4 space-y-4">
+                            {!initialClientName && (
+                                <div>
+                                    <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest block mb-2 px-2">Identificação (Opcional)</label>
+                                    <input
+                                        type="text"
+                                        value={clientName}
+                                        onChange={(e) => setClientName(e.target.value)}
+                                        placeholder="Qual o seu nome?"
+                                        className="w-full bg-slate-50 border border-slate-200 rounded-2xl p-4 text-sm font-bold text-slate-700 placeholder-slate-400 focus:outline-none focus:ring-4 focus:ring-blue-50"
+                                    />
+                                </div>
+                            )}
+                            <div>
+                                <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest block mb-2 px-2">Observações (Opcional)</label>
+                                <textarea
+                                    value={observations}
+                                    onChange={(e) => setObservations(e.target.value)}
+                                    placeholder="Ex: Tirar cebola, ponto da carne..."
+                                    className="w-full bg-slate-50 border border-slate-200 rounded-2xl p-4 text-sm font-bold text-slate-700 placeholder-slate-400 focus:outline-none focus:ring-4 focus:ring-blue-50 resize-none h-24"
+                                />
+                            </div>
+                        </div>
+                    )}
+                </div>
+
+                {/* Footer Acabamento */}
+                <div className="p-6 bg-white border-t border-slate-100 shrink-0 space-y-4 rounded-t-3xl shadow-[0_-10px_40px_-15px_rgba(0,0,0,0.1)]">
+                    <div className="flex justify-between items-center text-slate-800">
+                        <span className="font-black text-sm uppercase tracking-widest">Total</span>
+                        <span className="text-3xl font-black text-blue-600 tracking-tighter">R$ {total.toFixed(2)}</span>
+                    </div>
+                    <button
+                        disabled={cart.length === 0 || isSubmitting || storeStatus.status === 'offline'}
+                        onClick={handleSubmit}
+                        className={`w-full py-4 rounded-2xl font-black uppercase text-sm shadow-xl transition-all flex justify-center items-center gap-2 ${storeStatus.status === 'offline' ? 'bg-slate-300 text-slate-500 cursor-not-allowed' : 'bg-blue-600 text-white shadow-blue-500/30 hover:bg-blue-700 active:scale-[0.98]'}`}
+                    >
+                        {storeStatus.status === 'offline' ? 'Loja Fechada' : isSubmitting ? 'Enviando Pedido...' : 'Confirmar e Pedir'}
+                    </button>
+                </div>
+            </div>
+
+            {/* Modal de Confirmação de Limpar Carrinho */}
+            {showClearConfirm && (
+                <div className="fixed inset-0 z-[110] bg-slate-900/40 backdrop-blur-sm flex items-center justify-center p-6 animate-in fade-in duration-200">
+                    <div className="bg-white w-full max-w-[320px] rounded-[2.5rem] shadow-2xl overflow-hidden animate-in zoom-in-95 duration-200">
+                        <div className="p-6 text-center">
+                            <div className="flex justify-end mb-2">
+                                <button onClick={() => setShowClearConfirm(false)} className="w-8 h-8 flex items-center justify-center bg-slate-50 rounded-full text-slate-400">
+                                    <span className="text-lg">✕</span>
+                                </button>
+                            </div>
+
+                            <h3 className="text-blue-600 font-black text-xl uppercase tracking-tighter mb-8">ATENÇÃO</h3>
+
+                            <p className="text-slate-600 font-black text-xs uppercase tracking-tight leading-relaxed mb-10 px-4">
+                                DESEJA REALMENTE REMOVER TODOS OS ITENS DO CARRINHO?
+                            </p>
+
+                            <div className="flex flex-col gap-3">
+                                <button
+                                    onClick={() => {
+                                        clearCart();
+                                        setShowClearConfirm(false);
+                                        onClose();
+                                    }}
+                                    className="w-full bg-blue-600 text-white py-4 rounded-2xl font-black uppercase text-xs tracking-widest shadow-lg shadow-blue-200 active:scale-95 transition-all"
+                                >
+                                    CONFIRMAR
+                                </button>
+                                <button
+                                    onClick={() => setShowClearConfirm(false)}
+                                    className="w-full py-4 text-slate-400 font-black uppercase text-xs tracking-widest active:scale-95 transition-all"
+                                >
+                                    CANCELAR
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            )}
+        </div>
+    );
+};
+
+export default CartModal;

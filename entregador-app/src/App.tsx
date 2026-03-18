@@ -1,0 +1,820 @@
+import React, { useState, useEffect, useRef, useMemo } from 'react';
+import { DeliveryDriver, Order, OrderStatus, OrderStatusLabels, SaleType, User, Product, BusinessSettings } from './types';
+import { db } from './services/db';
+import { socket } from './services/socket';
+import { Icons } from './constants';
+import LogoutModal from './components/LogoutModal';
+import Login from './components/Login';
+
+const paymentLabels: Record<string, string> = {
+  'CREDIT': 'Cartão de Crédito',
+  'DEBIT': 'Cartão de Débito',
+  'CASH': 'Dinheiro',
+  'PIX': 'PIX'
+};
+
+const playNotificationSound = () => {
+  try {
+    const audioContext = new (window.AudioContext || (window as any).webkitAudioContext)();
+    const oscillator = audioContext.createOscillator();
+    const gainNode = audioContext.createGain();
+
+    oscillator.connect(gainNode);
+    gainNode.connect(audioContext.destination);
+
+    oscillator.type = 'sine';
+    // Soft chime-like frequency sequence
+    const now = audioContext.currentTime;
+    oscillator.frequency.setValueAtTime(880, now);
+    oscillator.frequency.exponentialRampToValueAtTime(440, now + 0.5);
+
+    gainNode.gain.setValueAtTime(0, now);
+    gainNode.gain.linearRampToValueAtTime(0.1, now + 0.1);
+    gainNode.gain.exponentialRampToValueAtTime(0.01, now + 0.5);
+
+    oscillator.start(now);
+    oscillator.stop(now + 0.5);
+  } catch (e) {
+    console.error("Audio error:", e);
+  }
+};
+
+const CheckoutTimer: React.FC<{ assignedAt: string, timeoutMinutes: number }> = ({ assignedAt, timeoutMinutes }) => {
+  const [timeLeft, setTimeLeft] = useState('');
+  useEffect(() => {
+    const timer = setInterval(() => {
+      const assigned = new Date(assignedAt).getTime();
+      const now = new Date().getTime();
+      const diff = (timeoutMinutes * 60000) - (now - assigned);
+      if (diff <= 0) setTimeLeft('EXPIRADO');
+      else {
+        const mins = Math.floor(diff / 60000);
+        const secs = Math.floor((diff % 60000) / 1000);
+        setTimeLeft(`${mins}:${secs.toString().padStart(2, '0')}`);
+      }
+    }, 1000);
+    return () => clearInterval(timer);
+  }, [assignedAt, timeoutMinutes]);
+
+  const isExpiring = timeLeft !== 'EXPIRADO' && timeLeft.startsWith('0:');
+
+  return (
+    <div className={`flex items-center gap-2 px-4 py-2 rounded-2xl border transition-all ${timeLeft === 'EXPIRADO' ? 'bg-rose-50 border-rose-100 text-rose-600' : isExpiring ? 'bg-amber-50 border-amber-200 text-amber-600 animate-pulse' : 'bg-blue-50 border-blue-100 text-blue-600'}`}>
+      <Icons.Alert className="w-3.5 h-3.5" />
+      <span className="text-[10px] font-black uppercase tracking-widest">
+        {timeLeft === 'EXPIRADO' ? 'TEMPO ESGOTADO' : `ACEITAR EM: ${timeLeft}`}
+      </span>
+    </div>
+  );
+};
+
+const BlinkCSS = () => (
+  <style>{`
+        @keyframes blink {
+            0% { opacity: 1; }
+            50% { opacity: 0.3; }
+            100% { opacity: 1; }
+        }
+        .animate-blink {
+            animation: blink 0.8s infinite;
+        }
+    `}</style>
+);
+
+const App: React.FC = () => {
+  const [currentUser, setCurrentUser] = useState<User | null>(null);
+  const [isLoading, setIsLoading] = useState(true);
+
+  const [driver, setDriver] = useState<DeliveryDriver | null>(null);
+  const [myOrders, setMyOrders] = useState<Order[]>([]);
+  const [products, setProducts] = useState<Product[]>([]);
+  const [isAlertOpen, setIsAlertOpen] = useState(false);
+  const [printingOrder, setPrintingOrder] = useState<Order | null>(null);
+  const [isLogoutModalOpen, setIsLogoutModalOpen] = useState(false);
+
+  const [activeTab, setActiveTab] = useState<'PENDING' | 'HISTORY' | 'CHAT'>('PENDING');
+  const [settings, setSettings] = useState<BusinessSettings | null>(null);
+  const [historyOrders, setHistoryOrders] = useState<Order[]>([]);
+  const [historyStartDate, setHistoryStartDate] = useState(() => {
+    const d = new Date();
+    d.setDate(d.getDate() - 30);
+    return d.toISOString().split('T')[0];
+  });
+  const [historyEndDate, setHistoryEndDate] = useState(new Date().toISOString().split('T')[0]);
+  const [printingHistoryOrder, setPrintingHistoryOrder] = useState<Order | null>(null);
+  const [isPrinting, setIsPrinting] = useState(false);
+  const [storeStatus, setStoreStatus] = useState<{ status: 'online' | 'offline', next_status_change?: string | null, is_manually_closed?: boolean, enableDigitalMenu: boolean }>({ status: 'offline', enableDigitalMenu: true });
+  const [countdown, setCountdown] = useState<string | null>(null);
+  const [customAlertMessage, setCustomAlertMessage] = useState<string | null>(null);
+  const [selectedPayments, setSelectedPayments] = useState<Record<string, string>>({});
+
+  // Chat states
+  const [messages, setMessages] = useState<any[]>([]);
+  const [hasUnreadChat, setHasUnreadChat] = useState(false);
+  const [newMessage, setNewMessage] = useState('');
+  const chatEndRef = useRef<HTMLDivElement>(null);
+
+  const previousOrderCount = useRef(-1);
+
+  useEffect(() => {
+    const user = db.getCurrentUser();
+    if (user) {
+      setCurrentUser(user);
+    }
+    setIsLoading(false);
+  }, []);
+
+  useEffect(() => {
+    if (!currentUser) return;
+
+    refreshData();
+    const interval = setInterval(refreshData, 5000);
+
+    socket.on('store_status_changed', (data: any) => {
+      setStoreStatus(data);
+    });
+
+    socket.on('order_auto_rejected_global', (data: any) => {
+      if (driver && data.driverId === driver.id) {
+        setCustomAlertMessage(data.message || 'A entrega foi cancelada por inatividade do entregador');
+        setIsAlertOpen(true);
+        refreshData();
+        playNotificationSound();
+        setTimeout(playNotificationSound, 600);
+      }
+    });
+
+    socket.on('order_auto_rejected', (data: any) => {
+      setCustomAlertMessage(data.message || 'A entrega foi cancelada por inatividade do entregador');
+      setIsAlertOpen(true);
+      refreshData();
+      playNotificationSound();
+      playNotificationSound(); // Dual sound for cancellation
+      setTimeout(playNotificationSound, 600);
+    });
+
+    const onReconnect = () => {
+      if (driver) {
+        socket.emit('join_chat', driver.id);
+      }
+    };
+
+    socket.on('connect', onReconnect);
+
+    return () => {
+      clearInterval(interval);
+      socket.off('store_status_changed');
+      socket.off('new_message');
+      socket.off('order_auto_rejected');
+      socket.off('order_auto_rejected_global');
+      socket.off('connect', onReconnect);
+    };
+  }, [currentUser, driver, activeTab]);
+
+  useEffect(() => {
+    if (driver) {
+      socket.emit('join_chat', driver.id);
+      loadChatHistory();
+
+      socket.on('new_message', (msg: any) => {
+        if (msg.driverId === driver.id) {
+          setMessages(prev => {
+            // Evitar duplicatas se o socket e o polling baterem
+            if (prev.find(m => m.id === msg.id)) return prev;
+            return [...prev, msg];
+          });
+          if (activeTab !== 'CHAT') {
+            setHasUnreadChat(true);
+            playNotificationSound();
+          }
+        }
+      });
+    }
+  }, [driver, activeTab]);
+
+  useEffect(() => {
+    chatEndRef.current?.scrollIntoView({ behavior: 'smooth' });
+  }, [messages]);
+
+  const handleLogout = () => {
+    db.logout();
+    setCurrentUser(null);
+    setDriver(null);
+    setMyOrders([]);
+  };
+
+  const handleTabChange = (tab: 'PENDING' | 'HISTORY' | 'CHAT') => {
+    setActiveTab(tab);
+    if (tab === 'CHAT') {
+      setHasUnreadChat(false);
+    }
+  };
+
+  const refreshData = async () => {
+    if (!currentUser) return;
+
+    try {
+      const currentDriver = await db.getDriverProfile(currentUser.email);
+      setDriver(currentDriver);
+
+      const [allOrders, allProds, _settings, status] = await Promise.all([
+        db.getOrders(),
+        db.getProducts(),
+        db.getSettings(),
+        db.getStoreStatus()
+      ]);
+
+      setProducts(allProds);
+      setSettings(_settings);
+      setStoreStatus(status);
+
+      const driverOrders = allOrders.filter(o =>
+        o.type === SaleType.OWN_DELIVERY &&
+        (o.status === OrderStatus.OUT_FOR_DELIVERY || o.status === OrderStatus.READY) &&
+        o.driverId === currentDriver.id
+      ).sort((a, b) => b.createdAt.localeCompare(a.createdAt));
+
+      setMyOrders(driverOrders);
+
+      const histOrders = allOrders.filter(o =>
+        o.type === SaleType.OWN_DELIVERY &&
+        o.status === OrderStatus.DELIVERED &&
+        o.driverId === currentDriver.id
+      ).sort((a, b) => b.createdAt.localeCompare(a.createdAt));
+
+      setHistoryOrders(histOrders);
+
+      if (previousOrderCount.current > -1 && driverOrders.length > previousOrderCount.current) {
+        setIsAlertOpen(true);
+        playNotificationSound();
+      }
+      previousOrderCount.current = driverOrders.length;
+    } catch (e) {
+      console.error("Erro ao atualizar dados:", e);
+    }
+  };
+
+
+
+  const loadChatHistory = async () => {
+    if (!driver) return;
+    try {
+      const history = await db.getChatHistory(driver.id);
+      setMessages(history);
+    } catch (e) {
+      console.error("Erro ao carregar chat:", e);
+    }
+  };
+
+  const handleSendMessage = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!newMessage.trim() || !driver || !currentUser) return;
+
+    const msgData = {
+      driverId: driver.id,
+      content: newMessage,
+      senderName: driver.name,
+      isFromDriver: true
+    };
+
+    try {
+      const savedMsg = await db.sendChatMessage(msgData);
+      socket.emit('send_message', savedMsg);
+      setNewMessage('');
+    } catch (e) {
+      console.error("Erro ao enviar mensagem:", e);
+    }
+  };
+
+  const updateDeliveryStatus = async (orderId: string, status: OrderStatus, forceDriverId?: string | null, paymentMethod?: string) => {
+    if (!currentUser) return;
+    // Fix: Allow empty string to pass through for de-assignment
+    await db.updateOrderStatus(orderId, status, currentUser, forceDriverId === undefined ? undefined : (forceDriverId as string), paymentMethod);
+    refreshData();
+  };
+
+  const groupedPrintingItems = useMemo(() => {
+    if (!printingOrder) return [];
+    const grouped: Record<string, { name: string, quantity: number, price: number }> = {};
+    printingOrder.items.forEach(item => {
+      const prod = products.find(p => p.id === item.productId);
+      if (!grouped[item.productId]) {
+        grouped[item.productId] = {
+          name: prod?.name || '...',
+          quantity: 0,
+          price: item.price
+        };
+      }
+      grouped[item.productId].quantity += item.quantity;
+    });
+    return Object.entries(grouped);
+  }, [printingOrder, products]);
+
+  const handlePrintNetwork = async () => {
+    if (!printingHistoryOrder) return;
+    if (!settings || !settings.printerIp) {
+      window.print();
+      return;
+    }
+    
+    setIsPrinting(true);
+    try {
+        const payload = {
+             printerIp: settings.printerIp,
+             type: settings.printerType || 'EPSON',
+             data: {
+                 businessName: settings.name,
+                 date: printingHistoryOrder.createdAt || new Date().toISOString(),
+                 clientName: printingHistoryOrder.clientName || 'Consumidor',
+                 clientAddress: printingHistoryOrder.clientAddress,
+                 paymentMethod: printingHistoryOrder.paymentMethod,
+                 deliveryFee: printingHistoryOrder.deliveryFee || 0,
+                 subtotal: printingHistoryOrder.items.reduce((acc, item) => acc + (item.quantity * item.price), 0),
+                 total: printingHistoryOrder.total,
+                 items: printingHistoryOrder.items.map(item => ({
+                     name: ((item as any).product?.name || (item as any).productName || 'Item').substring(0, 20),
+                     quantity: item.quantity,
+                     price: item.price,
+                     total: item.price * item.quantity
+                 }))
+             }
+        };
+        await db.printThermalReceipt(payload);
+        setPrintingHistoryOrder(null);
+        alert("Cupom de comprovação enviado para a impressora.");
+    } catch(e: any) {
+        console.error(e);
+        alert("Erro de Impressão: " + (e.message || 'Falha ao acessar impressora da rede.'));
+    } finally {
+      setIsPrinting(false);
+    }
+  };
+
+
+  useEffect(() => {
+    if (storeStatus.status === 'online' && storeStatus.next_status_change) {
+      const updateCountdown = () => {
+        const diffMs = new Date(storeStatus.next_status_change!).getTime() - new Date().getTime();
+        if (diffMs > 0 && diffMs <= 30 * 60 * 1000) {
+          const mins = Math.floor(diffMs / 60000);
+          const secs = Math.floor((diffMs % 60000) / 1000);
+          setCountdown(`${String(mins).padStart(2, '0')}:${String(secs).padStart(2, '0')}`);
+        } else {
+          setCountdown(null);
+        }
+      };
+      updateCountdown();
+      const interval = setInterval(updateCountdown, 1000);
+      return () => clearInterval(interval);
+    } else {
+      setCountdown(null);
+    }
+  }, [storeStatus]);
+
+  if (isLoading) return null;
+
+  if (!currentUser) {
+    return <Login onLoginSuccess={setCurrentUser} />;
+  }
+
+  if (!driver) {
+    return (
+      <div className="flex flex-col items-center justify-center h-screen p-8 text-center bg-slate-50 select-none">
+        <div className="w-24 h-24 bg-white rounded-full shadow-xl flex items-center justify-center mb-6">
+          <Icons.Alert className="w-12 h-12 text-blue-500" />
+        </div>
+        <h2 className="text-2xl font-black text-slate-800 uppercase tracking-tight mb-2">Acesso Restrito</h2>
+        <p className="text-slate-500 text-sm max-w-xs leading-relaxed mb-8">
+          Sua conta (<span className="font-bold text-slate-700">{currentUser.email}</span>) não está vinculada a um entregador.
+        </p>
+        <button onClick={() => setIsLogoutModalOpen(true)} className="px-8 py-4 bg-slate-900 text-white rounded-2xl font-black uppercase text-xs tracking-widest shadow-xl active:scale-95 transition-all">Sair</button>
+      </div>
+    );
+  }
+
+  if (settings && settings.enableDriverApp === false) {
+    return (
+      <div className="min-h-screen bg-slate-900 flex flex-col items-center justify-center p-8 text-center select-none">
+        <div className="w-24 h-24 bg-rose-600 rounded-3xl flex items-center justify-center shadow-2xl shadow-rose-500/20 transform -rotate-12 mb-8 animate-bounce">
+          <span className="text-white text-4xl font-black">!</span>
+        </div>
+        <h1 className="text-3xl font-black text-white tracking-tighter uppercase mb-4">Módulo Desativado</h1>
+        <p className="text-slate-400 font-bold uppercase text-[10px] tracking-widest leading-relaxed max-w-xs">
+          O acesso ao aplicativo de entregas foi desativado nas configurações do estabelecimento.
+        </p>
+        <div className="mt-12 h-1 w-12 bg-rose-600 rounded-full"></div>
+      </div>
+    );
+  }
+
+  return (
+    <div className="flex flex-col h-[100dvh] bg-slate-50 overflow-hidden select-none">
+      {/* Store Status Banner */}
+      {(storeStatus.status === 'offline' || countdown !== null) && (
+        <div className={`px-4 py-2 text-[10px] font-black uppercase tracking-widest text-white sticky top-0 z-[60] animate-in slide-in-from-top duration-300 text-center ${storeStatus.status === 'offline' ? 'bg-rose-600/90 backdrop-blur-md' : 'bg-orange-500/90 backdrop-blur-md'}`}>
+          {storeStatus.status === 'offline'
+            ? (storeStatus.is_manually_closed ? 'Loja Fechada Temporariamente' : 'Loja Fora do Horário de Funcionamento')
+            : `Atenção: A loja fechará em ${countdown} minutos!`
+          }
+        </div>
+      )}
+
+      {/* NOVELTY ALERT */}
+      {isAlertOpen && (
+        <div className={`fixed top-6 left-6 right-6 z-[100] ${customAlertMessage?.toLowerCase().includes('cancelada') ? 'bg-rose-600' : 'bg-blue-600'} text-white p-6 rounded-[2rem] shadow-2xl flex items-center gap-4 animate-in slide-in-from-top duration-500`}>
+          <div className="w-12 h-12 bg-white/20 rounded-2xl flex items-center justify-center shrink-0">
+            <Icons.Alert className="w-6 h-6" />
+          </div>
+          <div className="flex-1">
+            <h4 className="font-black text-sm uppercase tracking-tight">
+              {customAlertMessage?.toLowerCase().includes('cancelada') ? 'ENTREGA CANCELADA!' : customAlertMessage ? 'AVISO!' : 'NOVA ENTREGA!'}
+            </h4>
+            <p className="text-[10px] font-bold opacity-80 uppercase leading-tight">
+              {customAlertMessage || 'Você recebeu uma nova rota de entrega.'}
+            </p>
+          </div>
+          <button onClick={() => { setIsAlertOpen(false); setCustomAlertMessage(null); }} className="w-8 h-8 rounded-full bg-white/10 flex items-center justify-center">
+            <Icons.Check className="w-4 h-4" />
+          </button>
+        </div>
+      )}
+
+      {/* HEADER COMPACTO */}
+      <header className="bg-white px-6 py-4 flex justify-between items-center shadow-sm z-20 border-b border-slate-100 shrink-0">
+        <div className="flex flex-col">
+          <h1 className="text-xl font-black text-slate-900 tracking-tighter leading-none">ENTREGADOR <span className="text-blue-600">APP</span></h1>
+          <div className="flex items-center gap-1.5 mt-1">
+            <div className={`w-1.5 h-1.5 rounded-full ${storeStatus.status === 'online' ? 'bg-emerald-500 animate-pulse' : 'bg-red-500'}`} />
+            <span className="text-[10px] font-black uppercase tracking-widest text-slate-400">Loja {storeStatus.status === 'online' ? 'Aberta' : 'Fechada'}</span>
+          </div>
+        </div>
+        <div className="flex items-center gap-4">
+          <div className="flex flex-col items-end">
+            <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-0.5">Olá,</span>
+            <span className="text-sm font-black text-slate-800">{driver.name.split(' ')[0]}</span>
+          </div>
+          <button onClick={() => setIsLogoutModalOpen(true)} className="p-2 text-slate-300 hover:text-red-500 transition-all">
+            <Icons.SignOut className="w-5 h-5" />
+          </button>
+        </div>
+      </header>
+
+      {/* CONTEÚDO PRINCIPAL */}
+      <main className={`flex-1 relative ${activeTab === 'CHAT' ? 'overflow-hidden' : 'overflow-y-auto p-4 pb-24 custom-scrollbar'}`}>
+        {activeTab === 'PENDING' && (
+          <div className="flex flex-col gap-4 animate-in slide-in-from-right duration-300">
+            {/* RESUMO DE HOJE */}
+            <div className="bg-slate-900 p-6 rounded-[2.5rem] shadow-xl shadow-slate-200 mb-2 relative overflow-hidden group">
+              <div className="absolute top-0 right-0 w-32 h-32 bg-blue-500/10 rounded-full -mr-16 -mt-16 blur-3xl group-hover:bg-blue-500/20 transition-all duration-700" />
+              <div className="relative flex justify-between items-center">
+                <div>
+                  <h3 className="text-blue-400 text-[10px] font-black uppercase tracking-[0.2em] mb-1">Entregas de Hoje</h3>
+                  <div className="flex items-baseline gap-2">
+                    <span className="text-4xl font-black text-white">
+                      {historyOrders.filter(o => {
+                        const orderDate = new Date(o.createdAt).toLocaleDateString('en-CA'); // YYYY-MM-DD format regardless of TZ
+                        const todayDate = new Date().toLocaleDateString('en-CA');
+                        return orderDate === todayDate;
+                      }).length}
+                    </span>
+                    <span className="text-xs font-bold text-slate-400 uppercase tracking-widest">Concluídas</span>
+                  </div>
+                </div>
+                <button
+                  onClick={() => setActiveTab('HISTORY')}
+                  className="bg-white/10 hover:bg-white/20 text-white px-5 py-3 rounded-2xl text-[10px] font-black uppercase tracking-widest transition-all backdrop-blur-md border border-white/10 active:scale-95"
+                >
+                  Ver Histórico
+                </button>
+              </div>
+            </div>
+
+            <div className="flex justify-between items-center mb-1 mt-2">
+              <h3 className="text-xs font-black text-slate-400 uppercase tracking-widest pl-1">Entregas Pendentes ({myOrders.length})</h3>
+            </div>
+            {myOrders.length > 0 ? myOrders.map(order => (
+              <div key={order.id} className="bg-white p-5 rounded-[2rem] shadow-sm border border-slate-100 flex flex-col gap-4 active:scale-[0.98] transition-all">
+                <div className="flex justify-between items-start">
+                  <div>
+                    <span className="text-[10px] font-black text-blue-600 uppercase tracking-widest">Pedido #{order.id.split('-')[1] || order.id}</span>
+                    <h4 className="text-lg font-black text-slate-800 leading-tight mt-0.5">{order.clientName}</h4>
+                  </div>
+                  <div className={`px-4 py-1.5 rounded-full text-[9px] font-black uppercase text-white shadow-lg ${order.status === OrderStatus.READY ? 'bg-amber-500' : 'bg-blue-600'}`}>
+                    {OrderStatusLabels[order.status]}
+                  </div>
+                </div>
+
+                <div className="bg-slate-50/80 p-4 rounded-2xl flex flex-col gap-1 border border-slate-100">
+                  <div className="flex items-center justify-between mb-1">
+                    <div className="flex items-center gap-2">
+                      <Icons.Logistics className="w-3.5 h-3.5 text-blue-500" />
+                      <span className="text-[9px] font-black text-slate-400 uppercase tracking-widest">Destino do Pedido</span>
+                    </div>
+                    {order.clientPhone && (
+                      <a
+                        href={`tel:${order.clientPhone}`}
+                        className="p-2 bg-white rounded-xl shadow-sm border border-slate-100 text-blue-600 hover:scale-110 active:scale-95 transition-all"
+                        title="Ligar para o Cliente"
+                      >
+                        <Icons.Chat className="w-3.5 h-3.5" />
+                      </a>
+                    )}
+                  </div>
+                  <p className="text-xs font-bold text-slate-700 leading-snug mb-2">{order.clientAddress}</p>
+
+                  <div className="flex items-center gap-3 mt-1">
+                    <a
+                      href={`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(order.clientAddress || '')}`}
+                      target="_blank" rel="noopener noreferrer"
+                      className="text-[10px] font-black text-blue-600 uppercase hover:underline inline-flex items-center gap-1"
+                    >
+                      Abrir no GPS <Icons.Map className="w-3 h-3" />
+                    </a>
+                    {order.clientPhone && (
+                      <a
+                        href={`tel:${order.clientPhone}`}
+                        className="text-[10px] font-black text-emerald-600 uppercase hover:underline inline-flex items-center gap-1"
+                      >
+                        Ligar para Cliente <Icons.Chat className="w-3 h-3" />
+                      </a>
+                    )}
+                  </div>
+                </div>
+
+                <div className="flex justify-between items-center pt-2">
+                  <div className="flex flex-col">
+                    <span className="text-[9px] font-black text-slate-400 uppercase tracking-widest">Total</span>
+                    <span className="text-xl font-black text-slate-900">R$ {order.total.toFixed(2)}</span>
+                  </div>
+                  <div className="flex gap-2">
+                    <div className="flex gap-2 items-center">
+                      <button onClick={() => setPrintingOrder(order)} className="p-3 bg-slate-900 text-white rounded-2xl shadow-xl active:scale-90 transition-all">
+                        <Icons.Print className="w-5 h-5" />
+                      </button>
+                      {order.status === OrderStatus.READY ? (
+                        <div className="flex flex-col gap-3">
+                          {order.assignedAt && (
+                            <CheckoutTimer 
+                              assignedAt={order.assignedAt} 
+                              timeoutMinutes={settings?.orderTimeoutMinutes || 5} 
+                            />
+                          )}
+                          <div className="flex gap-2">
+                            <button
+                              onClick={() => updateDeliveryStatus(order.id, OrderStatus.READY, '')}
+                              className="px-4 py-3 bg-slate-100 text-slate-500 rounded-2xl font-black uppercase text-[10px] tracking-widest active:scale-95 transition-all"
+                            >
+                              Rejeitar
+                            </button>
+                            <button
+                              onClick={() => updateDeliveryStatus(order.id, OrderStatus.OUT_FOR_DELIVERY, driver.id)}
+                              className="px-6 py-3 bg-blue-600 text-white rounded-2xl font-black uppercase text-[10px] tracking-widest shadow-xl shadow-blue-500/30 active:scale-95 transition-all flex-1"
+                            >
+                              Aceitar
+                            </button>
+                          </div>
+                        </div>
+                      ) : (
+                        <div className="flex flex-col gap-2 items-end">
+                          {(!order.paymentMethod || order.paymentMethod === "") ? (
+                            <div className="flex flex-col gap-1 items-end mb-1">
+                              <span className="text-[8px] font-black text-slate-400 uppercase tracking-widest mr-1">Selecionar Pagamento:</span>
+                              <div className="flex gap-1">
+                                {['DINHEIRO', 'PIX', 'CARTÃO', 'FIADO'].map(m => (
+                                  <button
+                                    key={m}
+                                    onClick={() => setSelectedPayments(prev => ({ ...prev, [order.id]: m }))}
+                                    className={`px-3 py-1.5 rounded-lg text-[8px] font-black uppercase transition-all ${selectedPayments[order.id] === m ? 'bg-blue-600 text-white shadow-md' : 'bg-slate-100 text-slate-400'}`}
+                                  >
+                                    {m}
+                                  </button>
+                                ))}
+                              </div>
+                            </div>
+                          ) : (
+                            <div className="flex flex-col items-end mb-1">
+                              <span className="text-[8px] font-black text-slate-400 uppercase tracking-widest mr-1">Pagamento Definido:</span>
+                              <span className="text-[10px] font-black text-blue-600 uppercase tracking-widest">{(paymentLabels[(order.paymentMethod || '').toUpperCase()] || order.paymentMethod || 'Não Informado').toUpperCase()}</span>
+                            </div>
+                          )}
+
+                          <button
+                            onClick={() => {
+                              const payMethod = order.paymentMethod || selectedPayments[order.id];
+                              if (!payMethod) {
+                                return alert("Por favor, selecione a forma de pagamento antes de finalizar.");
+                              }
+                              updateDeliveryStatus(order.id, OrderStatus.DELIVERED, undefined, payMethod);
+                            }}
+                            className="px-6 py-3 bg-emerald-500 text-white rounded-2xl font-black uppercase text-[10px] tracking-widest shadow-xl shadow-emerald-500/30 active:scale-95 transition-all w-full"
+                          >
+                            Finalizar
+                          </button>
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                </div>
+              </div>
+            )) : (
+              <div className="flex flex-col items-center justify-center py-20 bg-white rounded-[3rem] border border-dashed border-slate-200">
+                <div className="w-16 h-16 bg-slate-50 rounded-full flex items-center justify-center mb-4">
+                  <Icons.Logistics className="w-8 h-8 text-slate-300" />
+                </div>
+                <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Nenhuma entrega pendente</p>
+              </div>
+            )}
+          </div>
+        )}
+
+        {activeTab === 'HISTORY' && (
+          <div className="flex flex-col gap-4 animate-in slide-in-from-right duration-300">
+            <div className="bg-white p-4 rounded-3xl shadow-sm border border-slate-100 flex gap-3 mb-2 overflow-x-auto custom-scrollbar shrink-0">
+              <div className="flex-1 min-w-[120px]">
+                <span className="text-[9px] font-black text-slate-400 uppercase tracking-widest ml-1">Início</span>
+                <input type="date" value={historyStartDate} onChange={e => setHistoryStartDate(e.target.value)} className="w-full p-3 bg-slate-50 rounded-xl text-xs font-bold border-none" />
+              </div>
+              <div className="flex-1 min-w-[120px]">
+                <span className="text-[9px] font-black text-slate-400 uppercase tracking-widest ml-1">Fim</span>
+                <input type="date" value={historyEndDate} onChange={e => setHistoryEndDate(e.target.value)} className="w-full p-3 bg-slate-50 rounded-xl text-xs font-bold border-none" />
+              </div>
+            </div>
+            {historyOrders.filter(o => {
+              const date = new Date(o.createdAt).toLocaleDateString('en-CA');
+              return date >= historyStartDate && date <= historyEndDate;
+            }).map(order => (
+              <div key={order.id} className="bg-white p-5 rounded-[2rem] shadow-sm border border-slate-50 flex flex-col gap-3 group">
+                <div className="flex justify-between items-center">
+                  <div>
+                    <h5 className="text-sm font-black text-slate-800 uppercase leading-none">{order.clientName}</h5>
+                    <span className="text-[9px] font-black text-slate-400 uppercase tracking-widest">{new Date(order.createdAt).toLocaleDateString('pt-BR')}</span>
+                  </div>
+                  <button onClick={() => setPrintingHistoryOrder(order)} className="p-2.5 bg-slate-50 text-slate-400 hover:text-blue-600 rounded-xl transition-all">
+                    <Icons.Print className="w-4 h-4" />
+                  </button>
+                </div>
+                <div className="flex justify-between items-center border-t border-slate-50 pt-2">
+                  <span className="text-[10px] font-bold text-emerald-500 uppercase tracking-widest flex items-center gap-1">
+                    <div className="w-1 h-1 bg-emerald-500 rounded-full" /> Finalizada
+                  </span>
+                  <span className="text-sm font-black text-slate-800">R$ {order.total.toFixed(2)}</span>
+                </div>
+              </div>
+            ))}
+          </div>
+        )}
+
+        {activeTab === 'CHAT' && (
+          <div className="flex flex-col h-full bg-white animate-in slide-in-from-right duration-300">
+            <div className="p-4 border-b border-slate-100 bg-white flex justify-between items-center shrink-0">
+              <h3 className="text-xs font-black text-slate-800 uppercase tracking-widest flex items-center gap-2">
+                <div className="w-2 h-2 bg-emerald-500 rounded-full animate-pulse-ring" /> Suporte Logística
+              </h3>
+            </div>
+            <div className="flex-1 overflow-y-auto p-6 flex flex-col gap-4 custom-scrollbar bg-slate-50/30">
+              {messages.length === 0 && (
+                <div className="flex flex-col items-center justify-center py-12 opacity-30">
+                  <Icons.Dashboard className="w-12 h-12 mb-4" />
+                  <p className="text-[10px] font-black uppercase tracking-widest">Inicie um diálogo com a base</p>
+                </div>
+              )}
+              {messages.map((msg, i) => (
+                <div key={msg.id || i} className={`flex ${msg.isFromDriver ? 'justify-end' : 'justify-start'}`}>
+                  <div className={`max-w-[80%] p-4 rounded-3xl shadow-sm text-sm ${msg.isFromDriver ? 'bg-blue-600 text-white rounded-tr-none' : 'bg-slate-100 text-slate-800 rounded-tl-none'}`}>
+                    <p className="font-bold mb-0.5">{msg.content}</p>
+                    <span className={`text-[9px] uppercase font-black tracking-widest opacity-60 block mt-1 ${msg.isFromDriver ? 'text-right' : 'text-left'}`}>
+                      {new Date(msg.timestamp).toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' })}
+                    </span>
+                  </div>
+                </div>
+              ))}
+              <div ref={chatEndRef} />
+            </div>
+            <form onSubmit={handleSendMessage} className="p-4 bg-white border-t border-slate-100 flex gap-2 pb-6">
+              <input
+                type="text" value={newMessage}
+                onChange={e => setNewMessage(e.target.value)}
+                placeholder="Sua mensagem..."
+                className="flex-1 bg-slate-50 border border-slate-100 rounded-2xl px-5 py-4 text-sm font-bold focus:ring-4 focus:ring-blue-50 focus:border-blue-200 focus:bg-white transition-all outline-none"
+              />
+              <button type="submit" className="w-14 h-14 bg-blue-600 text-white rounded-2xl shadow-xl shadow-blue-500/20 flex items-center justify-center active:scale-95 transition-all">
+                <Icons.Send className="w-6 h-6 -rotate-12" />
+              </button>
+            </form>
+          </div>
+        )}
+      </main>
+
+      <BlinkCSS />
+      {/* NAVIGATION BAR - MOBILE STYLE - FIXED AT BOTTOM */}
+      <nav className="shrink-0 bg-white/95 backdrop-blur-xl border-t border-slate-100 px-6 py-4 flex justify-between items-center z-30 shadow-[0_-10px_30px_-15px_rgba(0,0,0,0.1)] pb-safe">
+        <button
+          onClick={() => handleTabChange('PENDING')}
+          className={`flex flex-col items-center gap-1 transition-all ${activeTab === 'PENDING' ? 'text-blue-600 scale-110' : 'text-slate-300'}`}
+        >
+          <Icons.Logistics className="w-6 h-6" />
+          <span className="text-[9px] font-black uppercase tracking-widest">Início</span>
+        </button>
+        <button
+          onClick={() => handleTabChange('CHAT')}
+          className={`flex flex-col items-center gap-1 transition-all relative ${activeTab === 'CHAT' ? 'text-blue-600 scale-110' : 'text-slate-300'} ${hasUnreadChat && activeTab !== 'CHAT' ? 'animate-blink' : ''}`}
+        >
+          <div className="relative">
+            <Icons.Chat className={`w-6 h-6 ${hasUnreadChat && activeTab !== 'CHAT' ? 'text-amber-500' : ''}`} />
+            {hasUnreadChat && activeTab !== 'CHAT' && (
+              <span className="absolute -top-1 -right-1 w-2 h-2 bg-amber-500 rounded-full border border-white" />
+            )}
+          </div>
+          <span className={`text-[9px] font-black uppercase tracking-widest ${hasUnreadChat && activeTab !== 'CHAT' ? 'text-amber-600' : ''}`}>Chat</span>
+        </button>
+        <button
+          onClick={() => handleTabChange('HISTORY')}
+          className={`flex flex-col items-center gap-1 transition-all ${activeTab === 'HISTORY' ? 'text-blue-600 scale-110' : 'text-slate-300'}`}
+        >
+          <Icons.History className="w-6 h-6" />
+          <span className="text-[9px] font-black uppercase tracking-widest">Histórico</span>
+        </button>
+      </nav>
+
+      {/* MODALS DE IMPRESSÃO - REUTILIZADOS MAS ESTILIZADOS */}
+      {printingOrder && (
+        <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-slate-900/80 backdrop-blur-md animate-in fade-in duration-200" onClick={() => setPrintingOrder(null)}>
+          <div className="relative w-full max-w-sm bg-white p-6 rounded-[2.5rem] shadow-2xl overflow-hidden font-receipt" onClick={e => e.stopPropagation()}>
+            <div className="text-center mb-6 pb-4 border-b border-dashed border-slate-200">
+              <h2 className="font-black text-lg uppercase tracking-tight">PEDIDO #{printingOrder.id.split('-')[1] || printingOrder.id}</h2>
+              <p className="text-[10px] font-black text-slate-400 mt-1 uppercase tracking-widest">Resumo de Entrega</p>
+            </div>
+            <div className="flex flex-col gap-1 mb-4 text-xs font-bold text-slate-800">
+              <p>CLIENTE: {printingOrder.clientName}</p>
+              <p className="leading-tight mt-1 bg-slate-50 p-3 rounded-xl border border-slate-100">DESTINO: {printingOrder.clientAddress}</p>
+              <p className="mt-1 flex justify-between">
+                <span>PAGAMENTO:</span>
+                <span className="text-blue-600 uppercase">{paymentLabels[(printingOrder.paymentMethod || '').toUpperCase()] || printingOrder.paymentMethod || 'PENDENTE'}</span>
+              </p>
+            </div>
+            <div className="border-y border-dashed border-slate-200 py-3 mb-4 max-h-40 overflow-y-auto custom-scrollbar">
+              {groupedPrintingItems.map(([id, data]) => (
+                <div key={id} className="flex justify-between items-center py-0.5">
+                  <span className="text-[11px] font-black">{data.quantity}x {data.name}</span>
+                  <span className="text-[11px] font-black">R$ {(data.quantity * data.price).toFixed(2)}</span>
+                </div>
+              ))}
+            </div>
+            <div className="flex justify-between items-center mb-6 px-1 text-[10px] font-black uppercase tracking-widest text-slate-400">
+              <span>TAXA ENTREGA:</span>
+              <span className="text-slate-900">R$ {(printingOrder.deliveryFee || 0).toFixed(2)}</span>
+            </div>
+            <div className="flex justify-between items-end mb-8 px-1">
+              <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest leading-none">VALOR FINAL:</span>
+              <span className="text-2xl font-black text-blue-600 leading-none">R$ {printingOrder.total.toFixed(2)}</span>
+            </div>
+            <button onClick={() => setPrintingOrder(null)} className="w-full py-4 bg-slate-100 text-slate-600 rounded-2xl font-black uppercase text-xs tracking-widest hover:bg-slate-200 transition-all">Fechar visualização</button>
+          </div>
+        </div>
+      )}
+
+      {printingHistoryOrder && (
+        <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-slate-900/80 backdrop-blur-md animate-in fade-in duration-200" onClick={() => setPrintingHistoryOrder(null)}>
+          <div className="relative w-full max-w-[58mm] bg-white p-4 border border-dashed shadow-2xl font-receipt text-[10px] text-black print-container is-receipt" onClick={e => e.stopPropagation()}>
+            <div className="text-center mb-6 border-b border-dashed pb-4">
+              <h2 className="font-black text-sm uppercase tracking-tighter">ESTABELECIMENTO</h2>
+              <p className="text-[9px] font-bold mt-1 uppercase">Cópia de Comprovante</p>
+            </div>
+            <div className="space-y-1 mb-4">
+              <p>DATA: {new Date(printingHistoryOrder.createdAt).toLocaleString('pt-BR')}</p>
+              <p>CLIENTE: {printingHistoryOrder.clientName}</p>
+              {printingHistoryOrder.clientAddress && (
+                <p className="font-bold border-t border-dashed mt-2 pt-1 uppercase leading-tight">ENTREGA: {printingHistoryOrder.clientAddress}</p>
+              )}
+              <p className="font-bold border-t border-dashed mt-2 pt-1 uppercase">PAGAMENTO: {paymentLabels[(printingHistoryOrder.paymentMethod || '').toUpperCase()] || printingHistoryOrder.paymentMethod || 'DINHEIRO'}</p>
+              <p className="font-bold border-t border-dashed mt-2 pt-1 uppercase">ENTREGADOR: {driver.name}</p>
+            </div>
+            <div className="flex justify-between items-center border-t border-dashed pt-4 mb-2 text-[10px] uppercase font-black">
+              <span>Taxa Entrega:</span>
+              <span>R$ {(printingHistoryOrder.deliveryFee || 0).toFixed(2)}</span>
+            </div>
+            <div className="flex justify-between items-end border-t border-dashed pt-4 mb-6">
+              <span className="font-black text-[9px] uppercase tracking-widest">TOTAL:</span>
+              <span className="text-2xl font-black">R$ {printingHistoryOrder.total.toFixed(2)}</span>
+            </div>
+            <div className="flex gap-2 no-print">
+              <button onClick={handlePrintNetwork} disabled={isPrinting} className="flex-1 bg-slate-900 text-white py-4 rounded-2xl font-black uppercase text-[10px] shadow-xl disabled:opacity-50">{isPrinting ? 'Enviando...' : 'Imprimir'}</button>
+              <button onClick={() => setPrintingHistoryOrder(null)} className="flex-1 bg-slate-100 text-slate-600 py-4 rounded-2xl font-black uppercase text-[10px]">Fechar</button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      <LogoutModal
+        isOpen={isLogoutModalOpen}
+        onConfirm={() => {
+          handleLogout();
+          setIsLogoutModalOpen(false);
+        }}
+        onCancel={() => setIsLogoutModalOpen(false)}
+      />
+    </div>
+  );
+};
+
+export default App;

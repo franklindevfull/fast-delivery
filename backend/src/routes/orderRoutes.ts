@@ -1,0 +1,17 @@
+import { Router } from 'express';
+import * as orderController from '../controllers/orderController';
+const router = Router();
+router.get('/', orderController.getAllOrders);
+router.get('/client/my-orders', orderController.getClientOrders);
+router.get('/:id', orderController.getOrderById);
+router.post('/', orderController.saveOrder);
+router.delete('/:id', orderController.deleteOrder);
+router.patch('/:id/status', orderController.updateOrderStatus);
+router.patch('/:id/items/ready', orderController.markItemsReady);
+router.patch('/:id/payment', orderController.updateOrderPaymentMethod);
+router.patch('/:id/service-fee', orderController.updateOrderServiceFee);
+router.put('/:id/items', orderController.updateOrderItems);
+
+router.get('/:id/messages', orderController.getOrderMessages);
+router.post('/:id/messages', orderController.addOrderMessage);
+export default router;

@@ -1,0 +1,642 @@
+import type { Client, Product, Order, User, AuditLog, InventoryItem, RecipeItem, DeliveryDriver, OrderStatus, TableSession, Waiter, InventoryMovement, CashSession, OrderRejection, BusinessSettings, Coupon, Campaign } from '../types';
+
+const API_URL = (import.meta as any).env.VITE_API_URL || 'http://localhost:3000/api';
+const AUTH_KEY = 'delivery_fast_auth';
+
+
+
+
+const DEFAULT_SETTINGS: BusinessSettings = {
+  key: 'default',
+  name: 'Fast Food Express',
+  cnpj: '12.345.678/0001-90',
+  address: 'Av. Paulista, 1000 - São Paulo, SP',
+  phone: '(11) 98888-7777',
+  deliveryFee: 'R$ 8,00',
+  tableCount: 10,
+  geofenceRadius: 30,
+  isManuallyClosed: false,
+  operatingHours: '[]',
+  orderTimeoutMinutes: 30,
+  maxChange: 191,
+  enableNfcEmission: false,
+  waiterPrivacyEnabled: false,
+  waiterPrivacyTimer: 60,
+  enableDeliveryApp: true,
+  enableDigitalMenu: true,
+  enableWaiterApp: true,
+  enableDriverApp: true,
+  qrCodeBaseUrl: ''
+};
+
+class APIDBService {
+  private async request<T>(path: string, options: RequestInit = {}, retries = 2): Promise<T> {
+    try {
+      const response = await fetch(`${API_URL}${path}`, {
+        ...options,
+        headers: {
+          'Content-Type': 'application/json',
+          ...options.headers,
+        },
+      });
+
+      if (!response.ok) {
+        // Se for erro temporário de servidor (Cold Start / Bad Gateway), tenta de novo
+        if (retries > 0 && (response.status === 502 || response.status === 503 || response.status === 504)) {
+          await new Promise(r => setTimeout(r, 2000));
+          return this.request(path, options, retries - 1);
+        }
+
+        let message = '';
+        let technicalDetails = '';
+        try {
+          const errorData = await response.json();
+          message = errorData.error || errorData.message;
+          technicalDetails = errorData.details || '';
+          
+          if (technicalDetails) {
+            console.error(`[API-ERROR] ${path}:`, technicalDetails);
+          }
+        } catch (e) {
+          // Fallback to status translations
+        }
+
+        if (!message) {
+          switch (response.status) {
+            case 400: message = 'Dados inválidos ou incompletos'; break;
+            case 401: message = 'Acesso não Autorizado'; break;
+            case 403: message = 'Você não tem permissão para esta ação'; break;
+            case 404: message = 'Recurso não encontrado'; break;
+            case 500: message = 'Erro interno no servidor (Impressão/Processamento)'; break;
+            default: message = `Erro inesperado: Status ${response.status}`;
+          }
+        }
+
+        // Se tiver detalhes técnicos, anexa à mensagem de erro para o usuário ver no Toast
+        const finalMessage = technicalDetails ? `${message} (${technicalDetails})` : message;
+        throw new Error(finalMessage);
+      }
+
+      return response.json();
+    } catch (e: any) {
+      console.error(`[FETCH-FAILED] ${path}:`, e);
+      if (retries > 0 && e.name !== 'Error') { // Só tenta de novo se for erro de rede, não erro 4xx/5xx já tratado
+        await new Promise(r => setTimeout(r, 2000));
+        return this.request(path, options, retries - 1);
+      }
+      throw e;
+    }
+  }
+
+  // Waiters
+  public async getWaiters(): Promise<Waiter[]> { return this.request<Waiter[]>('/waiters'); }
+  public async saveWaiter(waiter: Waiter) {
+    await this.request('/waiters', { method: 'POST', body: JSON.stringify(waiter) });
+    await this.logAction(this.getCurrentSession()?.user || null, 'SYSTEM_UPDATE', waiter.id ? `Garçom editado: ${waiter.name}` : `Novo garçom cadastrado: ${waiter.name}`);
+  }
+  public async deleteWaiter(id: string) {
+    const resp = await this.request<any>(`/waiters/${id}`, { method: 'DELETE' });
+    await this.logAction(this.getCurrentSession()?.user || null, 'SYSTEM_DELETE', `Garçom removido: ${id}`);
+    return resp;
+  }
+  public async toggleWaiterStatus(id: string, active: boolean) {
+    await this.request('/waiters/toggle-status', { method: 'POST', body: JSON.stringify({ id, active }) });
+    await this.logAction(this.getCurrentSession()?.user || null, 'SYSTEM_UPDATE', `Status do garçom ${id} alterado para ${active ? 'Ativo' : 'Inativo'}.`);
+  }
+  public async resetWaiter(id: string) {
+    await this.request('/waiters/reset', { method: 'POST', body: JSON.stringify({ id }) });
+    await this.logAction(this.getCurrentSession()?.user || null, 'SYSTEM_UPDATE', `Segurança do garçom ${id} resetada.`);
+  }
+
+  // Table Management
+  public async getTableSessions(): Promise<TableSession[]> { return this.request<TableSession[]>('/tables'); }
+  public async saveTableSession(session: TableSession, isRejection: boolean = false) {
+    await this.request(`/tables${isRejection ? '?rejection=true' : ''}`, { method: 'POST', body: JSON.stringify(session) });
+    await this.logAction(this.getCurrentSession()?.user || null, 'SYSTEM_UPDATE', `Sessão da mesa ${session.tableNumber} salva/atualizada.`);
+  }
+  public async deleteTableSession(tableNumber: number, isCancellation: boolean = false) {
+    const resp = await this.request<any>(`/tables/${tableNumber}${isCancellation ? '?cancellation=true' : ''}`, { method: 'DELETE' });
+    await this.logAction(this.getCurrentSession()?.user || null, 'SYSTEM_DELETE', `Sessão da mesa ${tableNumber} cancelada/removida.`);
+    return resp;
+  }
+
+  public async logAction(user: User | null, action: AuditLog['action'], details: string) {
+    await this.request('/audit', {
+      method: 'POST',
+      body: JSON.stringify({ user, action, details })
+    });
+  }
+
+  public async resetDatabase(): Promise<void> {
+    await this.request('/maintenance/reset', { method: 'POST' });
+    localStorage.removeItem(AUTH_KEY);
+  }
+
+  getCurrentSession(): { user: User; timestamp: number } | null {
+    const saved = localStorage.getItem(AUTH_KEY);
+    return saved ? JSON.parse(saved) : null;
+  }
+
+  public async login(email: string, pass: string): Promise<User | null> {
+    try {
+      const user = await this.request<User>('/auth/login', {
+        method: 'POST',
+        body: JSON.stringify({ email, password: pass })
+      });
+      if (user) {
+        localStorage.setItem(AUTH_KEY, JSON.stringify({ user, timestamp: Date.now() }));
+        return user;
+      }
+      return null;
+    } catch (e) {
+      return null;
+    }
+  }
+
+  public async verifyWaiterLogin(email: string, pass: string): Promise<User | null> {
+    try {
+      // Use the standard login endpoint to validate, but do NOT persist to localStorage
+      // which allows a waiter to authenticate an action while the main Admin session remains intact.
+      const user = await this.request<User>('/auth/login', {
+        method: 'POST',
+        body: JSON.stringify({ email, password: pass })
+      });
+      return user || null;
+    } catch (e) {
+      return null;
+    }
+  }
+
+  public async verifyAdminPassword(password: string): Promise<boolean> {
+    try {
+      const resp = await this.request<{ valid: boolean }>('/auth/verify-admin', {
+        method: 'POST',
+        body: JSON.stringify({ password })
+      });
+      return resp.valid;
+    } catch (e) {
+      return false;
+    }
+  }
+
+  public async logout() {
+    const session = this.getCurrentSession();
+    if (session) {
+      await this.request('/auth/logout', {
+        method: 'POST',
+        body: JSON.stringify({ userId: session.user.id })
+      });
+    }
+    localStorage.removeItem(AUTH_KEY);
+  }
+
+  // Drivers
+  public async getDrivers(): Promise<DeliveryDriver[]> { return this.request<DeliveryDriver[]>('/drivers'); }
+  public async saveDriver(driver: DeliveryDriver) {
+    await this.request('/drivers', { method: 'POST', body: JSON.stringify(driver) });
+    await this.logAction(this.getCurrentSession()?.user || null, 'SYSTEM_UPDATE', driver.id ? `Driver editado: ${driver.name}` : `Novo driver cadastrado: ${driver.name}`);
+  }
+  public async deleteDriver(id: string) {
+    const resp = await this.request<any>(`/drivers/${id}`, { method: 'DELETE' });
+    await this.logAction(this.getCurrentSession()?.user || null, 'SYSTEM_DELETE', `Driver deletado: ${id}`);
+    return resp;
+  }
+  public async toggleDriverStatus(id: string, active: boolean) {
+    await this.request('/drivers/toggle-status', { method: 'POST', body: JSON.stringify({ id, active }) });
+    await this.logAction(this.getCurrentSession()?.user || null, 'SYSTEM_UPDATE', `Status do entregador ${id} alterado para ${active ? 'Ativo' : 'Inativo'}.`);
+  }
+  public async resetDriver(id: string) {
+    await this.request('/drivers/reset', { method: 'POST', body: JSON.stringify({ id }) });
+    await this.logAction(this.getCurrentSession()?.user || null, 'SYSTEM_UPDATE', `Segurança do entregador ${id} resetada.`);
+  }
+
+  // Inventory
+  public async getInventory(): Promise<InventoryItem[]> { return this.request<InventoryItem[]>('/inventory'); }
+  public async saveInventoryItem(item: InventoryItem) {
+    await this.request('/inventory', { method: 'POST', body: JSON.stringify(item) });
+    await this.logAction(this.getCurrentSession()?.user || null, 'SYSTEM_UPDATE', item.id ? `Item de estoque editado: ${item.name}` : `Novo item de estoque: ${item.name}`);
+  }
+  public async deleteInventoryItem(id: string) {
+    const resp = await this.request<any>(`/inventory/${id}`, { method: 'DELETE' });
+    await this.logAction(this.getCurrentSession()?.user || null, 'SYSTEM_DELETE', `Item de estoque deletado: ${id}`);
+    return resp;
+  }
+
+  // Products
+  public async getProducts(): Promise<Product[]> { return this.request<Product[]>('/products'); }
+  public async saveProduct(product: Product) {
+    await this.request('/products', { method: 'POST', body: JSON.stringify(product) });
+    await this.logAction(this.getCurrentSession()?.user || null, 'SYSTEM_UPDATE', product.id ? `Produto editado: ${product.name}` : `Novo produto criado: ${product.name}`);
+  }
+  public async deleteProduct(id: string) {
+    const resp = await this.request<any>(`/products/${id}`, { method: 'DELETE' });
+    await this.logAction(this.getCurrentSession()?.user || null, 'SYSTEM_DELETE', `Produto deletado: ${id}`);
+    return resp;
+  }
+  public async updateProductRecipe(productId: string, recipe: RecipeItem[]) {
+    const products = await this.getProducts();
+    const prod = products.find(p => p.id === productId);
+    if (prod) {
+      prod.recipe = recipe;
+      await this.saveProduct(prod);
+      await this.logAction(this.getCurrentSession()?.user || null, 'SYSTEM_UPDATE', `Ficha técnica editada: Produto ${prod.name}`);
+    }
+  }
+
+  // Orders
+  public async getOrders(startDate?: string, endDate?: string): Promise<Order[]> {
+    const params = new URLSearchParams();
+    if (startDate) params.append('startDate', startDate);
+    if (endDate) params.append('endDate', endDate);
+    const query = params.toString() ? `?${params.toString()}` : '';
+    return this.request<Order[]>(`/orders${query}`);
+  }
+
+  public async getClientOrders(clientId: string, startDate?: string, endDate?: string): Promise<Order[]> {
+    const params = new URLSearchParams();
+    params.append('clientId', clientId);
+    if (startDate) params.append('startDate', startDate);
+    if (endDate) params.append('endDate', endDate);
+    return this.request<Order[]>(`/orders/client/my-orders?${params.toString()}`);
+  }
+
+  public async getSupportMessages(): Promise<any[]> {
+    return this.request('/support');
+  }
+
+  public async validateStockForOrder(items: { productId: string, quantity: number }[]): Promise<{ valid: boolean, message?: string }> {
+    const inventory = await this.getInventory();
+    const products = await this.getProducts();
+
+    for (const item of items) {
+      const prod = products.find(p => p.id === item.productId);
+      if (!prod?.recipe) continue;
+      for (const r of prod.recipe) {
+        const invI = inventory.find(i => i.id === r.inventoryItemId);
+        if (invI) {
+          const needed = r.quantity * item.quantity * r.wasteFactor;
+          if (invI.quantity < needed) return { valid: false, message: `Falta ${invI.name}` };
+        }
+      }
+    }
+    return { valid: true };
+  }
+
+  // Deduct stock is now handled on the backend within the saveOrder transaction
+  public async saveOrder(order: Order, user: User) {
+    await this.request('/orders', {
+      method: 'POST',
+      body: JSON.stringify({ order, user })
+    });
+  }
+
+  public async updateOrderStatus(orderId: string, status: OrderStatus, user: User, driverId?: string) {
+    await this.request(`/orders/${orderId}/status`, {
+      method: 'PATCH',
+      body: JSON.stringify({ status, driverId, user })
+    });
+  }
+
+  public async markItemsReady(orderId: string, itemIds: string[], user: User) {
+    return this.request<Order>(`/orders/${orderId}/items/ready`, {
+      method: 'PATCH',
+      body: JSON.stringify({ itemIds, user })
+    });
+  }
+
+  public async getOrderById(id: string): Promise<Order> {
+    return this.request<Order>(`/orders/${id}`);
+  }
+
+  public async updateOrderItems(id: string, items: { productId: string, quantity: number, price: number, observations?: string }[], user: User): Promise<Order> {
+    return this.request<Order>(`/orders/${id}/items`, {
+      method: 'PUT',
+      body: JSON.stringify({ items, user })
+    });
+  }
+
+  public async updateOrderPaymentMethod(orderId: string, paymentMethod: string, user: User) {
+    await this.request(`/orders/${orderId}/payment`, {
+      method: 'PATCH',
+      body: JSON.stringify({ paymentMethod, user })
+    });
+  }
+
+  public async updateOrderServiceFee(orderId: string, newFee: number, user: User) {
+    await this.request(`/orders/${orderId}/service-fee`, {
+      method: 'PATCH',
+      body: JSON.stringify({ newFee, user })
+    });
+  }
+
+  public async transferTable(from: number, to: number, waiterId: string, userPermissions?: string[]) {
+    return this.request('/tables/transfer', {
+      method: 'POST',
+      body: JSON.stringify({ from, to, waiterId, userPermissions })
+    });
+  }
+
+  public async deleteOrder(id: string, user: User, reason?: string) {
+    await this.request(`/orders/${id}`, {
+      method: 'DELETE',
+      body: JSON.stringify({ user, reason })
+    });
+  }
+
+  // Settings
+  public async getSettings(): Promise<BusinessSettings> {
+    try {
+      const settings = await this.request<BusinessSettings>('/settings');
+      return settings || DEFAULT_SETTINGS;
+    } catch (e) {
+      return DEFAULT_SETTINGS;
+    }
+  }
+
+  public async getStoreOperationalStatus(): Promise<{ status: 'online' | 'offline', is_manually_closed: boolean, next_status_change: string | null }> {
+    try {
+      // Use the public endpoint which calculates logic based on operating hours
+      return await this.request('/public/store-status');
+    } catch (e) {
+      return { status: 'offline', is_manually_closed: true, next_status_change: null };
+    }
+  }
+
+  public async saveSettings(s: BusinessSettings) {
+    await this.request('/settings', { method: 'POST', body: JSON.stringify(s) });
+    await this.logAction(this.getCurrentSession()?.user || null, 'SYSTEM_UPDATE', `Configurações da loja alteradas.`);
+  }
+
+  // Users & CRM
+  public async getUsers(): Promise<User[]> { return this.request<User[]>('/users'); }
+  public async saveUser(u: User) {
+    await this.request('/users', { method: 'POST', body: JSON.stringify(u) });
+    await this.logAction(this.getCurrentSession()?.user || null, 'SYSTEM_UPDATE', `Usuário salvo/editado: ${u.name}`);
+  }
+  public async deleteUser(id: string) {
+    await this.request(`/users/${id}`, { method: 'DELETE' });
+    await this.logAction(this.getCurrentSession()?.user || null, 'SYSTEM_DELETE', `Usuário excluído: ${id}`);
+  }
+  public async toggleUserStatus(id: string, active: boolean) {
+    await this.request('/users/toggle-status', { method: 'POST', body: JSON.stringify({ id, active }) });
+    await this.logAction(this.getCurrentSession()?.user || null, 'SYSTEM_UPDATE', `Status do usuário ${id} alterado para ${active ? 'Ativo' : 'Inativo'}.`);
+  }
+  public async resetUser(id: string) {
+    await this.request('/users/reset', { method: 'POST', body: JSON.stringify({ id }) });
+    await this.logAction(this.getCurrentSession()?.user || null, 'SYSTEM_UPDATE', `Senha do usuário ${id} resetada.`);
+  }
+
+  public async getClients(): Promise<Client[]> { return this.request<Client[]>('/clients'); }
+  public async saveClient(c: Client) {
+    await this.request('/clients', { method: 'POST', body: JSON.stringify(c) });
+    await this.logAction(this.getCurrentSession()?.user || null, 'SYSTEM_UPDATE', c.id ? `Cliente atualizado: ${c.name}` : `Novo cliente cadastrado: ${c.name}`);
+  }
+  public async deleteClient(id: string, user: User) {
+    await this.request(`/clients/${id}`, {
+      method: 'DELETE',
+      body: JSON.stringify({ user })
+    });
+    await this.logAction(this.getCurrentSession()?.user || null, 'SYSTEM_DELETE', `Cliente deletado: ${id}`);
+  }
+
+  public async resetClientPin(id: string, user: User): Promise<{ message: string, pin: string }> {
+    return this.request<{ message: string, pin: string }>(`/clients/${id}/reset-pin`, {
+      method: 'PUT',
+      body: JSON.stringify({ user })
+    });
+  }
+
+  public async resetClientPassword(id: string, user: User): Promise<{ message: string }> {
+    return this.request<{ message: string }>(`/clients/${id}/reset-password`, {
+      method: 'PUT',
+      body: JSON.stringify({ user })
+    });
+  }
+
+  public async getAuditLogs(startDate?: string, endDate?: string): Promise<AuditLog[]> {
+    let path = '/audit';
+    const params = new URLSearchParams();
+    if (startDate) params.append('start', startDate);
+    if (endDate) params.append('end', endDate);
+    if (params.toString()) path += `?${params.toString()}`;
+    return this.request<AuditLog[]>(path);
+  }
+
+  public async getInventoryMovements(startDate?: string, endDate?: string): Promise<InventoryMovement[]> {
+    let path = '/inventory/movements';
+    const params = new URLSearchParams();
+    if (startDate) params.append('start', startDate);
+    if (endDate) params.append('end', endDate);
+    if (params.toString()) path += `?${params.toString()}`;
+    return this.request<InventoryMovement[]>(path);
+  }
+
+  // Chat
+  public async getChatHistory(driverId: string): Promise<any[]> {
+    return this.request<any[]>(`/chat/${driverId}`);
+  }
+
+  public async sendChatMessage(message: { driverId: string, content: string, senderName: string, isFromDriver: boolean }) {
+    return this.request('/chat', {
+      method: 'POST',
+      body: JSON.stringify(message)
+    });
+  }
+
+  public async getRejections(): Promise<OrderRejection[]> {
+    return this.request<OrderRejection[]>('/drivers/rejections');
+  }
+
+  // Client Chat (Delivery App - Support System)
+  public async getClientChatHistory(orderId: string): Promise<any[]> {
+    return this.request<any[]>(`/orders/${orderId}/messages`);
+  }
+
+  public async getClientSupportHistory(clientId: string): Promise<any[]> {
+    return this.request<any[]>(`/support?clientId=${clientId}`);
+  }
+
+  public async sendClientChatMessage(orderId: string, text: string, sender: string, isFromClient: boolean) {
+    return this.request(`/orders/${orderId}/messages`, {
+      method: 'POST',
+      body: JSON.stringify({
+        text,
+        sender: isFromClient ? 'CLIENT' : 'STORE'
+      })
+    });
+  }
+
+  public async sendAdminSupportMessage(clientId: string, message: string, userName: string) {
+    return this.request('/support', {
+      method: 'POST',
+      body: JSON.stringify({
+        clientId,
+        message,
+        userName,
+        isAdmin: true
+      })
+    });
+  }
+
+  // Cash Session
+  public async getActiveCashSession(): Promise<CashSession | null> {
+    try {
+      return await this.request<CashSession>('/cash/status');
+    } catch (e) {
+      return null;
+    }
+  }
+
+  public async openCashSession(initialBalance: number, user: User): Promise<CashSession> {
+    const session = await this.request<CashSession>('/cash/open', {
+      method: 'POST',
+      body: JSON.stringify({ initialBalance, user })
+    });
+    await this.logAction(user, 'SYSTEM_UPDATE', `Caixa aberto. Saldo Inicial: R$ ${initialBalance.toFixed(2)}`);
+    return session;
+  }
+
+  public async closeCashSession(sessionId: string, reports: { cash: number, pix: number, credit: number, debit: number, others?: number, fiado?: number, observations?: string }, user: User): Promise<CashSession> {
+    const session = await this.request<CashSession>(`/cash/close`, {
+      method: 'POST',
+      body: JSON.stringify({ sessionId, ...reports, user })
+    });
+    await this.logAction(user, 'SYSTEM_UPDATE', `Caixa fechado (Sessão: ${sessionId}).`);
+    return session;
+  }
+
+  public async getClosurePreview(): Promise<{ systemCash: number, systemPix: number, systemCredit: number, systemDebit: number, systemOthers: number, totalSales: number, systemFiado: number, orphanSales: number }> {
+    return this.request<{ systemCash: number, systemPix: number, systemCredit: number, systemDebit: number, systemOthers: number, totalSales: number, systemFiado: number, orphanSales: number }>('/cash/preview');
+  }
+
+  public async updateCashSession(data: { id: string, cash: number, pix: number, credit: number, debit: number, others?: number, fiado?: number, observations?: string, user: User }): Promise<CashSession> {
+    const session = await this.request<CashSession>('/cash/update', {
+      method: 'PATCH',
+      body: JSON.stringify(data)
+    });
+    await this.logAction(data.user, 'SYSTEM_UPDATE', `Revisão manual nos saldos do caixa fechado (Sessão: ${data.id}).`);
+    return session;
+  }
+
+  public async getCashSessions(startDate?: string, endDate?: string): Promise<CashSession[]> {
+    let path = '/cash/list';
+    const params = new URLSearchParams();
+    if (startDate) params.append('start', startDate);
+    if (endDate) params.append('end', endDate);
+    if (params.toString()) path += `?${params.toString()}`;
+    return this.request<CashSession[]>(path);
+  }
+
+  public async reopenCashSession(sessionId: string, user: User): Promise<CashSession> {
+    const session = await this.request<CashSession>('/cash/reopen', {
+      method: 'POST',
+      body: JSON.stringify({ sessionId, user })
+    });
+    await this.logAction(user, 'SYSTEM_UPDATE', `Caixa reaberto (Sessão: ${sessionId}).`);
+    return session;
+  }
+
+  // Feedbacks
+  public async getFeedbacks(): Promise<any[]> {
+    return this.request<any[]>('/public/feedback');
+  }
+
+  // Receivables (Fiado)
+  public async getReceivables(): Promise<any[]> {
+    return this.request<any[]>('/receivables');
+  }
+
+  public async receivePayment(id: string, paymentMethod: string, user: User, nfeData?: any): Promise<any> {
+    return this.request(`/receivables/${id}/pay`, {
+      method: 'POST',
+      body: JSON.stringify({ paymentMethod, user, nfeData })
+    });
+  }
+
+  public async deleteReceivable(id: string, user: User): Promise<any> {
+    return this.request(`/receivables/${id}`, {
+      method: 'DELETE',
+      body: JSON.stringify({ user })
+    });
+  }
+
+  public async updateReceivable(id: string, data: any): Promise<any> {
+    return this.request(`/receivables/${id}`, {
+      method: 'PATCH',
+      body: JSON.stringify(data)
+    });
+  }
+
+  public async verifyRecoveryCode(email: string, recoveryCode: string): Promise<boolean> {
+    try {
+      const resp = await this.request<{ valid: boolean }>('/auth/recovery/verify', {
+        method: 'POST',
+        body: JSON.stringify({ email, recoveryCode })
+      });
+      return resp.valid;
+    } catch (e) {
+      return false;
+    }
+  }
+
+  public async resetPassword(data: { email: string, recoveryCode: string, newPassword: string }): Promise<any> {
+    return this.request('/auth/reset-password', {
+      method: 'POST',
+      body: JSON.stringify(data)
+    });
+  }
+
+  // Promotions & Campaigns
+  public async getCoupons(): Promise<Coupon[]> { return this.request<Coupon[]>('/promotions'); }
+  public async saveCoupon(coupon: Coupon) {
+    const user = this.getCurrentSession()?.user;
+    return this.request<Coupon>('/promotions', {
+      method: 'POST',
+      body: JSON.stringify({ ...coupon, user })
+    });
+  }
+  public async deleteCoupon(id: string) {
+    const user = this.getCurrentSession()?.user;
+    return this.request<{ message: string }>(`/promotions/${id}`, {
+      method: 'DELETE',
+      body: JSON.stringify({ user })
+    });
+  }
+  public async validateCoupon(code: string, orderTotal: number): Promise<Coupon> {
+    return this.request<Coupon>('/promotions/validate', {
+      method: 'POST',
+      body: JSON.stringify({ code, orderTotal })
+    });
+  }
+
+  public async getCampaigns(): Promise<Campaign[]> { return this.request<Campaign[]>('/campaigns'); }
+  public async saveCampaign(campaign: Campaign) {
+    const user = this.getCurrentSession()?.user;
+    return this.request<Campaign>('/campaigns', {
+      method: 'POST',
+      body: JSON.stringify({ ...campaign, user })
+    });
+  }
+  public async deleteCampaign(id: string) {
+    const user = this.getCurrentSession()?.user;
+    return this.request<{ message: string }>(`/campaigns/${id}`, {
+      method: 'DELETE',
+      body: JSON.stringify({ user })
+    });
+  }
+  public async sendCampaign(id: string) {
+    return this.request<{ message: string }>(`/campaigns/${id}/send`, {
+      method: 'POST'
+    });
+  }
+
+  // Thermal Printing API
+  public async printThermalReceipt(payload: { printerIp?: string, printerPort?: number, type?: string, data: any }): Promise<{ success: boolean, message?: string }> {
+    return this.request<{ success: boolean, message?: string }>('/print/receipt', {
+      method: 'POST',
+      body: JSON.stringify(payload)
+    });
+  }
+}
+
+export const db = new APIDBService();

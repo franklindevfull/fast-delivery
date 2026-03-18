@@ -1,0 +1,382 @@
+import React, { useState, useEffect, useRef } from 'react';
+import { Icons } from '../constants';
+import { db } from '../services/db';
+import { User, Order, OrderStatus, TableSession, SaleType, BusinessSettings } from '../types';
+import { useDigitalAlert } from '../hooks/useDigitalAlert';
+import { audioAlert } from '../services/audioAlert';
+import { socket, chatUnreadManager, clientChatUnreadManager, feedbackUnreadManager } from '../services/socket';
+import { useTheme } from './ThemeProvider';
+
+interface LayoutProps {
+  children: React.ReactNode;
+  activeTab: string;
+  setActiveTab: (tab: string) => void;
+  currentUser: User;
+  onLogout: () => void;
+}
+
+const Layout: React.FC<LayoutProps> = ({ children, activeTab, setActiveTab, currentUser, onLogout }) => {
+  const [shouldBlinkMonitor, setShouldBlinkMonitor] = useState(false);
+  const [shouldBlinkPOS, setShouldBlinkPOS] = useState(false);
+  const [shouldBlinkLogistics, setShouldBlinkLogistics] = useState(false);
+  const [shouldBlinkKitchen, setShouldBlinkKitchen] = useState(false);
+  const [shouldBlinkTables, setShouldBlinkTables] = useState(false);
+  const [shouldBlinkDeliveryApp, setShouldBlinkDeliveryApp] = useState(false);
+  const [shouldBlinkLogisticsChat, setShouldBlinkLogisticsChat] = useState(false);
+  const [shouldBlinkDeliveryAppChat, setShouldBlinkDeliveryAppChat] = useState(false);
+  const [shouldBlinkPOSFeedback, setShouldBlinkPOSFeedback] = useState(false);
+  const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(true);
+  const [settings, setSettings] = useState<BusinessSettings | null>(null);
+  const { theme, toggleTheme } = useTheme();
+  const { isAlerting } = useDigitalAlert();
+  const lastOrdersMap = useRef<Record<string, { status: OrderStatus, itemCount: number }>>({});
+  const isFirstRun = useRef(true);
+  const isDataInitialized = useRef(false);
+  const prevAlertStates = useRef({ kitchen: false, tables: false, logistics: false, deliveryApp: false });
+
+  const allNavItems = [
+    { id: 'dashboard', label: 'Dashboard', icon: Icons.Dashboard },
+    { id: 'pos', label: 'PDV / Vendas', icon: Icons.POS },
+    { id: 'sales-monitor', label: 'Monitor de Vendas', icon: Icons.View },
+    { id: 'tables', label: 'Gestão de Mesas', icon: Icons.Table },
+    { id: 'kitchen', label: 'Cozinha', icon: Icons.Kitchen },
+    { id: 'crm', label: 'Clientes (CRM)', icon: Icons.CRM },
+    { id: 'inventory', label: 'Estoque / Cardápio', icon: Icons.Inventory },
+    { id: 'delivery-orders', label: 'App Delivery (Pedidos)', icon: Icons.Smartphone },
+    { id: 'logistics', label: 'Logística', icon: Icons.Logistics },
+    { id: 'receivables', label: 'Recebimentos (Fiado)', icon: Icons.Receivables },
+    { id: 'qrcodes', label: 'QR Codes das Mesas', icon: Icons.Dashboard },
+    { id: 'reports', label: 'Relatórios', icon: Icons.Print },
+    { id: 'engagement', label: 'Engajamento & Promoções', icon: Icons.Megaphone },
+    { id: 'settings', label: 'Configurações', icon: Icons.Settings },
+  ];
+
+  useEffect(() => {
+    const monitorSystem = async (silent = false) => {
+      const orders = await db.getOrders();
+
+      // 1. Checagem do Monitor de Vendas (Mudanças de Status) e Cozinha (Novos Pedidos)
+      let hasOrderChange = false;
+      let hasNewOrder = false;
+
+      orders.forEach(order => {
+        const prev = lastOrdersMap.current[order.id];
+        const currentItemCount = order.items?.length || 0;
+
+        // Delivery App flow exception:
+        const isDeliveryAppOrder = order.isOriginDeliveryApp;
+
+        if (prev) {
+          if (prev.status !== order.status) {
+            hasOrderChange = true;
+          }
+          if (order.type === SaleType.TABLE && currentItemCount > prev.itemCount) {
+            hasNewOrder = true;
+          }
+          // If a Delivery App order changes from PENDING to PREPARING, it has been ACCEPTED.
+          // This should trigger the Kitchen alert because now it needs to be made.
+          if (isDeliveryAppOrder && prev.status === OrderStatus.PENDING && order.status === OrderStatus.PREPARING) {
+            hasNewOrder = true;
+          }
+        } else {
+          // Brand new order seen for the first time.
+          if (isDeliveryAppOrder && order.status === OrderStatus.PENDING) {
+            // Do NOT trigger Cozinha alert for new Pending delivery-app orders.
+            // They must be accepted first by the Delivery App module.
+          } else {
+            hasNewOrder = true;
+          }
+        }
+
+        lastOrdersMap.current[order.id] = {
+          status: order.status,
+          itemCount: currentItemCount
+        };
+      });
+
+      if (!silent && !isFirstRun.current) {
+        if (hasOrderChange && activeTab !== 'sales-monitor') {
+          setShouldBlinkMonitor(true);
+        }
+
+        if (hasNewOrder) {
+          setShouldBlinkKitchen(true);
+        }
+      }
+
+      // 2. Checagem do PDV (Mesas aguardando recebimento)
+      const tableSessions = await db.getTableSessions();
+      const hasBillingTables = tableSessions.some(s => s.status === 'billing');
+      if (!silent && !isFirstRun.current) {
+        setShouldBlinkPOS(hasBillingTables && activeTab !== 'pos');
+      }
+
+      // 3. Checagem de Logística (Pedidos prontos para entrega)
+      // Logística brilha se houver pedido READY mas AINDA SEM entregador (exige vinculação)
+      const hasReadyDelivery = orders.some(o => o.status === OrderStatus.READY && o.type === SaleType.OWN_DELIVERY && !o.driverId);
+
+      if (!silent && !isFirstRun.current) {
+        setShouldBlinkLogistics(hasReadyDelivery);
+      }
+
+      // 4. Checagem de Mesas (Pedidos digitais pendentes)
+      const hasPendingDigital = tableSessions.some(s => s.hasPendingDigital);
+      if (!silent && !isFirstRun.current) {
+        setShouldBlinkTables(hasPendingDigital);
+      }
+
+      // 4.1 Checagem Delivery App (Pedidos novos esperando aceite)
+      const hasDeliveryAppOrders = orders.some(o => o.isOriginDeliveryApp && o.status === OrderStatus.PENDING);
+      if (!silent && !isFirstRun.current) {
+        setShouldBlinkDeliveryApp(hasDeliveryAppOrders);
+      }
+
+      // 5. Tocar Alertas Sonoros apenas em transições (false -> true)
+      if (!silent && isDataInitialized.current) {
+        const alertState = prevAlertStates.current;
+        if (hasNewOrder && !alertState.kitchen) audioAlert.play();
+        if (hasPendingDigital && !alertState.tables) audioAlert.play();
+        if (hasReadyDelivery && !alertState.logistics) audioAlert.play();
+        if (hasDeliveryAppOrders && !alertState.deliveryApp) audioAlert.play();
+      }
+
+      // Sincroniza estados anteriores para o próximo loop
+      prevAlertStates.current = {
+        ...prevAlertStates.current,
+        kitchen: hasNewOrder,
+        tables: hasPendingDigital,
+        logistics: hasReadyDelivery,
+        deliveryApp: hasDeliveryAppOrders
+      };
+
+      isFirstRun.current = false;
+    };
+
+    const checkData = async () => {
+      // Primeiro 'run' silencioso para evitar alerta de login
+      const initialSettings = await db.getSettings();
+      setSettings(initialSettings);
+      await monitorSystem(true);
+      isDataInitialized.current = true;
+    };
+    checkData();
+
+    const interval = setInterval(() => monitorSystem(false), 3000);
+
+    return () => clearInterval(interval);
+  }, [activeTab]);
+
+  useEffect(() => {
+    const unsubscribe = feedbackUnreadManager.subscribe((hasUnread) => {
+      setShouldBlinkPOSFeedback(hasUnread);
+      if (hasUnread && activeTab !== 'pos') {
+        audioAlert.play();
+      }
+    });
+
+    // Initialize state
+    setShouldBlinkPOSFeedback(feedbackUnreadManager.getHasUnread());
+
+    return () => unsubscribe();
+  }, [activeTab]);
+
+  useEffect(() => {
+    // Chat Monitoring for Module Level Blink via Global Managers
+    const unsubscribeDrivers = chatUnreadManager.subscribe((unreads) => {
+      // Only blink if we are NOT inside Logistics, or if we ARE inside Logistics but NOT on the chat tab.
+      // We will handle the exact clearing logic inside Logistics itself.
+      setShouldBlinkLogisticsChat(unreads.size > 0);
+    });
+
+    const unsubscribeClients = clientChatUnreadManager.subscribe((unreads) => {
+      setShouldBlinkDeliveryAppChat(unreads.size > 0);
+    });
+
+    // Initial check
+    setShouldBlinkLogisticsChat(chatUnreadManager.getUnreads().size > 0);
+    setShouldBlinkDeliveryAppChat(clientChatUnreadManager.getUnreads().size > 0);
+
+    const joinAllRooms = async () => {
+      const drivers = await db.getDrivers();
+      drivers.forEach(d => socket.emit('join_chat', d.id));
+    };
+    joinAllRooms();
+
+    return () => {
+      unsubscribeDrivers();
+      unsubscribeClients();
+    };
+  }, []); // Run once to subscribe to global managers
+
+
+  useEffect(() => {
+    if (activeTab === 'kitchen') setShouldBlinkKitchen(false);
+    if (activeTab === 'sales-monitor') setShouldBlinkMonitor(false);
+    if (activeTab === 'pos') {
+      setShouldBlinkPOS(false);
+    }
+    if (activeTab === 'logistics') {
+      setShouldBlinkLogistics(false);
+    }
+    if (activeTab === 'delivery-orders') {
+      setShouldBlinkDeliveryApp(false);
+    }
+    if (activeTab === 'tables') setShouldBlinkTables(false);
+  }, [activeTab]);
+  const navItems = allNavItems.filter(item => {
+    const hasPermission = currentUser.permissions.includes(item.id);
+    if (!hasPermission) return false;
+
+    // Se o usuário tiver permissão de admin ou config, ele ignora os bloqueios globais
+    // Isso permite que o Administrador Master sempre veja os módulos que configurou para si mesmo.
+    const isMaster = currentUser.permissions.includes('admin') || currentUser.permissions.includes('settings');
+
+    if (settings && !isMaster) {
+      if (item.id === 'delivery-orders' && settings.enableDeliveryApp === false) return false;
+      if (item.id === 'tables' && (settings.enableDigitalMenu === false && settings.enableWaiterApp === false)) return false;
+      if (item.id === 'qrcodes' && settings.enableDigitalMenu === false) return false;
+      if (item.id === 'logistics' && settings.enableDeliveryApp === false && settings.enableDriverApp === false) return false;
+    }
+
+    return true;
+  });
+
+  return (
+    <div className="flex h-screen bg-slate-50 dark:bg-slate-950 overflow-hidden transition-colors duration-300">
+      {/* Sidebar */}
+      <aside className={`${isSidebarCollapsed ? 'w-20' : 'w-64'} bg-slate-900 text-white flex flex-col shadow-xl shrink-0 transition-all duration-300 ease-in-out border-r border-slate-800`}>
+        <div
+          onClick={() => setIsSidebarCollapsed(!isSidebarCollapsed)}
+          className="px-3 py-4 flex items-center justify-between overflow-hidden cursor-pointer hover:bg-slate-800/10 transition-colors group/logo"
+          title={isSidebarCollapsed ? "Expandir Menu" : "Recolher Menu"}
+        >
+          {!isSidebarCollapsed && (
+            <h1 className="text-xl font-bold tracking-tight flex items-center gap-2 animate-in fade-in slide-in-from-left-2 duration-300">
+              <span className="p-3 bg-blue-600 rounded-xl shrink-0 group-hover/logo:scale-110 transition-transform shadow-lg shadow-blue-900/50">DF</span>
+              <span className="truncate">Delivery Fast</span>
+            </h1>
+          )}
+          {isSidebarCollapsed && (
+            <div className="w-full p-3 bg-blue-600 rounded-xl flex items-center justify-center group-hover/logo:scale-110 transition-transform shadow-lg shadow-blue-900/50">
+              <span className="text-white font-black">DF</span>
+            </div>
+          )}
+        </div>
+
+
+        <nav className="flex-1 mt-2 px-3 space-y-1 overflow-y-auto scrollbar-hide">
+          {navItems.map((item) => {
+            const isMonitor = item.id === 'sales-monitor';
+            const isPOS = item.id === 'pos';
+            const isLogistics = item.id === 'logistics';
+            const isKitchen = item.id === 'kitchen';
+            const isTables = item.id === 'tables';
+            const isDeliveryApp = item.id === 'delivery-orders';
+            const isAlertActive = (isMonitor && shouldBlinkMonitor) ||
+              (isPOS && (shouldBlinkPOS || shouldBlinkPOSFeedback)) ||
+              (isLogistics && (shouldBlinkLogistics || shouldBlinkLogisticsChat)) ||
+              (isKitchen && (isAlerting || shouldBlinkKitchen)) ||
+              (isTables && (isAlerting || shouldBlinkTables)) ||
+              (isDeliveryApp && (shouldBlinkDeliveryApp || shouldBlinkDeliveryAppChat));
+
+            const blinkClass = isAlertActive ? 'animate-notify-turquoise border border-cyan-400/30' : '';
+
+            return (
+              <button
+                key={item.id}
+                onClick={() => setActiveTab(item.id)}
+                className={`w-full flex items-center gap-3 px-3 py-3 rounded-xl transition-all duration-200 group relative ${activeTab === item.id
+                  ? 'bg-blue-600 text-white shadow-lg shadow-blue-900/50'
+                  : 'text-slate-400 hover:bg-slate-800 hover:text-white'
+                  } ${blinkClass} ${isSidebarCollapsed ? 'justify-center' : ''}`}
+                title={isSidebarCollapsed ? item.label : ''}
+              >
+                <div className="shrink-0 scale-110 relative">
+                  <item.icon />
+                  {isAlertActive && (
+                    <span className="absolute -top-1.5 -right-1.5 w-3 h-3 bg-rose-500 rounded-full border-2 border-slate-900 animate-pulse z-10"></span>
+                  )}
+                </div>
+                {!isSidebarCollapsed && (
+                  <span className="font-medium truncate animate-in fade-in slide-in-from-left-1 duration-200">
+                    {item.label}
+                  </span>
+                )}
+                {isSidebarCollapsed && !isAlertActive && (
+                  <div className="absolute left-full ml-2 px-2 py-1 bg-slate-800 text-white text-[10px] rounded opacity-0 group-hover:opacity-100 pointer-events-none transition-opacity whitespace-nowrap z-50">
+                    {item.label}
+                  </div>
+                )}
+                {isSidebarCollapsed && isAlertActive && (
+                  <div className="absolute left-full ml-2 px-2 py-1 bg-turquoise-600 text-white text-[10px] rounded opacity-100 pointer-events-none transition-opacity whitespace-nowrap z-50 font-black uppercase tracking-widest">
+                    {(shouldBlinkLogisticsChat || shouldBlinkDeliveryAppChat) ? 'Nova Mensagem' : 'Atenção'}
+                  </div>
+                )}
+              </button>
+            );
+          })}
+        </nav>
+      </aside>
+
+      <main className="flex-1 flex flex-col min-w-0 overflow-hidden">
+        <header className="h-16 md:h-20 bg-white dark:bg-slate-900 border-b border-slate-200 dark:border-slate-800 flex items-center justify-between px-4 md:px-8 shrink-0 shadow-sm z-10 transition-colors duration-300">
+          <div className="flex items-center gap-2 md:gap-6 min-w-0">
+            <h2 className="text-xs md:text-xl font-black text-slate-900 dark:text-white uppercase tracking-tighter transition-colors truncate">
+              {navItems.find(i => i.id === activeTab)?.label || 'Acesso Negado'}
+            </h2>
+
+            <div className="h-8 w-[1px] bg-slate-200 hidden md:block"></div>
+
+            {/* Sessão do Usuário Logado - Agora na Topbar */}
+            <div className="flex items-center gap-3 group">
+              <div className="w-10 h-10 rounded-2xl bg-slate-900 text-white flex items-center justify-center font-black text-sm uppercase shadow-lg shadow-slate-200 transition-transform group-hover:scale-105">
+                {currentUser.name.substring(0, 2)}
+              </div>
+              <div className="hidden sm:block">
+                <p className="text-sm font-black text-slate-900 dark:text-white uppercase tracking-tighter leading-tight transition-colors">{currentUser.name}</p>
+                <div className="flex items-center gap-2">
+                  <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse"></span>
+                  <p className="text-[9px] text-slate-400 dark:text-slate-500 font-bold uppercase tracking-widest transition-colors">Sessão Ativa</p>
+                </div>
+              </div>
+              <button
+                onClick={onLogout}
+                className="ml-1 md:ml-2 p-2.5 md:p-3 bg-slate-50 text-slate-400 hover:text-red-600 hover:bg-red-50 rounded-xl transition-all flex items-center gap-2 group/logout"
+                title="Sair do Sistema"
+              >
+                <svg xmlns="http://www.w3.org/2000/svg" className="h-4 md:h-5 w-4 md:w-5 transition-transform group-hover/logout:translate-x-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1" />
+                </svg>
+                <span className="text-[10px] font-black uppercase tracking-widest hidden lg:block">Sair</span>
+              </button>
+            </div>
+
+            <button
+              onClick={toggleTheme}
+              className="ml-2 md:ml-4 p-2.5 md:p-3 bg-slate-50 dark:bg-slate-800 text-slate-400 dark:text-slate-300 hover:text-blue-600 dark:hover:text-amber-400 hover:bg-blue-50 dark:hover:bg-slate-700 rounded-xl transition-all flex items-center justify-center"
+              title="Alternar Tema"
+            >
+              {theme === 'dark' ? <Icons.Sun className="w-4 md:w-5 h-4 md:h-5" /> : <Icons.Moon className="w-4 md:w-5 h-4 md:h-5" />}
+            </button>
+          </div>
+
+          <div className="hidden xl:flex items-center gap-4">
+            <div className="flex items-center gap-2 text-[10px] font-black text-slate-400 dark:text-slate-500 bg-slate-50 dark:bg-slate-800 border border-slate-100 dark:border-slate-700 px-4 py-2 rounded-xl uppercase tracking-widest transition-colors">
+              Email: <span className="text-slate-900 dark:text-slate-300">{currentUser.email}</span>
+            </div>
+          </div>
+        </header>
+
+        <section className="flex-1 overflow-y-auto p-4 md:p-8 dark:bg-slate-950 transition-colors duration-300" onClick={() => {
+          if (activeTab === 'kitchen') setShouldBlinkKitchen(false);
+          if (activeTab === 'tables') setShouldBlinkTables(false);
+          if (activeTab === 'logistics') setShouldBlinkLogistics(false);
+        }}>
+          {children}
+        </section>
+      </main>
+    </div>
+  );
+};
+
+export default Layout;

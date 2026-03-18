@@ -1,0 +1,1837 @@
+
+import React, { useState, useEffect, useMemo } from 'react';
+import { db } from '../services/db';
+import { Order, OrderStatus, SaleType, Client, Product, DeliveryDriver, InventoryMovement, OrderRejection, CashSession, Receivable, User, Waiter, BusinessSettings } from '../types';
+import { Icons } from '../constants';
+import CustomAlert from '../components/CustomAlert';
+import { PDFDocument, StandardFonts, rgb } from 'pdf-lib';
+import { getLocalIsoDate } from '../services/dateUtils';
+import { useToast } from '../hooks/useToast';
+
+interface ReportsProps {
+    currentUser: User | null;
+}
+
+const Reports: React.FC<ReportsProps> = ({ currentUser }) => {
+    const { addToast } = useToast();
+    const [orders, setOrders] = useState<Order[]>([]);
+    const [clients, setClients] = useState<Client[]>([]);
+    const [drivers, setDrivers] = useState<DeliveryDriver[]>([]);
+    const [businessSettings, setBusinessSettings] = useState<BusinessSettings | null>(null);
+    const [pdfPreviewUrl, setPdfPreviewUrl] = useState<string | null>(null);
+    const [rejections, setRejections] = useState<OrderRejection[]>([]);
+    const [receivables, setReceivables] = useState<(Receivable & { client: Client })[]>([]);
+    const [waiters, setWaiters] = useState<Waiter[]>([]);
+
+    // Sales Filters
+    const [salesStartDate, setSalesStartDate] = useState(getLocalIsoDate());
+    const [salesEndDate, setSalesEndDate] = useState(getLocalIsoDate());
+    const [salesPayment, setSalesPayment] = useState<string>('TODOS');
+    const [salesModality, setSalesModality] = useState<string>('TODOS');
+    const [salesOrigin, setSalesOrigin] = useState<'TODOS' | 'FISICO' | 'DIGITAL'>('TODOS');
+
+    // Tab State
+    const [activeTab, setActiveTab] = useState<'SALES' | 'CLIENTS' | 'DRIVERS' | 'INVENTORY' | 'CASH' | 'RECEIVABLES' | 'WAITERS'>('SALES');
+
+    // Cash Filters
+    const [cashStartDate, setCashStartDate] = useState(getLocalIsoDate());
+    const [cashEndDate, setCashEndDate] = useState(getLocalIsoDate());
+    const [cashSessions, setCashSessions] = useState<CashSession[]>([]);
+
+    // Inventory Filters
+    const [inventoryStartDate, setInventoryStartDate] = useState(getLocalIsoDate());
+    const [inventoryEndDate, setInventoryEndDate] = useState(getLocalIsoDate());
+
+    // Customer Filters
+    const [clientSearch, setClientSearch] = useState('');
+    const [selectedClient, setSelectedClient] = useState<Client | null>(null);
+    const [clientStartDate, setClientStartDate] = useState(getLocalIsoDate());
+    const [clientEndDate, setClientEndDate] = useState(getLocalIsoDate());
+    const [showClientDropdown, setShowClientDropdown] = useState(false);
+    const [previewType, setPreviewType] = useState<'SALES' | 'CLIENTS' | 'CLIENT_ORDERS' | 'DRIVERS' | 'INVENTORY' | 'CASH' | 'RECEIVABLES' | 'WAITERS' | 'WAITERS_ANALYTICAL' | null>(null);
+
+    // Waiter Filters
+    const [waiterStartDate, setWaiterStartDate] = useState(getLocalIsoDate());
+    const [waiterEndDate, setWaiterEndDate] = useState(getLocalIsoDate());
+    const [waiterReportType, setWaiterReportType] = useState<'CONSOLIDADO' | 'ANALITICO'>('CONSOLIDADO');
+
+    // Editing Cash Reports
+    const [isEditReportModalOpen, setIsEditReportModalOpen] = useState(false);
+    const [editingSession, setEditingSession] = useState<CashSession | null>(null);
+    const [adminPassword, setAdminPassword] = useState('');
+    const [alert, setAlert] = useState<{ title: string; message: string; type: 'SUCCESS' | 'DANGER' | 'WARNING' } | null>(null);
+
+    // Driver Filters
+    const [driverStartDate, setDriverStartDate] = useState(getLocalIsoDate());
+    const [driverEndDate, setDriverEndDate] = useState(getLocalIsoDate());
+    const [selectedDriverId, setSelectedDriverId] = useState<string>('TODOS');
+
+    // Receivables Filters
+    const [receivableFilterStatus, setReceivableFilterStatus] = useState<'ALL' | 'OVERDUE' | 'UPCOMING'>('ALL');
+    const [receivableStartDate, setReceivableStartDate] = useState(getLocalIsoDate());
+    const [receivableEndDate, setReceivableEndDate] = useState(getLocalIsoDate());
+    const [selectedWaiterId, setSelectedWaiterId] = useState<string>('TODOS');
+
+    const uniquePaymentMethods = useMemo(() => {
+        const methods = new Set<string>(['TODOS', 'DINHEIRO', 'CARTÃO', 'PIX', 'CRÉDITO', 'DÉBITO']);
+        orders.forEach(o => {
+            if (o.paymentMethod) {
+                methods.add(o.paymentMethod.toUpperCase());
+            }
+        });
+        methods.delete('TODOS');
+        const sortedMethods = Array.from(methods).sort();
+        return ['TODOS', ...sortedMethods];
+    }, [orders]);
+
+    useEffect(() => {
+        fetchData();
+    }, []);
+
+    const fetchCashSessions = async () => {
+        const cs = await db.getCashSessions(cashStartDate, cashEndDate);
+        setCashSessions(cs);
+    };
+
+    useEffect(() => {
+        if (activeTab === 'CASH') {
+            fetchCashSessions();
+        }
+    }, [cashStartDate, cashEndDate, activeTab]);
+
+    const showAlert = (title: string, message: string, type: 'SUCCESS' | 'DANGER' | 'WARNING') => {
+        setAlert({ title, message, type });
+        setTimeout(() => setAlert(null), 3000);
+    };
+
+    const handleEditReport = (session: CashSession) => {
+        setEditingSession({ ...session });
+        setIsEditReportModalOpen(true);
+    };
+
+    const handleSaveEdit = async () => {
+        if (!editingSession || !currentUser) return;
+
+        const isValidAdmin = await db.verifyAdminPassword(adminPassword);
+        if (!isValidAdmin) {
+            return showAlert("Senha Incorreta", "A senha fornecida não pertence a um Admin Master válido.", "DANGER");
+        }
+
+        try {
+            await db.updateCashSession({
+                id: editingSession.id,
+                cash: editingSession.reportedCash || 0,
+                pix: editingSession.reportedPix || 0,
+                credit: editingSession.reportedCredit || 0,
+                debit: editingSession.reportedDebit || 0,
+                others: editingSession.reportedOthers || 0,
+                fiado: editingSession.reportedFiado || 0,
+                observations: editingSession.observations || '',
+                user: currentUser
+            });
+            addToast({
+                title: "SUCESSO",
+                message: "Relatório de caixa atualizado com sucesso!",
+                type: "SUCCESS"
+            });
+            setIsEditReportModalOpen(false);
+            setEditingSession(null);
+            setAdminPassword('');
+            fetchCashSessions();
+        } catch (error) {
+            showAlert("Erro", "Não foi possível atualizar o relatório.", "DANGER");
+        }
+    };
+
+    const fetchData = async () => {
+        // Fetch data based on sales filters only if needed, otherwise default to "all" (which is now filtered by backend if no dates provided)
+        const [o, c, s, d, r, rec, w] = await Promise.all([
+            db.getOrders(salesStartDate, salesEndDate),
+            db.getClients(),
+            db.getSettings(),
+            db.getDrivers(),
+            db.getRejections(),
+            db.getReceivables(),
+            db.getWaiters()
+        ]);
+        setOrders(o);
+        setClients(c);
+        setBusinessSettings(s);
+        setDrivers(d);
+        setRejections(r);
+        setReceivables(rec);
+        setWaiters(w);
+
+        // Fetch cash sessions for current period
+        fetchCashSessions();
+    };
+
+    // Effect to re-fetch orders when sales dates change
+    useEffect(() => {
+        const refreshOrders = async () => {
+            const o = await db.getOrders(salesStartDate, salesEndDate);
+            setOrders(o);
+        };
+        if (activeTab === 'SALES') refreshOrders();
+    }, [salesStartDate, salesEndDate, activeTab]);
+
+    // Effect to re-fetch orders when driver dates change
+    useEffect(() => {
+        const refreshOrders = async () => {
+            const o = await db.getOrders(driverStartDate, driverEndDate);
+            setOrders(o);
+        };
+        if (activeTab === 'DRIVERS') refreshOrders();
+    }, [driverStartDate, driverEndDate, activeTab]);
+
+    // Effect to re-fetch orders when waiter dates change
+    useEffect(() => {
+        const refreshOrders = async () => {
+            const o = await db.getOrders(waiterStartDate, waiterEndDate);
+            setOrders(o);
+        };
+        if (activeTab === 'WAITERS' || activeTab === 'WAITERS_ANALYTICAL') refreshOrders();
+    }, [waiterStartDate, waiterEndDate, activeTab]);
+
+    const handleReopen = async (sessionId: string) => {
+        if (!currentUser || !currentUser.permissions.includes('settings')) {
+            addToast({ title: 'Acesso Negado', message: "Apenas administradores podem reabrir caixa.", type: 'DANGER' });
+            return;
+        }
+        if (!window.confirm("Deseja realmente reabrir este caixa? O fechamento atual será perdido.")) return;
+
+        try {
+            await db.reopenCashSession(sessionId, currentUser);
+            addToast({ title: 'Sucesso', message: "Caixa reaberto com sucesso!", type: 'SUCCESS' });
+            fetchData();
+        } catch (error) {
+            addToast({ title: 'Erro', message: "Erro ao reabrir caixa.", type: 'DANGER' });
+        }
+    };
+
+    const isMobile = useMemo(() => /iPhone|iPad|iPod|Android/i.test(navigator.userAgent), []);
+
+    const handlePdfOutput = async (pdfDoc: PDFDocument, fileName: string, downloadOnly: boolean, type: any) => {
+        const pdfBytes = await pdfDoc.save();
+        const blob = new Blob([pdfBytes as any], { type: 'application/pdf' });
+        const url = URL.createObjectURL(blob);
+
+        if (downloadOnly) {
+            const link = document.createElement('a');
+            link.href = url;
+            link.download = fileName;
+            link.click();
+            setTimeout(() => URL.revokeObjectURL(url), 100);
+        } else {
+            setPreviewType(type);
+            setPdfPreviewUrl(url);
+            if (isMobile) {
+                // On mobile, some browsers might still block iframes or show them poorly
+                // We'll keep the modal but provide a primary action button inside it
+            }
+        }
+    };
+
+    const getFriendlySaleType = (type: SaleType | string) => {
+        switch (type) {
+            case SaleType.COUNTER: return 'Balcão';
+            case SaleType.TABLE: return 'Mesa';
+            case SaleType.OWN_DELIVERY: return 'Delivery';
+            default: return type;
+        }
+    };
+
+    const generateSalesPDF = async (downloadOnly = false) => {
+        if (!businessSettings) return;
+
+        try {
+            const pdfDoc = await PDFDocument.create();
+            const font = await pdfDoc.embedFont(StandardFonts.Helvetica);
+            const fontBold = await pdfDoc.embedFont(StandardFonts.HelveticaBold);
+
+            const filteredOrders = orders.filter(o => {
+                const orderDateObj = new Date(o.createdAt);
+                const orderDate = getLocalIsoDate(orderDateObj);
+                const inDate = orderDate >= salesStartDate && orderDate <= salesEndDate;
+                const inPayment = salesPayment === 'TODOS' || o.paymentMethod === salesPayment;
+
+                // If checking for purely DIGITAL origins, it ignores the modality because all digital origins become TABLE sales right now.
+                // Otherwise normal modality check
+                const inModality = (salesOrigin === 'DIGITAL')
+                    ? true
+                    : (salesModality === 'TODOS' || o.type === salesModality);
+
+                const inOrigin = salesOrigin === 'TODOS' ? true : (salesOrigin === 'DIGITAL' ? o.isOriginDigitalMenu === true : (o.isOriginDigitalMenu === false || o.isOriginDigitalMenu === undefined));
+                return inDate && inPayment && inModality && inOrigin && o.status === OrderStatus.DELIVERED;
+            });
+
+            const totalRevenue = filteredOrders.reduce((sum, o) => sum + o.total, 0);
+            const orderCount = filteredOrders.length;
+            const avgTicket = orderCount > 0 ? totalRevenue / orderCount : 0;
+
+            const filteredCashSessions = await db.getCashSessions(salesStartDate, salesEndDate);
+            const totalInitialCash = filteredCashSessions.reduce((sum, cs) => sum + cs.initialBalance, 0);
+            const totalReportedCash = filteredCashSessions.reduce((sum, cs) => sum + (cs.reportedCash || 0), 0);
+
+            // Separação de Falta e Sobra
+            const totalSobra = filteredCashSessions.reduce((sum, cs) => {
+                const diff = cs.difference || 0;
+                return diff > 0 ? sum + diff : sum;
+            }, 0);
+            const totalFalta = filteredCashSessions.reduce((sum, cs) => {
+                const diff = cs.difference || 0;
+                return diff < 0 ? sum + Math.abs(diff) : sum;
+            }, 0);
+
+            // Recebimentos de Fiado (PAGOS no período)
+            const totalFiadoReceived = filteredCashSessions.reduce((sum, cs) => sum + (cs.systemFiado || 0), 0);
+
+            let totalDinheiro = 0;
+            let totalCredito = 0;
+            let totalDebito = 0;
+            let totalPix = 0;
+            let totalOutros = 0;
+            let totalFiado = 0;
+
+            const normalizePaymentMethod = (method: string): string => {
+                const m = method.toUpperCase();
+                if (m.includes('DINHEIRO') || m === 'CASH') return 'DINHEIRO';
+                if (m.includes('PIX')) return 'PIX';
+                if (m.includes('CRÉDITO') || m === 'CREDIT') return 'CRÉDITO';
+                if (m.includes('DÉBITO') || m === 'DEBIT') return 'DÉBITO';
+                if (m.includes('FIADO')) return 'FIADO';
+                return m;
+            };
+
+            filteredOrders.forEach(o => {
+                const rawMethod = (o.paymentMethod || '').toUpperCase();
+                const total = o.total || 0;
+                const split1 = o.splitAmount1 || 0;
+                const split2 = total - split1;
+
+                if (rawMethod.includes('+')) {
+                    const parts = rawMethod.split('+').map(p => p.trim());
+
+                    // Part 1
+                    const m1 = normalizePaymentMethod(parts[0]);
+                    if (m1 === 'DINHEIRO') totalDinheiro += split1;
+                    else if (m1 === 'CRÉDITO') totalCredito += split1;
+                    else if (m1 === 'DÉBITO') totalDebito += split1;
+                    else if (m1 === 'PIX') totalPix += split1;
+                    else if (m1 === 'FIADO') totalFiado += split1;
+                    else totalOutros += split1;
+
+                    // Part 2
+                    const m2 = normalizePaymentMethod(parts[1]);
+                    if (m2 === 'DINHEIRO') totalDinheiro += split2;
+                    else if (m2 === 'CRÉDITO') totalCredito += split2;
+                    else if (m2 === 'DÉBITO') totalDebito += split2;
+                    else if (m2 === 'PIX') totalPix += split2;
+                    else if (m2 === 'FIADO') totalFiado += split2;
+                    else totalOutros += split2;
+                } else {
+                    const m = normalizePaymentMethod(rawMethod);
+                    if (m === 'DINHEIRO') totalDinheiro += total;
+                    else if (m === 'CRÉDITO') totalCredito += total;
+                    else if (m === 'DÉBITO') totalDebito += total;
+                    else if (m === 'PIX') totalPix += total;
+                    else if (m === 'FIADO') totalFiado += total;
+                    else totalOutros += total;
+                }
+            });
+
+            // Adjust starting Y position for the extra lines
+            let page = pdfDoc.addPage([595.28, 841.89]);
+            const { width, height } = page.getSize();
+            let y = height - 50;
+
+            // Header
+            page.drawText('RELATÓRIO GERENCIAL DE VENDAS', { x: 50, y, size: 18, font: fontBold });
+            y -= 25;
+            page.drawText(businessSettings.name, { x: 50, y, size: 12, font: fontBold });
+            y -= 15;
+            page.drawText(`CNPJ: ${businessSettings.cnpj}`, { x: 50, y, size: 10, font });
+            y -= 15;
+            page.drawText(`Período: ${new Date(salesStartDate + 'T00:00:00').toLocaleDateString('pt-BR')} a ${new Date(salesEndDate + 'T00:00:00').toLocaleDateString('pt-BR')}`, { x: 50, y, size: 10, font });
+
+            y -= 30;
+            // KPIs
+            page.drawText('RESUMO FINANCEIRO (VENDAS)', { x: 50, y, size: 12, font: fontBold });
+            y -= 20;
+            page.drawText(`Faturamento Total: R$ ${totalRevenue.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}`, { x: 50, y, size: 10, font: fontBold, color: rgb(0, 0.4, 0) });
+            y -= 15;
+            page.drawText(`Volume de Vendas: ${orderCount}`, { x: 50, y, size: 10, font });
+            y -= 15;
+            page.drawText(`Ticket Médio: R$ ${avgTicket.toFixed(2)}`, { x: 50, y, size: 10, font });
+
+            y -= 30;
+            page.drawText('VENDAS POR FORMA DE PAGAMENTO', { x: 50, y, size: 12, font: fontBold });
+            y -= 20;
+            page.drawText(`Dinheiro: R$ ${totalDinheiro.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}`, { x: 50, y, size: 10, font });
+            y -= 15;
+            page.drawText(`Cartão de Crédito: R$ ${totalCredito.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}`, { x: 50, y, size: 10, font });
+            y -= 15;
+            page.drawText(`Cartão de Débito: R$ ${totalDebito.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}`, { x: 50, y, size: 10, font });
+            y -= 15;
+            page.drawText(`PIX: R$ ${totalPix.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}`, { x: 50, y, size: 10, font });
+            if (totalFiado > 0) {
+                y -= 15;
+                page.drawText(`Vendas a Prazo (FIADO): R$ ${totalFiado.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}`, { x: 50, y, size: 10, font });
+            }
+            if (totalOutros > 0) {
+                y -= 15;
+                page.drawText(`Outros: R$ ${totalOutros.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}`, { x: 50, y, size: 10, font });
+            }
+
+            y -= 30;
+            page.drawText('RESUMO DE CAIXA', { x: 50, y, size: 12, font: fontBold });
+            y -= 20;
+            page.drawText(`Dinheiro das Vendas (Período): R$ ${totalDinheiro.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}`, { x: 50, y, size: 10, font });
+            y -= 15;
+            page.drawText(`Fundo de Troco (Aberturas de Caixa): R$ ${totalInitialCash.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}`, { x: 50, y, size: 10, font });
+            y -= 15;
+            page.drawText(`Total de Dinheiro Físico Esperado (Vendas + Troco): R$ ${(totalDinheiro + totalInitialCash).toLocaleString('pt-BR', { minimumFractionDigits: 2 })}`, { x: 50, y, size: 10, font: fontBold });
+            y -= 15;
+            page.drawText(`Total de Dinheiro Físico Declarado (Fechamentos de Caixa): R$ ${totalReportedCash.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}`, { x: 50, y, size: 10, font });
+            y -= 15;
+            page.drawText(`Lucro Líquido Declarado em Dinheiro (Sobra após retirar o Troco): R$ ${(totalReportedCash - totalInitialCash).toLocaleString('pt-BR', { minimumFractionDigits: 2 })}`, { x: 50, y, size: 10, font: fontBold, color: rgb(0, 0.4, 0) });
+            y -= 25;
+            page.drawText('DIFERENÇAS DE CAIXA', { x: 50, y, size: 12, font: fontBold });
+            y -= 20;
+            page.drawText(`Sobra de Caixa (Diferenças Positivas): R$ ${totalSobra.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}`, { x: 50, y, size: 10, font, color: rgb(0, 0.5, 0) });
+            y -= 15;
+            page.drawText(`Falta de Caixa (Diferenças Negativas): R$ ${totalFalta.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}`, { x: 50, y, size: 10, font, color: rgb(0.8, 0, 0) });
+
+            y -= 25;
+            page.drawText('RECEBIMENTOS DE DÉBITOS (FIADO)', { x: 50, y, size: 12, font: fontBold });
+            y -= 20;
+            page.drawText(`Total Recebido de Fiado no Período: R$ ${totalFiadoReceived.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}`, { x: 50, y, size: 10, font: fontBold, color: rgb(0, 0, 0.5) });
+
+            y -= 40;
+            // Table Header
+            page.drawRectangle({ x: 50, y: y - 5, width: width - 100, height: 20, color: rgb(0.95, 0.95, 0.95) });
+            page.drawText('DATA', { x: 55, y, size: 7, font: fontBold });
+            page.drawText('HORA', { x: 100, y, size: 7, font: fontBold });
+            page.drawText('CLIENTE / MESA', { x: 140, y, size: 7, font: fontBold });
+            page.drawText('FORMA PGTO', { x: 360, y, size: 7, font: fontBold });
+            page.drawText('MOD.', { x: 465, y, size: 7, font: fontBold });
+            page.drawText('TOTAL', { x: 520, y, size: 7, font: fontBold });
+            y -= 25;
+
+            for (const o of filteredOrders) {
+                if (y < 70) {
+                    page = pdfDoc.addPage([595.28, 841.89]);
+                    y = page.getHeight() - 50;
+                }
+                const dateObj = new Date(o.createdAt);
+                const dateStr = dateObj.toLocaleDateString('pt-BR');
+                const timeStr = dateObj.toLocaleTimeString('pt-BR').substring(0, 5);
+
+                page.drawText(dateStr, { x: 55, y, size: 7, font });
+                page.drawText(timeStr, { x: 100, y, size: 7, font });
+                page.drawText(o.clientName.substring(0, 38), { x: 140, y, size: 7, font });
+                page.drawText((o.paymentMethod || 'DINHEIRO').substring(0, 20), { x: 360, y, size: 7, font });
+                page.drawText(getFriendlySaleType(o.type), { x: 465, y, size: 7, font });
+                page.drawText(`R$ ${o.total.toFixed(2)}`, { x: 520, y, size: 7, font: fontBold });
+                y -= 20;
+            }
+
+            await handlePdfOutput(pdfDoc, `relatorio_vendas_${salesStartDate}_${salesEndDate}.pdf`, downloadOnly, 'SALES');
+        } catch (error) {
+            console.error('Erro ao gerar PDF:', error);
+            addToast({ title: 'Erro', message: 'Erro ao gerar relatório.', type: 'DANGER' });
+        }
+    };
+
+    const generateClientsPDF = async (downloadOnly = false) => {
+        try {
+            const pdfDoc = await PDFDocument.create();
+            const font = await pdfDoc.embedFont(StandardFonts.Helvetica);
+            const fontBold = await pdfDoc.embedFont(StandardFonts.HelveticaBold);
+
+            let page = pdfDoc.addPage([595.28, 841.89]);
+            const { width, height } = page.getSize();
+            let y = height - 50;
+
+            const filtered = clients.filter(c =>
+                c.name.toLowerCase().includes(clientSearch.toLowerCase()) ||
+                c.phone.includes(clientSearch)
+            );
+
+            // Header
+            page.drawText('LISTA DE CLIENTES E FIDELIDADE', { x: 50, y, size: 18, font: fontBold });
+            y -= 25;
+            page.drawText('Relatório gerado via CRM Delivery Fast', { x: 50, y, size: 10, font });
+            y -= 15;
+            page.drawText(`Data de Emissão: ${new Date().toLocaleDateString('pt-BR')} ${new Date().toLocaleTimeString('pt-BR')}`, { x: 50, y, size: 10, font });
+
+            y -= 40;
+            // Table Header
+            page.drawRectangle({ x: 50, y: y - 5, width: width - 100, height: 20, color: rgb(0.95, 0.95, 0.95) });
+            page.drawText('NOME DO CLIENTE', { x: 55, y, size: 9, font: fontBold });
+            page.drawText('TELEFONE', { x: 300, y, size: 9, font: fontBold });
+            page.drawText('PEDIDOS', { x: 450, y, size: 9, font: fontBold });
+            y -= 25;
+
+            for (const client of filtered) {
+                if (y < 70) {
+                    page = pdfDoc.addPage([595.28, 841.89]);
+                    y = page.getHeight() - 50;
+                }
+
+                page.drawText(client.name.substring(0, 45), { x: 55, y, size: 9, font });
+                page.drawText(client.phone, { x: 300, y, size: 9, font });
+                page.drawText(client.totalOrders.toString(), { x: 450, y, size: 9, font: fontBold });
+                y -= 18;
+            }
+
+            await handlePdfOutput(pdfDoc, `lista_clientes_${new Date().getTime()}.pdf`, downloadOnly, 'CLIENTS');
+        } catch (error) {
+            console.error('Erro ao gerar PDF:', error);
+        }
+    };
+
+    const generateClientOrdersPDF = async (downloadOnly = false) => {
+        if (!selectedClient || !businessSettings) return;
+
+        addToast({ title: 'Aguarde', message: 'Buscando histórico completo do cliente...', type: 'INFO' });
+
+        try {
+            const pdfDoc = await PDFDocument.create();
+            const font = await pdfDoc.embedFont(StandardFonts.Helvetica);
+            const fontBold = await pdfDoc.embedFont(StandardFonts.HelveticaBold);
+
+            // Fetch COMPREHENSIVE historical data for this client within the selected range
+            const clientOrders = await db.getClientOrders(selectedClient.id, clientStartDate, clientEndDate);
+            
+            const totalRevenue = clientOrders.reduce((sum, o) => sum + o.total, 0);
+            const orderCount = clientOrders.length;
+            const avgTicket = orderCount > 0 ? totalRevenue / orderCount : 0;
+
+            let page = pdfDoc.addPage([595.28, 841.89]);
+            const { width, height } = page.getSize();
+            let y = height - 50;
+
+            // Header
+            page.drawText('RELATÓRIO DE COMPRAS DO CLIENTE (HISTÓRICO)', { x: 50, y, size: 18, font: fontBold });
+            y -= 25;
+            page.drawText(businessSettings.name, { x: 50, y, size: 12, font: fontBold });
+            y -= 15;
+            page.drawText(`Cliente: ${selectedClient.name}`, { x: 50, y, size: 10, font: fontBold });
+            y -= 15;
+            page.drawText(`Período: ${new Date(clientStartDate + 'T00:00:00').toLocaleDateString('pt-BR')} a ${new Date(clientEndDate + 'T00:00:00').toLocaleDateString('pt-BR')}`, { x: 50, y, size: 10, font });
+
+            y -= 40;
+            // KPIs
+            page.drawText('RESUMO DO PERÍODO', { x: 50, y, size: 12, font: fontBold });
+            y -= 20;
+            page.drawText(`Faturamento Total: R$ ${totalRevenue.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}`, { x: 50, y, size: 10, font });
+            y -= 15;
+            page.drawText(`Volume de Pedidos: ${orderCount}`, { x: 50, y, size: 10, font });
+            y -= 15;
+            page.drawText(`Ticket Médio: R$ ${avgTicket.toFixed(2)}`, { x: 50, y, size: 10, font });
+
+            y -= 40;
+            // Table Header
+            page.drawRectangle({ x: 50, y: y - 5, width: width - 100, height: 20, color: rgb(0.95, 0.95, 0.95) });
+            page.drawText('DATA e HORA', { x: 55, y, size: 8, font: fontBold });
+            page.drawText('DETALHES DO PEDIDO', { x: 180, y, size: 8, font: fontBold });
+            page.drawText('STATUS', { x: 400, y, size: 8, font: fontBold });
+            page.drawText('VALORES', { x: 500, y, size: 8, font: fontBold });
+            y -= 25;
+
+            for (const o of clientOrders) {
+                if (y < 120) {
+                    page = pdfDoc.addPage([595.28, 841.89]);
+                    y = page.getHeight() - 50;
+                }
+                const dateObj = new Date(o.createdAt);
+                const dateStr = `${dateObj.toLocaleDateString('pt-BR')} ${dateObj.toLocaleTimeString('pt-BR').substring(0, 5)}`;
+                
+                page.drawText(dateStr, { x: 55, y, size: 8, font });
+                
+                // Item breakdown
+                let itemY = y;
+                (o.items || []).forEach((item: any) => {
+                    const itemName = item.product?.name || 'Produto Removido';
+                    page.drawText(`• ${item.quantity}x ${itemName.substring(0, 30)}`, { x: 180, y: itemY, size: 7, font });
+                    itemY -= 10;
+                });
+
+                // Status & Rejection
+                const isDelivered = o.status === OrderStatus.DELIVERED;
+                const statusColor = isDelivered ? rgb(0, 0.5, 0) : rgb(0.8, 0, 0);
+                page.drawText(isDelivered ? 'FINALIZADA' : (o.status === 'CANCELLED' ? 'CANCELADA' : o.status), { x: 400, y, size: 8, font: fontBold, color: statusColor });
+                
+                // Rejection Reason
+                const rej = rejections.find(r => r.orderId === o.id);
+                if (rej) {
+                    page.drawText(`Motivo: ${rej.reason?.substring(0, 25) || 'N/A'}`, { x: 400, y: y - 10, size: 6, font, color: rgb(0.5, 0.5, 0.5) });
+                }
+
+                // Prices
+                page.drawText(`Total: R$ ${o.total.toFixed(2)}`, { x: 500, y, size: 8, font: fontBold });
+                if (o.deliveryFee > 0) {
+                    page.drawText(`Entrega: R$ ${o.deliveryFee.toFixed(2)}`, { x: 500, y: y - 10, size: 6, font });
+                }
+                if (o.appliedServiceFee > 0) {
+                    page.drawText(`Serviço: R$ ${o.appliedServiceFee.toFixed(2)}`, { x: 500, y: y - (o.deliveryFee > 0 ? 18 : 10), size: 6, font });
+                }
+                page.drawText(`PG: ${o.paymentMethod || 'N/A'}`, { x: 500, y: y - (o.deliveryFee > 0 && o.appliedServiceFee > 0 ? 26 : (o.deliveryFee > 0 || o.appliedServiceFee > 0 ? 18 : 10)), size: 6, font, color: rgb(0.3, 0.3, 0.3) });
+
+                y = Math.min(itemY - 15, y - 40);
+            }
+
+            await handlePdfOutput(pdfDoc, `histórico_compras_${selectedClient.name.replace(/\s+/g, '_')}_${new Date().getTime()}.pdf`, downloadOnly, 'CLIENT_ORDERS');
+        } catch (error) {
+            console.error('Erro ao gerar PDF do cliente:', error);
+            addToast({ title: 'Erro', message: 'Erro ao gerar relatório do cliente.', type: 'DANGER' });
+        }
+    };
+
+    const generateDriversPDF = async (downloadOnly = false) => {
+        if (!businessSettings) return;
+
+        try {
+            const pdfDoc = await PDFDocument.create();
+            const font = await pdfDoc.embedFont(StandardFonts.Helvetica);
+            const fontBold = await pdfDoc.embedFont(StandardFonts.HelveticaBold);
+
+            const filteredOrders = orders.filter(o => {
+                const orderDateObj = new Date(o.createdAt);
+                const orderDate = getLocalIsoDate(orderDateObj);
+                const inDate = orderDate >= driverStartDate && orderDate <= driverEndDate;
+                const inDriver = selectedDriverId === 'TODOS' || o.driverId === selectedDriverId;
+                return inDate && inDriver && o.type === SaleType.OWN_DELIVERY && o.status === OrderStatus.DELIVERED;
+            });
+
+            const totalDeliveries = filteredOrders.length;
+            const totalRevenue = filteredOrders.reduce((sum, o) => sum + o.total, 0);
+            const totalDeliveryFees = filteredOrders.reduce((sum, o) => sum + (o.deliveryFee || 0), 0);
+            const totalProductsValue = totalRevenue - totalDeliveryFees;
+
+            const filteredRejections = rejections.filter(r => {
+                const rejDateObj = new Date(r.timestamp);
+                const rejDate = getLocalIsoDate(rejDateObj);
+                const inDate = rejDate >= driverStartDate && rejDate <= driverEndDate;
+                const inDriver = selectedDriverId === 'TODOS' || r.driverId === selectedDriverId;
+                return inDate && inDriver;
+            });
+
+            const autoRejectionsCount = filteredRejections.filter(r => r.type === 'AUTO').length;
+            const manualRejectionsCount = filteredRejections.filter(r => r.type === 'MANUAL').length;
+
+            let page = pdfDoc.addPage([595.28, 841.89]);
+            const { width, height } = page.getSize();
+            let y = height - 50;
+
+            const driverName = selectedDriverId === 'TODOS' ? 'Todos os Entregadores' : (drivers.find(d => d.id === selectedDriverId)?.name || 'Desconhecido');
+
+            // Header
+            page.drawText('RELATÓRIO DE ENTREGADORES', { x: 50, y, size: 18, font: fontBold });
+            y -= 25;
+            page.drawText(businessSettings.name, { x: 50, y, size: 12, font: fontBold });
+            y -= 15;
+            page.drawText(`Entregador: ${driverName}`, { x: 50, y, size: 10, font: fontBold });
+            y -= 15;
+            page.drawText(`Período: ${new Date(driverStartDate + 'T00:00:00').toLocaleDateString('pt-BR')} a ${new Date(driverEndDate + 'T00:00:00').toLocaleDateString('pt-BR')}`, { x: 50, y, size: 10, font });
+
+            y -= 40;
+            // KPIs
+            page.drawText('RESUMO DE ENTREGAS', { x: 50, y, size: 12, font: fontBold });
+            y -= 20;
+            page.drawText(`Faturamento Vinculado: R$ ${totalRevenue.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}`, { x: 50, y, size: 10, font });
+            y -= 15;
+            page.drawText(`Valor em Produtos: R$ ${totalProductsValue.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}`, { x: 50, y, size: 10, font });
+            y -= 15;
+            page.drawText(`Total de Taxas de Entrega: R$ ${totalDeliveryFees.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}`, { x: 50, y, size: 10, font });
+            y -= 15;
+            page.drawText(`Total de Entregas Finalizadas: ${totalDeliveries}`, { x: 50, y, size: 10, font });
+            y -= 15;
+            page.drawText(`Rejeições: ${filteredRejections.length} (Auto: ${autoRejectionsCount}, Manual: ${manualRejectionsCount})`, { x: 50, y, size: 10, font: fontBold, color: rgb(0.8, 0, 0) });
+
+            y -= 40;
+            // Table Header
+            page.drawRectangle({ x: 50, y: y - 5, width: width - 100, height: 20, color: rgb(0.95, 0.95, 0.95) });
+            page.drawText('DATA | HORA', { x: 55, y, size: 7, font: fontBold });
+            page.drawText('CLIENTE', { x: 160, y, size: 7, font: fontBold });
+            page.drawText('ENTREGADOR', { x: 280, y, size: 7, font: fontBold });
+            page.drawText('TAXA', { x: 380, y, size: 7, font: fontBold });
+            page.drawText('PROD.', { x: 440, y, size: 7, font: fontBold });
+            page.drawText('TOTAL', { x: 500, y, size: 7, font: fontBold });
+            y -= 25;
+
+            for (const o of filteredOrders) {
+                if (y < 70) {
+                    page = pdfDoc.addPage([595.28, 841.89]);
+                    y = page.getHeight() - 50;
+                }
+                const dateObj = new Date(o.createdAt);
+                const dateStr = `${dateObj.toLocaleDateString('pt-BR')} ${dateObj.toLocaleTimeString('pt-BR').substring(0, 5)}`;
+                const dName = drivers.find(d => d.id === o.driverId)?.name || 'N/A';
+
+                page.drawText(dateStr, { x: 55, y, size: 7, font });
+                page.drawText(o.clientName.substring(0, 25), { x: 160, y, size: 7, font });
+                page.drawText(dName.substring(0, 20), { x: 280, y, size: 7, font });
+                page.drawText(`R$ ${(o.deliveryFee || 0).toFixed(2)}`, { x: 380, y, size: 7, font });
+                page.drawText(`R$ ${(o.total - (o.deliveryFee || 0)).toFixed(2)}`, { x: 440, y, size: 7, font });
+                page.drawText(`R$ ${o.total.toFixed(2)}`, { x: 500, y, size: 7, font: fontBold });
+                y -= 20;
+            }
+
+            if (filteredRejections.length > 0) {
+                if (y < 120) {
+                    page = pdfDoc.addPage([595.28, 841.89]);
+                    y = page.getHeight() - 50;
+                }
+                y -= 20;
+                page.drawText('DETALHAMENTO de REJEIÇÕES', { x: 50, y, size: 10, font: fontBold, color: rgb(0.8, 0, 0) });
+                y -= 15;
+                page.drawRectangle({ x: 50, y: y - 5, width: width - 100, height: 15, color: rgb(0.98, 0.9, 0.9) });
+                page.drawText('DATA | HORA', { x: 55, y, size: 7, font: fontBold });
+                page.drawText('ENTREGADOR', { x: 180, y, size: 7, font: fontBold });
+                page.drawText('TIPO', { x: 350, y, size: 7, font: fontBold });
+                page.drawText('MOTIVO', { x: 420, y, size: 7, font: fontBold });
+                y -= 15;
+
+                for (const r of filteredRejections) {
+                    if (y < 40) {
+                        page = pdfDoc.addPage([595.28, 841.89]);
+                        y = page.getHeight() - 50;
+                    }
+                    const dateObj = new Date(r.timestamp);
+                    const dateStr = `${dateObj.toLocaleDateString('pt-BR')} ${dateObj.toLocaleTimeString('pt-BR').substring(0, 5)}`;
+                    const dName = drivers.find(d => d.id === r.driverId)?.name || 'N/A';
+
+                    page.drawText(dateStr, { x: 55, y, size: 7, font });
+                    page.drawText(dName.substring(0, 30), { x: 180, y, size: 7, font });
+                    page.drawText(r.type, { x: 350, y, size: 7, font });
+                    page.drawText((r.reason || '').substring(0, 40), { x: 420, y, size: 7, font });
+                    y -= 12;
+                }
+            }
+
+            await handlePdfOutput(pdfDoc, `relatorio_entregadores_${driverStartDate}_${driverEndDate}.pdf`, downloadOnly, 'DRIVERS');
+        } catch (error) {
+            console.error('Erro ao gerar PDF de entregadores:', error);
+            addToast({ title: 'Erro', message: 'Erro ao gerar relatório de entregadores.', type: 'DANGER' });
+        }
+    };
+
+    const generateReceivablesPDF = async (downloadOnly = false) => {
+        if (!businessSettings) return;
+
+        try {
+            const pdfDoc = await PDFDocument.create();
+            const font = await pdfDoc.embedFont(StandardFonts.Helvetica);
+            const fontBold = await pdfDoc.embedFont(StandardFonts.HelveticaBold);
+
+            // Filter receivables based on current state
+            const filteredReceivables = receivables.filter(r => {
+                const withinDate = getLocalIsoDate(new Date(r.createdAt)) >= receivableStartDate && getLocalIsoDate(new Date(r.createdAt)) <= receivableEndDate;
+                const isOverdue = new Date(r.dueDate) < new Date();
+                const matchesStatus =
+                    receivableFilterStatus === 'ALL' ? r.status === 'PENDING' :
+                        receivableFilterStatus === 'OVERDUE' ? (r.status === 'PENDING' && isOverdue) :
+                            (r.status === 'PENDING' && !isOverdue);
+                return withinDate && matchesStatus;
+            });
+
+            const totalAmount = filteredReceivables.reduce((sum, r) => sum + r.amount, 0);
+
+            let page = pdfDoc.addPage([595.28, 841.89]);
+            const { width, height } = page.getSize();
+            let y = height - 50;
+
+            // Header
+            page.drawText('RELATÓRIO DE RECEBÍVEIS (FIADO)', { x: 50, y, size: 18, font: fontBold });
+            y -= 25;
+            page.drawText(businessSettings.name, { x: 50, y, size: 12, font: fontBold });
+            y -= 15;
+            page.drawText(`Filtro: ${receivableFilterStatus === 'ALL' ? 'Todos Pendentes' : receivableFilterStatus === 'OVERDUE' ? 'Apenas Vencidos' : 'A Vencer'}`, { x: 50, y, size: 10, font });
+            y -= 15;
+            page.drawText(`Período de Pedido: ${new Date(receivableStartDate + 'T00:00:00').toLocaleDateString('pt-BR')} a ${new Date(receivableEndDate + 'T00:00:00').toLocaleDateString('pt-BR')}`, { x: 50, y, size: 10, font });
+            y -= 15;
+            page.drawText(`Emitido em: ${new Date().toLocaleString('pt-BR')}`, { x: 50, y, size: 10, font });
+
+            y -= 30;
+            page.drawText(`TOTAL SELECIONADO: R$ ${totalAmount.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}`, { x: 50, y, size: 14, font: fontBold });
+
+            y -= 40;
+            // Table Header
+            page.drawRectangle({ x: 50, y: y - 5, width: width - 100, height: 20, color: rgb(0.9, 0.9, 0.9) });
+            page.drawText('CLIENTE', { x: 55, y, size: 8, font: fontBold });
+            page.drawText('TELEFONE', { x: 180, y, size: 8, font: fontBold });
+            page.drawText('DATA PEDIDO', { x: 280, y, size: 8, font: fontBold });
+            page.drawText('VENCIMENTO', { x: 380, y, size: 8, font: fontBold });
+            page.drawText('STATUS', { x: 470, y, size: 8, font: fontBold });
+            page.drawText('VALOR', { x: 535, y, size: 8, font: fontBold });
+            y -= 25;
+
+            for (const r of filteredReceivables) {
+                if (y < 70) {
+                    page = pdfDoc.addPage([595.28, 841.89]);
+                    y = page.getHeight() - 50;
+                }
+
+                const createdAt = new Date(r.createdAt);
+                const isOverdue = new Date(r.dueDate) < new Date();
+
+                page.drawText(r.client?.name.substring(0, 25) || 'N/A', { x: 55, y, size: 7, font });
+                page.drawText(r.client?.phone || 'N/A', { x: 180, y, size: 7, font });
+                page.drawText(`${createdAt.toLocaleDateString('pt-BR')} ${createdAt.toLocaleTimeString('pt-BR').substring(0, 5)}`, { x: 280, y, size: 7, font });
+                page.drawText(new Date(r.dueDate).toLocaleDateString('pt-BR'), { x: 380, y, size: 7, font });
+
+                page.drawText(isOverdue ? 'VENCIDO' : 'EM DIA', {
+                    x: 470, y,
+                    size: 7,
+                    font: fontBold,
+                    color: isOverdue ? rgb(0.8, 0, 0) : rgb(0, 0.5, 0)
+                });
+
+                page.drawText(`R$ ${r.amount.toFixed(2)}`, { x: 535, y, size: 7, font: fontBold });
+
+                y -= 18;
+            }
+
+            await handlePdfOutput(pdfDoc, `relatorio_recebiveis_${new Date().getTime()}.pdf`, downloadOnly, 'RECEIVABLES');
+        } catch (error) {
+            console.error('Erro ao gerar PDF de recebíveis:', error);
+            addToast({ title: 'Erro', message: 'Erro ao gerar relatório de recebíveis.', type: 'DANGER' });
+        }
+    };
+
+    const generateCashPDF = async (downloadOnly = false) => {
+        if (!businessSettings) return;
+
+        try {
+            const pdfDoc = await PDFDocument.create();
+            const font = await pdfDoc.embedFont(StandardFonts.Helvetica);
+            const fontBold = await pdfDoc.embedFont(StandardFonts.HelveticaBold);
+
+            const filtered = await db.getCashSessions(cashStartDate, cashEndDate);
+
+            if (filtered.length === 0) {
+                addToast({ title: 'Aviso', message: 'Nenhuma movimentação de caixa encontrada para este período.', type: 'INFO' });
+                return;
+            }
+
+            let page = pdfDoc.addPage([595.28, 841.89]);
+            const { width, height } = page.getSize();
+            let y = height - 50;
+
+            // Header
+            page.drawText('RELATÓRIO DE MOVIMENTAÇÃO DE CAIXA', { x: 50, y, size: 18, font: fontBold });
+            y -= 25;
+            page.drawText(businessSettings.name, { x: 50, y, size: 12, font: fontBold });
+            y -= 15;
+            page.drawText(`Período: ${new Date(cashStartDate + 'T00:00:00').toLocaleDateString('pt-BR')} a ${new Date(cashEndDate + 'T00:00:00').toLocaleDateString('pt-BR')}`, { x: 50, y, size: 10, font });
+
+            y -= 40;
+            // Table Header
+            page.drawRectangle({ x: 50, y: y - 5, width: width - 100, height: 20, color: rgb(0.95, 0.95, 0.95) });
+            page.drawText('ABERTURA', { x: 55, y, size: 8, font: fontBold });
+            page.drawText('FECHAMENTO', { x: 150, y, size: 8, font: fontBold });
+            page.drawText('S. INICIAL', { x: 250, y, size: 8, font: fontBold });
+            page.drawText('VENDAS', { x: 320, y, size: 8, font: fontBold });
+            page.drawText('DIF.', { x: 400, y, size: 8, font: fontBold });
+            page.drawText('STATUS', { x: 480, y, size: 8, font: fontBold });
+            y -= 25;
+
+            for (const s of filtered) {
+                if (y < 70) {
+                    page = pdfDoc.addPage([595.28, 841.89]);
+                    y = page.getHeight() - 50;
+                }
+
+                const dtOpened = new Date(s.openedAt);
+                const openedAt = `${dtOpened.toLocaleDateString('pt-BR')} ${dtOpened.toLocaleTimeString('pt-BR').substring(0, 5)}`;
+                let closedAt = 'ABERTO';
+                if (s.closedAt) {
+                    const dtClosed = new Date(s.closedAt);
+                    closedAt = `${dtClosed.toLocaleDateString('pt-BR')} ${dtClosed.toLocaleTimeString('pt-BR').substring(0, 5)}`;
+                }
+
+                page.drawText(openedAt, { x: 55, y, size: 7, font });
+                page.drawText(closedAt, { x: 150, y, size: 7, font });
+                page.drawText(`R$ ${s.initialBalance.toFixed(2)}`, { x: 250, y, size: 7, font });
+                page.drawText(`R$ ${(s.totalSales || 0).toFixed(2)}`, { x: 320, y, size: 7, font });
+
+                const diff = s.difference || 0;
+                page.drawText(`R$ ${diff.toFixed(2)}`, {
+                    x: 400, y, size: 7, font,
+                    color: diff < 0 ? rgb(0.8, 0, 0) : (diff > 0 ? rgb(0, 0.5, 0) : rgb(0, 0, 0))
+                });
+
+                page.drawText(s.status === 'OPEN' ? 'ABERTO' : 'FECHADO', { x: 480, y, size: 7, font: fontBold });
+
+                y -= 20;
+
+                // Little detail block if closed
+                if (s.status === 'CLOSED') {
+                    y -= 5;
+                    page.drawRectangle({ x: 60, y: y - 25, width: 480, height: 25, color: rgb(0.98, 0.98, 0.98) });
+                    page.drawText(`Relatado: Dinheiro: R$ ${(s.reportedCash || 0).toFixed(2)} | Pix: R$ ${(s.reportedPix || 0).toFixed(2)} | Crédito: R$ ${(s.reportedCredit || 0).toFixed(2)} | Débito: R$ ${(s.reportedDebit || 0).toFixed(2)} | Fiado: R$ ${(s.reportedFiado || 0).toFixed(2)} | Outros: R$ ${(s.reportedOthers || 0).toFixed(2)}`, { x: 70, y: y - 10, size: 5.5, font });
+                    page.drawText(`Sistema: Dinheiro: R$ ${(s.systemCash || 0).toFixed(2)} | Pix: R$ ${(s.systemPix || 0).toFixed(2)} | Crédito: R$ ${(s.systemCredit || 0).toFixed(2)} | Débito: R$ ${(s.systemDebit || 0).toFixed(2)} | Fiado: R$ ${(s.systemFiado || 0).toFixed(2)} | Outros: R$ ${(s.systemOthers || 0).toFixed(2)}`, { x: 70, y: y - 20, size: 5.5, font });
+                    y -= 35;
+                }
+            }
+
+            await handlePdfOutput(pdfDoc, `relatorio_caixa_${cashStartDate}_${cashEndDate}.pdf`, downloadOnly, 'CASH');
+        } catch (error) {
+            console.error('Erro ao gerar PDF de caixa:', error);
+            addToast({ title: 'Erro', message: 'Erro ao gerar relatório.', type: 'DANGER' });
+        }
+    };
+
+    const generateInventoryPDF = async (downloadOnly = false) => {
+        if (!businessSettings) return;
+
+        try {
+            const pdfDoc = await PDFDocument.create();
+            const font = await pdfDoc.embedFont(StandardFonts.Helvetica);
+            const fontBold = await pdfDoc.embedFont(StandardFonts.HelveticaBold);
+
+            const movements = await db.getInventoryMovements(inventoryStartDate, inventoryEndDate);
+
+            let page = pdfDoc.addPage([595.28, 841.89]);
+            const { width, height } = page.getSize();
+            let y = height - 50;
+
+            // Header
+            page.drawText('RELATÓRIO DE MOVIMENTAÇÃO DE ESTOQUE', { x: 50, y, size: 18, font: fontBold });
+            y -= 25;
+            page.drawText(businessSettings.name, { x: 50, y, size: 12, font: fontBold });
+            y -= 15;
+            page.drawText(`Período: ${new Date(inventoryStartDate + 'T00:00:00').toLocaleDateString('pt-BR')} a ${new Date(inventoryEndDate + 'T00:00:00').toLocaleDateString('pt-BR')}`, { x: 50, y, size: 10, font });
+
+            y -= 40;
+            // Table Header
+            page.drawRectangle({ x: 50, y: y - 5, width: width - 100, height: 20, color: rgb(0.95, 0.95, 0.95) });
+            page.drawText('DATA | HORA', { x: 55, y, size: 8, font: fontBold });
+            page.drawText('INSUMO', { x: 150, y, size: 8, font: fontBold });
+            page.drawText('TIPO', { x: 300, y, size: 8, font: fontBold });
+            page.drawText('QTD', { x: 350, y, size: 8, font: fontBold });
+            page.drawText('MOTIVO', { x: 400, y, size: 8, font: fontBold });
+            y -= 25;
+
+            for (const m of movements) {
+                if (y < 70) {
+                    page = pdfDoc.addPage([595.28, 841.89]);
+                    y = page.getHeight() - 50;
+                }
+                const dateObj = new Date(m.timestamp);
+                const dateStr = `${dateObj.toLocaleDateString('pt-BR')} ${dateObj.toLocaleTimeString('pt-BR').substring(0, 5)}`;
+
+                page.drawText(dateStr, { x: 55, y, size: 7, font });
+                page.drawText(m.inventoryItem?.name.substring(0, 30) || 'N/A', { x: 150, y, size: 7, font });
+
+                const isInput = m.type === 'INPUT';
+                page.drawText(isInput ? 'ENTRADA' : 'SAÍDA', {
+                    x: 300, y, size: 7, font: fontBold,
+                    color: isInput ? rgb(0.1, 0.5, 0.1) : rgb(0.7, 0.1, 0.1)
+                });
+
+                page.drawText(m.quantity.toString(), { x: 350, y, size: 7, font });
+                page.drawText(m.reason.substring(0, 35), { x: 400, y, size: 7, font });
+                y -= 15;
+            }
+
+            await handlePdfOutput(pdfDoc, `movimentacao_estoque_${inventoryStartDate}_${inventoryEndDate}.pdf`, downloadOnly, 'INVENTORY');
+        } catch (error) {
+            console.error('Erro ao gerar PDF de estoque:', error);
+            addToast({ title: 'Erro', message: 'Erro ao gerar relatório de estoque.', type: 'DANGER' });
+        }
+    };
+
+    const generateWaitersPDF = async (downloadOnly = false) => {
+        if (!businessSettings) return;
+
+        try {
+            const pdfDoc = await PDFDocument.create();
+            const font = await pdfDoc.embedFont(StandardFonts.Helvetica);
+            const fontBold = await pdfDoc.embedFont(StandardFonts.HelveticaBold);
+
+            // Filtrar pedidos entregues no período que possuem garçom e batem com o filtro
+            const filteredOrders = orders.filter(o => {
+                const orderDate = getLocalIsoDate(new Date(o.createdAt));
+                const inDate = orderDate >= waiterStartDate && orderDate <= waiterEndDate;
+                const inWaiter = selectedWaiterId === 'TODOS' || o.waiterId === selectedWaiterId;
+                return inDate && inWaiter && o.status === OrderStatus.DELIVERED && o.waiterId;
+            });
+
+            // Agrupar por garçom
+            const waiterStats: Record<string, { name: string, totalSales: number, totalCommission: number, count: number }> = {};
+
+            filteredOrders.forEach(o => {
+                const waiter = waiters.find(w => w.id === o.waiterId);
+                const waiterName = waiter ? waiter.name : `Garçom ID: ${o.waiterId}`;
+                const commission = o.appliedServiceFee || 0;
+
+                if (!waiterStats[o.waiterId!]) {
+                    waiterStats[o.waiterId!] = { name: waiterName, totalSales: 0, totalCommission: 0, count: 0 };
+                }
+
+                waiterStats[o.waiterId!].totalSales += o.total;
+                waiterStats[o.waiterId!].totalCommission += commission;
+                waiterStats[o.waiterId!].count += 1;
+            });
+
+            const statsList = Object.values(waiterStats).sort((a, b) => b.totalSales - a.totalSales);
+
+            let page = pdfDoc.addPage([595.28, 841.89]);
+            const { width, height } = page.getSize();
+            let y = height - 50;
+
+            // Header
+            page.drawText('RELATÓRIO DE COMISSÕES POR GARÇOM', { x: 50, y, size: 18, font: fontBold });
+            y -= 25;
+            page.drawText(businessSettings.name, { x: 50, y, size: 12, font: fontBold });
+            y -= 15;
+            page.drawText(`Período: ${new Date(waiterStartDate + 'T00:00:00').toLocaleDateString('pt-BR')} a ${new Date(waiterEndDate + 'T00:00:00').toLocaleDateString('pt-BR')}`, { x: 50, y, size: 10, font });
+
+            y -= 40;
+            // Table Header
+            page.drawRectangle({ x: 50, y: y - 5, width: width - 100, height: 20, color: rgb(0.95, 0.95, 0.95) });
+            page.drawText('GARÇOM', { x: 55, y, size: 9, font: fontBold });
+            page.drawText('PEDIDOS', { x: 250, y, size: 9, font: fontBold });
+            page.drawText('TOTAL VENDAS', { x: 320, y, size: 9, font: fontBold });
+            page.drawText('COMISSÃO', { x: 450, y, size: 9, font: fontBold });
+            y -= 25;
+
+            let grandTotalSales = 0;
+            let grandTotalCommission = 0;
+
+            for (const s of statsList) {
+                if (y < 70) {
+                    page = pdfDoc.addPage([595.28, 841.89]);
+                    y = page.getHeight() - 50;
+                }
+
+                page.drawText(s.name.substring(0, 35), { x: 55, y, size: 8, font });
+                page.drawText(s.count.toString(), { x: 250, y, size: 8, font });
+                page.drawText(`R$ ${s.totalSales.toFixed(2)}`, { x: 320, y, size: 8, font });
+                page.drawText(`R$ ${s.totalCommission.toFixed(2)}`, { x: 450, y, size: 8, font: fontBold });
+
+                grandTotalSales += s.totalSales;
+                grandTotalCommission += s.totalCommission;
+                y -= 20;
+            }
+
+            y -= 10;
+            page.drawRectangle({ x: 50, y: y - 5, width: width - 100, height: 2, color: rgb(0, 0, 0) });
+            y -= 20;
+            page.drawText('TOTAIS GERAIS', { x: 55, y, size: 10, font: fontBold });
+            page.drawText(`R$ ${grandTotalSales.toFixed(2)}`, { x: 320, y, size: 10, font: fontBold });
+            page.drawText(`R$ ${grandTotalCommission.toFixed(2)}`, { x: 450, y, size: 10, font: fontBold, color: rgb(0, 0.5, 0) });
+
+            await handlePdfOutput(pdfDoc, `comissoes_garcom_${waiterStartDate}_${waiterEndDate}.pdf`, downloadOnly, 'WAITERS');
+        } catch (error) {
+            console.error('Erro ao gerar PDF de comissões:', error);
+            addToast({ title: 'Erro', message: 'Erro ao gerar relatório de comissões.', type: 'DANGER' });
+        }
+    };
+
+    const generateWaitersAnalyticalPDF = async (downloadOnly = false) => {
+        if (!businessSettings) return;
+
+        try {
+            const pdfDoc = await PDFDocument.create();
+            const font = await pdfDoc.embedFont(StandardFonts.Helvetica);
+            const fontBold = await pdfDoc.embedFont(StandardFonts.HelveticaBold);
+
+            // Filtrar pedidos entregues no período que possuem garçom e batem com o filtro
+            const filteredOrders = orders.filter(o => {
+                const orderDate = getLocalIsoDate(new Date(o.createdAt));
+                const inDate = orderDate >= waiterStartDate && orderDate <= waiterEndDate;
+                const inWaiter = selectedWaiterId === 'TODOS' || o.waiterId === selectedWaiterId;
+                return inDate && inWaiter && o.status === OrderStatus.DELIVERED && o.waiterId;
+            }).sort((a, b) => new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime());
+
+            if (filteredOrders.length === 0) {
+                addToast({ title: 'Aviso', message: 'Nenhum pedido encontrado para o período e garçom selecionados.', type: 'INFO' });
+                return;
+            }
+
+            let page = pdfDoc.addPage([595.28, 841.89]);
+            const { width, height } = page.getSize();
+            let y = height - 50;
+
+            const waiterName = selectedWaiterId === 'TODOS' ? 'Todos os Garçons' : (waiters.find(w => w.id === selectedWaiterId)?.name || 'Desconhecido');
+
+            // Header
+            page.drawText('RELATÓRIO ANALÍTICO DE COMISSÕES', { x: 50, y, size: 18, font: fontBold });
+            y -= 25;
+            page.drawText(businessSettings.name, { x: 50, y, size: 12, font: fontBold });
+            y -= 15;
+            page.drawText(`Garçom: ${waiterName}`, { x: 50, y, size: 10, font: fontBold });
+            y -= 15;
+            page.drawText(`Período: ${new Date(waiterStartDate + 'T00:00:00').toLocaleDateString('pt-BR')} a ${new Date(waiterEndDate + 'T00:00:00').toLocaleDateString('pt-BR')}`, { x: 50, y, size: 10, font });
+
+            y -= 40;
+            // Table Header
+            page.drawRectangle({ x: 50, y: y - 5, width: width - 100, height: 20, color: rgb(0.95, 0.95, 0.95) });
+            page.drawText('DATA e HORA', { x: 55, y, size: 8, font: fontBold });
+            page.drawText('GARÇOM', { x: 140, y, size: 8, font: fontBold });
+            page.drawText('MESA', { x: 230, y, size: 8, font: fontBold });
+            page.drawText('CLIENTE', { x: 280, y, size: 8, font: fontBold });
+            page.drawText('VENDIDO', { x: 440, y, size: 8, font: fontBold });
+            page.drawText('COMISSÃO', { x: 500, y, size: 8, font: fontBold });
+            y -= 25;
+
+            let grandTotalSales = 0;
+            let grandTotalCommission = 0;
+
+            for (const o of filteredOrders) {
+                if (y < 70) {
+                    page = pdfDoc.addPage([595.28, 841.89]);
+                    y = page.getHeight() - 50;
+                }
+                const dateObj = new Date(o.createdAt);
+                const dateStr = `${dateObj.toLocaleDateString('pt-BR')} ${dateObj.toLocaleTimeString('pt-BR').substring(0, 5)}`;
+                const wName = waiters.find(w => w.id === o.waiterId)?.name || `ID: ${o.waiterId}`;
+
+                const commission = o.appliedServiceFee || 0;
+                // O order.total já inclui a comissão em ordens de mesa!
+                // Então o "Vendido" (produtos em si) é total - comissão
+                const productsTotal = o.total - commission;
+
+                page.drawText(dateStr, { x: 55, y, size: 7, font });
+                page.drawText(wName.substring(0, 18), { x: 140, y, size: 7, font });
+                page.drawText(o.tableNumber ? `Mesa ${o.tableNumber}` : 'Balcão', { x: 230, y, size: 7, font: fontBold });
+                page.drawText(o.clientName.substring(0, 30), { x: 280, y, size: 7, font });
+                page.drawText(`R$ ${productsTotal.toFixed(2)}`, { x: 440, y, size: 7, font });
+                page.drawText(`R$ ${commission.toFixed(2)}`, { x: 500, y, size: 7, font: fontBold });
+
+                grandTotalSales += productsTotal;
+                grandTotalCommission += commission;
+                y -= 20;
+            }
+
+            y -= 10;
+            page.drawRectangle({ x: 50, y: y - 5, width: width - 100, height: 2, color: rgb(0, 0, 0) });
+            y -= 20;
+            page.drawText('TOTAIS GERAIS DO PERÍODO', { x: 55, y, size: 10, font: fontBold });
+            page.drawText(`R$ ${grandTotalSales.toFixed(2)}`, { x: 440, y, size: 9, font: fontBold });
+            page.drawText(`R$ ${grandTotalCommission.toFixed(2)}`, { x: 500, y, size: 9, font: fontBold, color: rgb(0, 0.5, 0) });
+
+            await handlePdfOutput(pdfDoc, `comissoes_analitico_${waiterStartDate}_${waiterEndDate}.pdf`, downloadOnly, 'WAITERS_ANALYTICAL');
+        } catch (error) {
+            console.error('Erro ao gerar PDF analítico de comissões:', error);
+            addToast({ title: 'Erro', message: 'Erro ao gerar relatório analítico.', type: 'DANGER' });
+        }
+    };
+
+    return (
+        <div className="flex flex-col h-full gap-4 sm:gap-8 animate-in fade-in duration-500 overflow-y-auto pb-8">
+            {alert && (
+                <div className="fixed top-8 right-8 z-[200]">
+                    <CustomAlert
+                        title={alert.title}
+                        message={alert.message}
+                        type={alert.type}
+                        onClose={() => setAlert(null)}
+                    />
+                </div>
+            )}
+
+            {/* TABS HEADER - Added horizontal scroll for mobile */}
+            <div className="flex gap-4 border-b border-slate-200 dark:border-slate-800 pb-2 px-2 shrink-0 overflow-x-auto no-scrollbar">
+                <button onClick={() => setActiveTab('SALES')} className={`pb-4 text-[10px] sm:text-[12px] font-black uppercase tracking-widest transition-all whitespace-nowrap ${activeTab === 'SALES' ? 'text-blue-600 border-b-4 border-blue-600' : 'text-slate-400 dark:text-slate-500 hover:text-slate-600 dark:hover:text-slate-300'}`}>Vendas</button>
+                <button onClick={() => setActiveTab('CLIENTS')} className={`pb-4 text-[10px] sm:text-[12px] font-black uppercase tracking-widest transition-all whitespace-nowrap ${activeTab === 'CLIENTS' ? 'text-blue-600 border-b-4 border-blue-600' : 'text-slate-400 dark:text-slate-500 hover:text-slate-600 dark:hover:text-slate-300'}`}>Clientes</button>
+                <button onClick={() => setActiveTab('DRIVERS')} className={`pb-4 text-[10px] sm:text-[12px] font-black uppercase tracking-widest transition-all whitespace-nowrap ${activeTab === 'DRIVERS' ? 'text-blue-600 border-b-4 border-blue-600' : 'text-slate-400 dark:text-slate-500 hover:text-slate-600 dark:hover:text-slate-300'}`}>Entregadores</button>
+                <button onClick={() => setActiveTab('INVENTORY')} className={`pb-4 text-[10px] sm:text-[12px] font-black uppercase tracking-widest transition-all whitespace-nowrap ${activeTab === 'INVENTORY' ? 'text-blue-600 border-b-4 border-blue-600' : 'text-slate-400 dark:text-slate-500 hover:text-slate-600 dark:hover:text-slate-300'}`}>Insumos</button>
+                <button onClick={() => setActiveTab('CASH')} className={`pb-4 text-[10px] sm:text-[12px] font-black uppercase tracking-widest transition-all whitespace-nowrap ${activeTab === 'CASH' ? 'text-blue-600 border-b-4 border-blue-600' : 'text-slate-400 dark:text-slate-500 hover:text-slate-600 dark:hover:text-slate-300'}`}>Caixa</button>
+                <button onClick={() => setActiveTab('RECEIVABLES')} className={`pb-4 text-[10px] sm:text-[12px] font-black uppercase tracking-widest transition-all whitespace-nowrap ${activeTab === 'RECEIVABLES' ? 'text-blue-600 border-b-4 border-blue-600' : 'text-slate-400 dark:text-slate-500 hover:text-slate-600 dark:hover:text-slate-300'}`}>Recebimentos</button>
+                <button onClick={() => setActiveTab('WAITERS')} className={`pb-4 text-[10px] sm:text-[12px] font-black uppercase tracking-widest transition-all whitespace-nowrap ${activeTab === 'WAITERS' ? 'text-blue-600 border-b-4 border-blue-600' : 'text-slate-400 dark:text-slate-500 hover:text-slate-600 dark:hover:text-slate-300'}`}>Comissões</button>
+            </div>
+
+            <div className="flex-1">
+
+                {/* CARD RELATÓRIO DE VENDAS */}
+                {activeTab === 'SALES' && (
+                    <div className="bg-white dark:bg-slate-900/50 p-4 sm:p-10 rounded-2xl sm:rounded-[3rem] shadow-sm border border-slate-100 dark:border-slate-800 flex flex-col h-max max-w-4xl animate-in fade-in zoom-in-95">
+                        <div className="mb-6 sm:mb-8">
+                            <h3 className="text-xl sm:text-2xl font-black text-slate-800 dark:text-white uppercase tracking-tighter flex items-center gap-3">
+                                <span className="p-2 sm:p-3 bg-blue-50 dark:bg-blue-900/20 text-blue-600 rounded-2xl"><Icons.Dashboard /></span>
+                                Relatório de Vendas
+                            </h3>
+                            <p className="text-[8px] sm:text-[10px] text-slate-400 dark:text-slate-500 font-bold uppercase tracking-widest mt-2 ml-10 sm:ml-14">Análise financeira detalhada por período</p>
+                        </div>
+
+                        <div className="space-y-4 sm:space-y-6">
+                            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                                <div className="space-y-2">
+                                    <label className="text-[10px] font-black text-slate-400 dark:text-slate-500 uppercase tracking-widest ml-1">Início</label>
+                                    <input type="date" value={salesStartDate} onChange={e => setSalesStartDate(e.target.value)} className="w-full p-4 bg-slate-50 dark:bg-slate-800 border-none rounded-2xl font-bold text-sm text-slate-800 dark:text-slate-200" />
+                                </div>
+                                <div className="space-y-2">
+                                    <label className="text-[10px] font-black text-slate-400 dark:text-slate-500 uppercase tracking-widest ml-1">Fim</label>
+                                    <input type="date" value={salesEndDate} onChange={e => setSalesEndDate(e.target.value)} className="w-full p-4 bg-slate-50 dark:bg-slate-800 border-none rounded-2xl font-bold text-sm text-slate-800 dark:text-slate-200" />
+                                </div>
+                            </div>
+
+                            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                                <div className="space-y-2">
+                                    <label className="text-[10px] font-black text-slate-400 dark:text-slate-500 uppercase tracking-widest ml-1">Pagamento</label>
+                                    <select value={salesPayment} onChange={e => setSalesPayment(e.target.value)} className="w-full p-4 bg-slate-50 dark:bg-slate-800 border-none rounded-2xl font-bold text-sm text-slate-800 dark:text-slate-200">
+                                        {uniquePaymentMethods.map(pm => (
+                                            <option key={pm} value={pm}>{pm}</option>
+                                        ))}
+                                    </select>
+                                </div>
+                                <div className="space-y-2">
+                                    <label className="text-[10px] font-black text-slate-400 dark:text-slate-500 uppercase tracking-widest ml-1">Modalidade</label>
+                                    <select value={salesModality} onChange={e => setSalesModality(e.target.value)} className="w-full p-4 bg-slate-50 dark:bg-slate-800 border-none rounded-2xl font-bold text-sm text-slate-800 dark:text-slate-200">
+                                        <option value="TODOS">TODOS</option>
+                                        <option value={SaleType.COUNTER}>BALCÃO</option>
+                                        <option value={SaleType.TABLE}>MESA</option>
+                                        <option value={SaleType.OWN_DELIVERY}>DELIVERY</option>
+                                    </select>
+                                </div>
+                            </div>
+
+                            <div className="grid grid-cols-1 gap-4">
+                                <div className="space-y-2">
+                                    <label className="text-[10px] font-black text-slate-400 dark:text-slate-500 uppercase tracking-widest ml-1">Origem do Pedido (Cardápio Digital)</label>
+                                    <select value={salesOrigin} onChange={e => setSalesOrigin(e.target.value as any)} className="w-full p-4 bg-slate-50 dark:bg-slate-800 border-none rounded-2xl font-bold text-sm text-slate-800 dark:text-slate-200">
+                                        <option value="TODOS">TODOS OS PEDIDOS</option>
+                                        <option value="FISICO">APENAS ATENDIMENTO FÍSICO/GARÇOM</option>
+                                        <option value="DIGITAL">APENAS CARDÁPIO DIGITAL</option>
+                                    </select>
+                                </div>
+                            </div>
+                        </div>
+
+                        <button
+                            onClick={() => generateSalesPDF(false)}
+                            className="mt-6 sm:mt-8 w-full py-4 sm:py-6 bg-blue-600 hover:bg-blue-700 text-white rounded-2xl sm:rounded-[2rem] font-black uppercase text-[10px] sm:text-xs tracking-widest shadow-xl transition-all flex flex-col sm:flex-row items-center justify-center gap-2 sm:gap-3 px-4 text-center whitespace-normal"
+                        >
+                            <Icons.Print />
+                            Visualizar Relatório de Vendas
+                        </button>
+                    </div>
+                )}
+
+                {/* CARD LISTA DE CLIENTES */}
+                {activeTab === 'CLIENTS' && (
+                    <div className="bg-white dark:bg-slate-900/50 p-4 sm:p-10 rounded-2xl sm:rounded-[3rem] shadow-sm border border-slate-100 dark:border-slate-800 flex flex-col h-max max-w-4xl animate-in fade-in zoom-in-95">
+                        <div className="mb-6 sm:mb-8">
+                            <h3 className="text-xl sm:text-2xl font-black text-slate-800 dark:text-white uppercase tracking-tighter flex items-center gap-3">
+                                <span className="p-2 sm:p-3 bg-blue-50 dark:bg-blue-900/20 text-blue-600 rounded-2xl"><Icons.CRM /></span>
+                                Lista de Clientes
+                            </h3>
+                            <p className="text-[8px] sm:text-[10px] text-slate-400 dark:text-slate-500 font-bold uppercase tracking-widest mt-2 ml-10 sm:ml-14">Fidelidade e contatos registrados</p>
+                        </div>
+
+                        <div className="space-y-4 sm:space-y-6">
+                            <div className="space-y-2 relative">
+                                <label className="text-[10px] font-black text-slate-400 dark:text-slate-500 uppercase tracking-widest ml-1">Buscar Cliente (Opcional)</label>
+                                {selectedClient ? (
+                                    <div className="flex items-center justify-between p-4 bg-blue-50 dark:bg-blue-900/20 border border-blue-100 dark:border-blue-900/30 rounded-2xl">
+                                        <div className="flex flex-col">
+                                            <span className="font-bold text-sm text-blue-900 dark:text-blue-100">{selectedClient.name}</span>
+                                            <span className="text-xs text-blue-600 dark:text-blue-400">{selectedClient.phone}</span>
+                                        </div>
+                                        <button
+                                            onClick={() => {
+                                                setSelectedClient(null);
+                                                setClientSearch('');
+                                            }}
+                                            className="text-blue-400 hover:text-blue-600 p-2 font-bold"
+                                            title="Remover cliente"
+                                        >
+                                            &times;
+                                        </button>
+                                    </div>
+                                ) : (
+                                    <>
+                                        <input
+                                            type="text"
+                                            placeholder="Ex: Nome ou Telefone..."
+                                            value={clientSearch}
+                                            onChange={e => {
+                                                setClientSearch(e.target.value);
+                                                setShowClientDropdown(true);
+                                            }}
+                                            onFocus={() => setShowClientDropdown(true)}
+                                            className="w-full p-4 bg-slate-50 dark:bg-slate-800 border-none rounded-2xl font-bold text-sm text-slate-800 dark:text-slate-200"
+                                        />
+                                        {showClientDropdown && clientSearch && (
+                                            <div className="absolute z-10 w-full mt-2 bg-white dark:bg-slate-900 rounded-2xl shadow-xl border border-slate-100 dark:border-slate-800 max-h-48 overflow-y-auto">
+                                                {clients.filter(c => c.name.toLowerCase().includes(clientSearch.toLowerCase()) || c.phone.includes(clientSearch)).length > 0 ? (
+                                                    clients.filter(c => c.name.toLowerCase().includes(clientSearch.toLowerCase()) || c.phone.includes(clientSearch)).map(client => (
+                                                        <div
+                                                            key={client.id}
+                                                            onClick={() => {
+                                                                setSelectedClient(client);
+                                                                setShowClientDropdown(false);
+                                                                setClientSearch(client.name);
+                                                            }}
+                                                            className="p-3 hover:bg-slate-50 dark:hover:bg-slate-800 cursor-pointer border-b border-slate-50 dark:border-slate-800 last:border-none flex flex-col"
+                                                        >
+                                                            <span className="font-bold text-sm text-slate-700 dark:text-slate-200">{client.name}</span>
+                                                            <span className="text-xs text-slate-400 dark:text-slate-500">{client.phone}</span>
+                                                        </div>
+                                                    ))
+                                                ) : (
+                                                    <div className="p-4 text-sm text-slate-400 text-center font-bold">Nenhum cliente encontrado</div>
+                                                )}
+                                            </div>
+                                        )}
+                                    </>
+                                )}
+                            </div>
+
+                            {selectedClient && (
+                                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 animate-in slide-in-from-top-4 duration-300">
+                                    <div className="space-y-2">
+                                        <label className="text-[10px] font-black text-slate-400 dark:text-slate-500 uppercase tracking-widest ml-1">Início do Relatório</label>
+                                        <input type="date" value={clientStartDate} onChange={e => setClientStartDate(e.target.value)} className="w-full p-4 bg-slate-50 dark:bg-slate-800 border-none rounded-2xl font-bold text-sm text-slate-800 dark:text-slate-200" />
+                                    </div>
+                                    <div className="space-y-2">
+                                        <label className="text-[10px] font-black text-slate-400 dark:text-slate-500 uppercase tracking-widest ml-1">Fim do Relatório</label>
+                                        <input type="date" value={clientEndDate} onChange={e => setClientEndDate(e.target.value)} className="w-full p-4 bg-slate-50 dark:bg-slate-800 border-none rounded-2xl font-bold text-sm text-slate-800 dark:text-slate-200" />
+                                    </div>
+                                </div>
+                            )}
+                        </div>
+
+                        <div className="mt-6 sm:mt-8 flex flex-col gap-3">
+                            {selectedClient && (
+                                <button
+                                    onClick={() => generateClientOrdersPDF(false)}
+                                    className="w-full py-4 bg-purple-600 hover:bg-purple-700 text-white rounded-2xl sm:rounded-[2rem] font-black uppercase text-[10px] sm:text-xs tracking-widest shadow-xl transition-all flex flex-col sm:flex-row items-center justify-center gap-2 sm:gap-3 px-4 text-center whitespace-normal"
+                                >
+                                    <Icons.Dashboard />
+                                    Ver Compras do Cliente
+                                </button>
+                            )}
+
+                            <button
+                                onClick={() => generateClientsPDF(false)}
+                                className={`w-full py-4 ${selectedClient ? 'bg-slate-100 hover:bg-slate-200 text-slate-600' : 'bg-blue-600 hover:bg-blue-700 text-white'} rounded-2xl sm:rounded-[2rem] font-black uppercase text-[10px] sm:text-xs tracking-widest shadow-xl transition-all flex flex-col sm:flex-row items-center justify-center gap-2 sm:gap-3 px-4 text-center whitespace-normal`}
+                            >
+                                <Icons.Print />
+                                {selectedClient ? 'Gerar Lista Geral' : 'Visualizar Lista de Clientes'}
+                            </button>
+                        </div>
+                    </div>
+                )}
+
+                {/* CARD RELATÓRIO DE ENTREGADORES */}
+                {activeTab === 'DRIVERS' && (
+                    <div className="bg-white dark:bg-slate-900/50 p-4 sm:p-10 rounded-2xl sm:rounded-[3rem] shadow-sm border border-slate-100 dark:border-slate-800 flex flex-col h-max max-w-4xl animate-in fade-in zoom-in-95">
+                        <div className="mb-6 sm:mb-8">
+                            <h3 className="text-xl sm:text-2xl font-black text-slate-800 dark:text-white uppercase tracking-tighter flex items-center gap-3">
+                                <span className="p-2 sm:p-3 bg-blue-50 dark:bg-blue-900/20 text-blue-600 rounded-2xl"><Icons.Logistics /></span>
+                                Relatório de Entregadores
+                            </h3>
+                            <p className="text-[8px] sm:text-[10px] text-slate-400 dark:text-slate-500 font-bold uppercase tracking-widest mt-2 ml-10 sm:ml-14">Histórico de entregas e conferência de rotas</p>
+                        </div>
+
+                        <div className="space-y-4 sm:space-y-6">
+                            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                                <div className="space-y-2">
+                                    <label className="text-[10px] font-black text-slate-400 dark:text-slate-500 uppercase tracking-widest ml-1">Início</label>
+                                    <input type="date" value={driverStartDate} onChange={e => setDriverStartDate(e.target.value)} className="w-full p-4 bg-slate-50 dark:bg-slate-800 border-none rounded-2xl font-bold text-sm text-slate-800 dark:text-slate-200" />
+                                </div>
+                                <div className="space-y-2">
+                                    <label className="text-[10px] font-black text-slate-400 dark:text-slate-500 uppercase tracking-widest ml-1">Fim</label>
+                                    <input type="date" value={driverEndDate} onChange={e => setDriverEndDate(e.target.value)} className="w-full p-4 bg-slate-50 dark:bg-slate-800 border-none rounded-2xl font-bold text-sm text-slate-800 dark:text-slate-200" />
+                                </div>
+                            </div>
+
+                            <div className="space-y-2">
+                                <label className="text-[10px] font-black text-slate-400 dark:text-slate-500 uppercase tracking-widest ml-1">Entregador</label>
+                                <select value={selectedDriverId} onChange={e => setSelectedDriverId(e.target.value)} className="w-full p-4 bg-slate-50 dark:bg-slate-800 border-none rounded-2xl font-bold text-sm text-slate-800 dark:text-slate-200">
+                                    <option value="TODOS">TODOS OS ENTREGADORES</option>
+                                    {drivers.map(d => (
+                                        <option key={d.id} value={d.id}>{d.name} ({d.vehicle.plate})</option>
+                                    ))}
+                                </select>
+                            </div>
+                        </div>
+
+                        <button
+                            onClick={() => generateDriversPDF(false)}
+                            className="mt-6 sm:mt-8 w-full py-4 sm:py-6 bg-blue-600 hover:bg-blue-700 text-white rounded-2xl sm:rounded-[2rem] font-black uppercase text-[10px] sm:text-xs tracking-widest shadow-xl transition-all flex flex-col sm:flex-row items-center justify-center gap-2 sm:gap-3 px-4 text-center whitespace-normal"
+                        >
+                            <Icons.Print />
+                            Visualizar Relatório de Rotas
+                        </button>
+                    </div>
+                )}
+
+                {/* CARD RELATÓRIO DE MOVIMENTAÇÃO DE INSUMOS */}
+                {activeTab === 'INVENTORY' && (
+                    <div className="bg-white dark:bg-slate-900/50 p-4 sm:p-10 rounded-2xl sm:rounded-[3rem] shadow-sm border border-slate-100 dark:border-slate-800 flex flex-col h-max max-w-4xl animate-in fade-in zoom-in-95">
+                        <div className="mb-6 sm:mb-8">
+                            <h3 className="text-xl sm:text-2xl font-black text-slate-800 dark:text-white uppercase tracking-tighter flex items-center gap-3">
+                                <span className="p-2 sm:p-3 bg-blue-50 dark:bg-blue-900/20 text-blue-600 rounded-2xl"><Icons.Inventory /></span>
+                                Movimentação de Insumos
+                            </h3>
+                            <p className="text-[8px] sm:text-[10px] text-slate-400 dark:text-slate-500 font-bold uppercase tracking-widest mt-2 ml-10 sm:ml-14">Rastreabilidade completa de estoque (entradas e saídas)</p>
+                        </div>
+
+                        <div className="space-y-4 sm:space-y-6">
+                            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                                <div className="space-y-2">
+                                    <label className="text-[10px] font-black text-slate-400 dark:text-slate-500 uppercase tracking-widest ml-1">Início</label>
+                                    <input type="date" value={inventoryStartDate} onChange={e => setInventoryStartDate(e.target.value)} className="w-full p-4 bg-slate-50 dark:bg-slate-800 border-none rounded-2xl font-bold text-sm text-slate-800 dark:text-slate-200" />
+                                </div>
+                                <div className="space-y-2">
+                                    <label className="text-[10px] font-black text-slate-400 dark:text-slate-500 uppercase tracking-widest ml-1">Fim</label>
+                                    <input type="date" value={inventoryEndDate} onChange={e => setInventoryEndDate(e.target.value)} className="w-full p-4 bg-slate-50 dark:bg-slate-800 border-none rounded-2xl font-bold text-sm text-slate-800 dark:text-slate-200" />
+                                </div>
+                            </div>
+                        </div>
+
+                        <button
+                            onClick={() => generateInventoryPDF(false)}
+                            className="mt-6 sm:mt-8 w-full py-4 sm:py-6 bg-blue-600 hover:bg-blue-700 text-white rounded-2xl sm:rounded-[2rem] font-black uppercase text-[10px] sm:text-xs tracking-widest shadow-xl transition-all flex flex-col sm:flex-row items-center justify-center gap-2 sm:gap-3 px-4 text-center whitespace-normal"
+                        >
+                            <Icons.Print />
+                            Visualizar Relatório de Movimentação
+                        </button>
+                    </div>
+                )}
+
+                {/* CARD RELATÓRIO DE MOVIMENTAÇÃO DE CAIXA */}
+                {activeTab === 'CASH' && (
+                    <div className="bg-white dark:bg-slate-900/50 p-4 sm:p-10 rounded-2xl sm:rounded-[3rem] shadow-sm border border-slate-100 dark:border-slate-800 flex flex-col h-max max-w-4xl animate-in fade-in zoom-in-95">
+                        <div className="mb-6 sm:mb-8">
+                            <h3 className="text-xl sm:text-2xl font-black text-slate-800 dark:text-white uppercase tracking-tighter flex items-center gap-3">
+                                <span className="p-2 sm:p-3 bg-blue-50 dark:bg-blue-900/20 text-blue-600 rounded-2xl"><Icons.Dashboard /></span>
+                                Movimentação de Caixa
+                            </h3>
+                            <p className="text-[8px] sm:text-[10px] text-slate-400 dark:text-slate-500 font-bold uppercase tracking-widest mt-2 ml-10 sm:ml-14">Histórico de aberturas, fechamentos e conciliação</p>
+                        </div>
+
+                        <div className="space-y-4 sm:space-y-6">
+                            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                                <div className="space-y-2">
+                                    <label className="text-[10px] font-black text-slate-400 dark:text-slate-500 uppercase tracking-widest ml-1">Início</label>
+                                    <input type="date" value={cashStartDate} onChange={e => setCashStartDate(e.target.value)} className="w-full p-4 bg-slate-50 dark:bg-slate-800 border-none rounded-2xl font-bold text-sm text-slate-800 dark:text-slate-200" />
+                                </div>
+                                <div className="space-y-2">
+                                    <label className="text-[10px] font-black text-slate-400 dark:text-slate-500 uppercase tracking-widest ml-1">Fim</label>
+                                    <input type="date" value={cashEndDate} onChange={e => setCashEndDate(e.target.value)} className="w-full p-4 bg-slate-50 dark:bg-slate-800 border-none rounded-2xl font-bold text-sm text-slate-800 dark:text-slate-200" />
+                                </div>
+                            </div>
+                        </div>
+
+                        {cashSessions.length > 0 && (
+                            <div className="mt-8 overflow-x-auto border border-slate-100 dark:border-slate-800 rounded-3xl">
+                                <table className="w-full text-left">
+                                    <thead className="bg-slate-50 dark:bg-slate-800/50 text-[10px] font-black text-slate-400 dark:text-slate-500 p-4 border-b border-slate-100 dark:border-slate-800">
+                                        <tr>
+                                            <th className="p-4 uppercase tracking-widest">Abertura</th>
+                                            <th className="p-4 uppercase tracking-widest">Fechamento</th>
+                                            <th className="p-4 uppercase tracking-widest">Vendas</th>
+                                            <th className="p-4 uppercase tracking-widest">Status</th>
+                                            <th className="p-4 uppercase tracking-widest text-right">Ações</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody className="text-[11px] font-bold text-slate-600 dark:text-slate-300 divide-y divide-slate-50 dark:divide-slate-800">
+                                        {cashSessions.map(s => (
+                                            <tr key={s.id} className="hover:bg-slate-50/50 dark:hover:bg-slate-800/50 transition-colors">
+                                                <td className="p-4">{new Date(s.openedAt).toLocaleString('pt-BR', { dateStyle: 'short', timeStyle: 'short' })}</td>
+                                                <td className="p-4">{s.closedAt ? new Date(s.closedAt).toLocaleString('pt-BR', { dateStyle: 'short', timeStyle: 'short' }) : 'Em Aberto'}</td>
+                                                <td className="p-4">R$ {s.totalSales?.toFixed(2) || (s.status === 'OPEN' ? 'Processando...' : '0,00')}</td>
+                                                <td className="p-4">
+                                                    <span className={`px-3 py-1 rounded-full text-[8px] uppercase tracking-widest font-black ${s.status === 'OPEN' ? 'bg-emerald-100 dark:bg-emerald-900/30 text-emerald-600 dark:text-emerald-400' : 'bg-slate-100 dark:bg-slate-800 text-slate-400 dark:text-slate-500'}`}>
+                                                        {s.status === 'OPEN' ? 'Aberto' : 'Fechado'}
+                                                    </span>
+                                                </td>
+                                                <td className="p-4 text-right flex justify-end gap-2">
+                                                    {s.status === 'CLOSED' && currentUser?.role === 'ADMIN' && (
+                                                        <>
+                                                            <button
+                                                                onClick={() => handleEditReport(s)}
+                                                                className="p-2 bg-amber-50 dark:bg-amber-900/20 text-amber-600 dark:text-amber-400 rounded-lg hover:bg-amber-600 dark:hover:bg-amber-500 hover:text-white transition-all text-[8px] uppercase font-black flex items-center gap-1"
+                                                            >
+                                                                <Icons.Edit />
+                                                                Editar
+                                                            </button>
+                                                            <button
+                                                                onClick={() => handleReopen(s.id)}
+                                                                className="p-2 bg-blue-50 dark:bg-blue-900/20 text-blue-600 dark:text-blue-400 rounded-lg hover:bg-blue-600 dark:hover:bg-blue-500 hover:text-white transition-all text-[8px] uppercase font-black"
+                                                            >
+                                                                Reabrir
+                                                            </button>
+                                                        </>
+                                                    )}
+                                                </td>
+                                            </tr>
+                                        ))}
+                                    </tbody>
+                                </table>
+                            </div>
+                        )}
+
+                        <button
+                            onClick={() => generateCashPDF(false)}
+                            className="mt-6 sm:mt-8 w-full py-4 sm:py-6 bg-blue-600 hover:bg-blue-700 text-white rounded-2xl sm:rounded-[2rem] font-black uppercase text-[10px] sm:text-xs tracking-widest shadow-xl transition-all flex flex-col sm:flex-row items-center justify-center gap-2 sm:gap-3 px-4 text-center whitespace-normal"
+                        >
+                            <Icons.Print />
+                            Visualizar Histórico de Caixa
+                        </button>
+                        {/* MODAL DE EDIÇÃO DO RELATÓRIO DE CAIXA */}
+                        {isEditReportModalOpen && editingSession && (
+                            <div className="fixed inset-0 z-[130] flex items-center justify-center p-4 sm:p-12 bg-slate-900/60 dark:bg-slate-950/80 backdrop-blur-md animate-in fade-in duration-300">
+                                <div className="bg-white dark:bg-slate-900 rounded-2xl sm:rounded-[4rem] shadow-2xl w-full max-w-2xl flex flex-col overflow-hidden max-h-[90vh] border border-transparent dark:border-slate-800">
+                                    <div className="p-6 sm:p-10 border-b border-slate-100 dark:border-slate-800 bg-slate-50 dark:bg-slate-800/50 flex justify-between items-center">
+                                        <div className="flex flex-col">
+                                            <h3 className="text-xl sm:text-2xl font-black text-slate-900 dark:text-white uppercase tracking-tighter flex items-center gap-3">
+                                                <span className="p-2 sm:p-3 bg-amber-50 dark:bg-amber-900/20 text-amber-600 dark:text-amber-400 rounded-2xl"><Icons.Edit /></span>
+                                                Corrigir Caixa
+                                            </h3>
+                                            <p className="text-[8px] sm:text-[10px] text-slate-400 dark:text-slate-500 font-bold uppercase tracking-widest mt-2 ml-10 sm:ml-14">Apenas Admin Master pode autorizar e salvar alterações</p>
+                                        </div>
+                                        <button onClick={() => setIsEditReportModalOpen(false)} className="sm:hidden p-2 text-slate-400 hover:text-slate-600"><Icons.X /></button>
+                                    </div>
+
+                                    <div className="p-6 sm:p-10 space-y-4 sm:space-y-8 overflow-y-auto">
+                                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 sm:gap-6">
+                                            <div className="space-y-2">
+                                                <label className="text-[10px] font-black text-slate-400 dark:text-slate-500 uppercase tracking-widest ml-1">Dinheiro (R$)</label>
+                                                <input
+                                                    type="text"
+                                                    value={editingSession.reportedCash || 0}
+                                                    onChange={e => setEditingSession({ ...editingSession, reportedCash: parseFloat(e.target.value.replace(',', '.')) || 0 })}
+                                                    className="w-full p-5 bg-slate-50 dark:bg-slate-800 border-none rounded-[1.5rem] font-bold text-lg text-slate-800 dark:text-slate-200"
+                                                />
+                                            </div>
+                                            <div className="space-y-2">
+                                                <label className="text-[10px] font-black text-slate-400 dark:text-slate-500 uppercase tracking-widest ml-1">Pix (R$)</label>
+                                                <input
+                                                    type="text"
+                                                    value={editingSession.reportedPix || 0}
+                                                    onChange={e => setEditingSession({ ...editingSession, reportedPix: parseFloat(e.target.value.replace(',', '.')) || 0 })}
+                                                    className="w-full p-5 bg-slate-50 dark:bg-slate-800 border-none rounded-[1.5rem] font-bold text-lg text-slate-800 dark:text-slate-200"
+                                                />
+                                            </div>
+                                            <div className="space-y-2">
+                                                <label className="text-[10px] font-black text-slate-400 dark:text-slate-500 uppercase tracking-widest ml-1">Crédito (R$)</label>
+                                                <input
+                                                    type="text"
+                                                    value={editingSession.reportedCredit || 0}
+                                                    onChange={e => setEditingSession({ ...editingSession, reportedCredit: parseFloat(e.target.value.replace(',', '.')) || 0 })}
+                                                    className="w-full p-5 bg-slate-50 dark:bg-slate-800 border-none rounded-[1.5rem] font-bold text-lg text-slate-800 dark:text-slate-200"
+                                                />
+                                            </div>
+                                            <div className="space-y-2">
+                                                <label className="text-[10px] font-black text-slate-400 dark:text-slate-500 uppercase tracking-widest ml-1">Débito (R$)</label>
+                                                <input
+                                                    type="text"
+                                                    value={editingSession.reportedDebit || 0}
+                                                    onChange={e => setEditingSession({ ...editingSession, reportedDebit: parseFloat(e.target.value.replace(',', '.')) || 0 })}
+                                                    className="w-full p-5 bg-slate-50 dark:bg-slate-800 border-none rounded-[1.5rem] font-bold text-lg text-slate-800 dark:text-slate-200"
+                                                />
+                                            </div>
+                                            <div className="space-y-2">
+                                                <label className="text-[10px] font-black text-slate-400 dark:text-slate-500 uppercase tracking-widest ml-1">Outros (R$)</label>
+                                                <input
+                                                    type="text"
+                                                    value={editingSession.reportedOthers || 0}
+                                                    onChange={e => setEditingSession({ ...editingSession, reportedOthers: parseFloat(e.target.value.replace(',', '.')) || 0 })}
+                                                    className="w-full p-4 sm:p-5 bg-slate-50 dark:bg-slate-800 border-none rounded-xl sm:rounded-[1.5rem] font-bold text-base sm:text-lg text-emerald-600 dark:text-emerald-400"
+                                                />
+                                            </div>
+                                            <div className="space-y-2">
+                                                <label className="text-[10px] font-black text-blue-400 uppercase tracking-widest ml-1">Receb. Fiado (R$)</label>
+                                                <input
+                                                    type="text"
+                                                    value={editingSession.reportedFiado || 0}
+                                                    onChange={e => setEditingSession({ ...editingSession, reportedFiado: parseFloat(e.target.value.replace(',', '.')) || 0 })}
+                                                    className="w-full p-5 bg-blue-50 dark:bg-blue-900/20 border-none rounded-[1.5rem] font-bold text-lg text-blue-700 dark:text-blue-400"
+                                                />
+                                            </div>
+                                        </div>
+
+                                        <div className="space-y-2">
+                                            <label className="text-[10px] font-black text-slate-400 dark:text-slate-500 uppercase tracking-widest ml-1">Observações do Admin</label>
+                                            <textarea
+                                                value={editingSession.observations || ''}
+                                                onChange={e => setEditingSession({ ...editingSession, observations: e.target.value })}
+                                                placeholder="Motivo da correção..."
+                                                className="w-full p-5 bg-slate-50 dark:bg-slate-800 border-none rounded-[1.5rem] font-bold text-sm min-h-[100px] text-slate-800 dark:text-slate-200"
+                                            />
+                                        </div>
+
+                                        <div className="space-y-2 pt-4 border-t border-slate-100 dark:border-slate-800">
+                                            <label className="text-[10px] font-black text-red-400 dark:text-red-500 uppercase tracking-widest ml-1 underline">Senha do Admin Master</label>
+                                            <input
+                                                type="password"
+                                                placeholder="Digite a senha para autorizar"
+                                                value={adminPassword}
+                                                onChange={e => setAdminPassword(e.target.value)}
+                                                className="w-full p-5 bg-red-50 dark:bg-red-900/20 text-red-900 dark:text-red-100 border-none rounded-[1.5rem] font-black placeholder:text-red-200 dark:placeholder:text-red-900"
+                                            />
+                                        </div>
+                                    </div>
+
+                                    <div className="p-6 sm:p-10 border-t border-slate-100 dark:border-slate-800 bg-slate-50 dark:bg-slate-800/50 flex gap-4 mt-auto">
+                                        <button
+                                            onClick={() => {
+                                                setIsEditReportModalOpen(false);
+                                                setEditingSession(null);
+                                                setAdminPassword('');
+                                            }}
+                                            className="hidden sm:flex flex-1 py-5 bg-white dark:bg-slate-800 text-slate-400 dark:text-slate-500 rounded-3xl font-black uppercase text-xs tracking-widest border border-slate-200 dark:border-slate-700 hover:bg-slate-100 dark:hover:bg-slate-700 transition-all items-center justify-center"
+                                        >
+                                            Cancelar
+                                        </button>
+                                        <button
+                                            onClick={handleSaveEdit}
+                                            className="flex-[2] py-4 sm:py-5 bg-slate-900 dark:bg-slate-100 text-white dark:text-slate-900 rounded-2xl sm:rounded-3xl font-black uppercase text-[10px] sm:text-xs tracking-widest hover:bg-black dark:hover:bg-white transition-all shadow-xl shadow-slate-900/20"
+                                        >
+                                            Salvar Alterações
+                                        </button>
+                                    </div>
+                                </div>
+                            </div>
+                        )}
+                    </div>
+                )}
+
+                {/* CARD RELATÓRIO DE RECEBIMENTOS (FIADO) */}
+                {activeTab === 'RECEIVABLES' && (
+                    <div className="bg-white dark:bg-slate-900/50 p-4 sm:p-10 rounded-2xl sm:rounded-[3rem] shadow-sm border border-slate-100 dark:border-slate-800 flex flex-col h-max max-w-4xl animate-in fade-in zoom-in-95">
+                        <div className="mb-6 sm:mb-8">
+                            <h3 className="text-xl sm:text-2xl font-black text-slate-800 dark:text-white uppercase tracking-tighter flex items-center gap-3">
+                                <span className="p-2 sm:p-3 bg-blue-50 dark:bg-blue-900/20 text-blue-600 rounded-2xl"><Icons.Receivables /></span>
+                                Recebimentos
+                            </h3>
+                            <p className="text-[8px] sm:text-[10px] text-slate-400 dark:text-slate-500 font-bold uppercase tracking-widest mt-2 ml-10 sm:ml-14">Clientes com débitos pendentes</p>
+                        </div>
+
+                        <div className="space-y-4 sm:space-y-6 mb-8">
+                            <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+                                <div className="space-y-2 md:col-span-1">
+                                    <label className="text-[10px] font-black text-slate-400 dark:text-slate-500 uppercase tracking-widest ml-1">Início (Pedido)</label>
+                                    <input type="date" value={receivableStartDate} onChange={e => setReceivableStartDate(e.target.value)} className="w-full p-4 bg-slate-50 dark:bg-slate-800 border-none rounded-2xl font-bold text-sm text-slate-800 dark:text-slate-200" />
+                                </div>
+                                <div className="space-y-2 md:col-span-1">
+                                    <label className="text-[10px] font-black text-slate-400 dark:text-slate-500 uppercase tracking-widest ml-1">Fim (Pedido)</label>
+                                    <input type="date" value={receivableEndDate} onChange={e => setReceivableEndDate(e.target.value)} className="w-full p-4 bg-slate-50 dark:bg-slate-800 border-none rounded-2xl font-bold text-sm text-slate-800 dark:text-slate-200" />
+                                </div>
+                                <div className="space-y-2 md:col-span-2">
+                                    <label className="text-[10px] font-black text-slate-400 dark:text-slate-500 uppercase tracking-widest ml-1">Status de Vencimento</label>
+                                    <select
+                                        value={receivableFilterStatus}
+                                        onChange={e => setReceivableFilterStatus(e.target.value as any)}
+                                        className="w-full p-4 bg-slate-50 dark:bg-slate-800 border-none rounded-2xl font-bold text-sm text-slate-800 dark:text-slate-200"
+                                    >
+                                        <option value="ALL">TODOS OS PENDENTES</option>
+                                        <option value="OVERDUE">APENAS VENCIDOS</option>
+                                        <option value="UPCOMING">A VENCER</option>
+                                    </select>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div className="overflow-x-auto border border-slate-100 dark:border-slate-800 rounded-3xl">
+                            <table className="w-full text-left">
+                                <thead className="bg-slate-50 dark:bg-slate-800/50 text-[10px] font-black text-slate-400 dark:text-slate-500 p-4 border-b border-slate-100 dark:border-slate-800">
+                                    <tr>
+                                        <th className="p-4 uppercase tracking-widest">Cliente / Telefone</th>
+                                        <th className="p-4 uppercase tracking-widest">Data Pedido</th>
+                                        <th className="p-4 uppercase tracking-widest">Vencimento</th>
+                                        <th className="p-4 uppercase tracking-widest">Status</th>
+                                        <th className="p-4 uppercase tracking-widest">Valor</th>
+                                    </tr>
+                                </thead>
+                                <tbody className="text-[11px] font-bold text-slate-600 dark:text-slate-300 divide-y divide-slate-50 dark:divide-slate-800">
+                                    {receivables
+                                        .filter(r => {
+                                            const withinDate = getLocalIsoDate(new Date(r.createdAt)) >= receivableStartDate && getLocalIsoDate(new Date(r.createdAt)) <= receivableEndDate;
+                                            const isOverdue = new Date(r.dueDate) < new Date();
+                                            const matchesStatus =
+                                                receivableFilterStatus === 'ALL' ? r.status === 'PENDING' :
+                                                    receivableFilterStatus === 'OVERDUE' ? (r.status === 'PENDING' && isOverdue) :
+                                                        (r.status === 'PENDING' && !isOverdue);
+                                            return withinDate && matchesStatus;
+                                        })
+                                        .map(r => {
+                                            const isOverdue = new Date(r.dueDate) < new Date();
+                                            const createdAt = new Date(r.createdAt);
+                                            return (
+                                                <tr key={r.id} className="hover:bg-slate-50/50 dark:hover:bg-slate-800/50 transition-colors">
+                                                    <td className="p-4">
+                                                        <div className="flex flex-col">
+                                                            <span className="text-slate-800 dark:text-slate-200">{r.client?.name || 'N/A'}</span>
+                                                            <span className="text-[9px] text-slate-400 dark:text-slate-500">{r.client?.phone || 'N/A'}</span>
+                                                        </div>
+                                                    </td>
+                                                    <td className="p-4">
+                                                        <div className="flex flex-col">
+                                                            <span>{createdAt.toLocaleDateString('pt-BR')}</span>
+                                                            <span className="text-[9px] text-slate-400 dark:text-slate-500">{createdAt.toLocaleTimeString('pt-BR').substring(0, 5)}</span>
+                                                        </div>
+                                                    </td>
+                                                    <td className="p-4">{new Date(r.dueDate).toLocaleDateString('pt-BR')}</td>
+                                                    <td className="p-4">
+                                                        <span className={`px-2 py-1 rounded-lg text-[9px] uppercase font-black ${isOverdue ? 'bg-red-50 dark:bg-red-900/20 text-red-500 dark:text-red-400' : 'bg-emerald-50 dark:bg-emerald-900/20 text-emerald-500 dark:text-emerald-400'}`}>
+                                                            {isOverdue ? 'Vencido' : 'Em Dia'}
+                                                        </span>
+                                                    </td>
+                                                    <td className="p-4 font-black">R$ {r.amount.toFixed(2)}</td>
+                                                </tr>
+                                            );
+                                        })}
+                                </tbody>
+                            </table>
+                        </div>
+
+                        <button
+                            onClick={() => generateReceivablesPDF(false)}
+                            className="mt-6 sm:mt-8 w-full py-4 sm:py-6 bg-blue-600 hover:bg-blue-700 text-white rounded-2xl sm:rounded-[2rem] font-black uppercase text-[10px] sm:text-xs tracking-widest shadow-xl transition-all flex flex-col sm:flex-row items-center justify-center gap-2 sm:gap-3 px-4 text-center whitespace-normal"
+                        >
+                            <Icons.Print />
+                            Visualizar Relatório de Recebimentos
+                        </button>
+                    </div>
+                )}
+
+                {/* CARD RELATÓRIO DE COMISSÕES POR GARÇOM */}
+                {activeTab === 'WAITERS' && (
+                    <div className="bg-white dark:bg-slate-900/50 p-4 sm:p-10 rounded-2xl sm:rounded-[3rem] shadow-sm border border-slate-100 dark:border-slate-800 flex flex-col h-max max-w-4xl animate-in fade-in zoom-in-95">
+                        <div className="mb-6 sm:mb-8">
+                            <h3 className="text-xl sm:text-2xl font-black text-slate-800 dark:text-white uppercase tracking-tighter flex items-center gap-3">
+                                <span className="p-2 sm:p-3 bg-blue-50 dark:bg-blue-900/20 text-blue-600 rounded-2xl"><Icons.User /></span>
+                                Comissões por Garçom
+                            </h3>
+                            <p className="text-[8px] sm:text-[10px] text-slate-400 dark:text-slate-500 font-bold uppercase tracking-widest mt-2 ml-10 sm:ml-14">Resumo de desempenho e taxas de serviço por período</p>
+                        </div>
+
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                            <div className="space-y-2">
+                                <label className="text-[10px] font-black text-slate-400 dark:text-slate-500 uppercase tracking-widest ml-1">Início</label>
+                                <input type="date" value={waiterStartDate} onChange={e => setWaiterStartDate(e.target.value)} className="w-full p-4 bg-slate-50 dark:bg-slate-800 border-none rounded-2xl font-bold text-sm text-slate-800 dark:text-slate-200" />
+                            </div>
+                            <div className="space-y-2">
+                                <label className="text-[10px] font-black text-slate-400 dark:text-slate-500 uppercase tracking-widest ml-1">Fim</label>
+                                <input type="date" value={waiterEndDate} onChange={e => setWaiterEndDate(e.target.value)} className="w-full p-4 bg-slate-50 dark:bg-slate-800 border-none rounded-2xl font-bold text-sm text-slate-800 dark:text-slate-200" />
+                            </div>
+                        </div>
+
+                        <div className="grid grid-cols-2 gap-4">
+                            <div className="space-y-2">
+                                <label className="text-[10px] font-black text-slate-400 dark:text-slate-500 uppercase tracking-widest ml-1">Filtrar por Garçom</label>
+                                <select
+                                    value={selectedWaiterId}
+                                    onChange={e => setSelectedWaiterId(e.target.value)}
+                                    className="w-full p-4 bg-slate-50 dark:bg-slate-800 border-none rounded-xl sm:rounded-2xl font-bold text-sm text-slate-800 dark:text-slate-200"
+                                >
+                                    <option value="TODOS">TODOS OS GARÇONS</option>
+                                    {waiters.map(w => (
+                                        <option key={w.id} value={w.id}>{w.name}</option>
+                                    ))}
+                                </select>
+                            </div>
+                            <div className="space-y-2">
+                                <label className="text-[10px] font-black text-slate-400 dark:text-slate-500 uppercase tracking-widest ml-1">Tipo de Relatório</label>
+                                <select
+                                    value={waiterReportType}
+                                    onChange={e => setWaiterReportType(e.target.value as 'CONSOLIDADO' | 'ANALITICO')}
+                                    className="w-full p-4 bg-slate-50 dark:bg-slate-800 border-none rounded-xl sm:rounded-2xl font-bold text-sm text-slate-800 dark:text-slate-200"
+                                >
+                                    <option value="CONSOLIDADO">RESUMO CONSOLIDADO</option>
+                                    <option value="ANALITICO">DETALHADO ANALÍTICO</option>
+                                </select>
+                            </div>
+                        </div>
+
+                        <button
+                            onClick={() => {
+                                if (waiterReportType === 'CONSOLIDADO') {
+                                    generateWaitersPDF(false);
+                                } else {
+                                    generateWaitersAnalyticalPDF(false);
+                                }
+                            }}
+                            className="mt-6 sm:mt-8 w-full py-4 sm:py-6 bg-blue-600 hover:bg-blue-700 text-white rounded-2xl sm:rounded-[2rem] font-black uppercase text-[10px] sm:text-xs tracking-widest shadow-xl transition-all flex flex-col sm:flex-row items-center justify-center gap-2 sm:gap-3 px-4 text-center whitespace-normal"
+                        >
+                            <Icons.Print />
+                            Visualizar Relatório de Comissões
+                        </button>
+                    </div>
+                )}
+
+            </div>
+
+            {/* MODAL DE PREVIEW DO PDF */}
+            {
+                pdfPreviewUrl && (
+                    <div className="fixed inset-0 z-[120] flex items-center justify-center p-4 sm:p-12 bg-slate-900/90 dark:bg-slate-950/90 backdrop-blur-xl animate-in fade-in duration-300">
+                        <div className="bg-white dark:bg-slate-900 rounded-2xl sm:rounded-[4rem] shadow-2xl w-full max-w-5xl h-full flex flex-col overflow-hidden max-h-[95vh] border border-transparent dark:border-slate-800">
+                            <div className="p-4 sm:p-8 border-b border-slate-100 dark:border-slate-800 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 bg-slate-50 dark:bg-slate-800/50">
+                                <div>
+                                    <h3 className="text-lg sm:text-xl font-black text-slate-900 dark:text-white uppercase tracking-tighter">Visualização do Relatório</h3>
+                                    <p className="text-[8px] sm:text-[10px] text-slate-400 dark:text-slate-500 font-bold uppercase tracking-widest">Documento gerado localmente em alta resolução</p>
+                                </div>
+                                <div className="flex gap-2 sm:gap-3 w-full sm:w-auto">
+                                    <button
+                                        onClick={() => {
+                                            if (previewType === 'SALES') generateSalesPDF(true);
+                                            else if (previewType === 'CLIENTS') generateClientsPDF(true);
+                                            else if (previewType === 'CLIENT_ORDERS') generateClientOrdersPDF(true);
+                                            else if (previewType === 'DRIVERS') generateDriversPDF(true);
+                                            else if (previewType === 'INVENTORY') generateInventoryPDF(true);
+                                            else if (previewType === 'CASH') generateCashPDF(true);
+                                            else if (previewType === 'RECEIVABLES') generateReceivablesPDF(true);
+                                            else if (previewType === 'WAITERS') generateWaitersPDF(true);
+                                            else if (previewType === 'WAITERS_ANALYTICAL') generateWaitersAnalyticalPDF(true);
+                                        }}
+                                        className="flex-1 sm:flex-none bg-blue-600 text-white px-4 sm:px-8 py-3 sm:py-4 rounded-xl sm:rounded-2xl text-[9px] sm:text-[10px] font-black uppercase tracking-widest hover:bg-blue-700 transition-all flex items-center justify-center gap-2"
+                                    >
+                                        Download PDF
+                                    </button>
+                                    <button
+                                        onClick={() => {
+                                            URL.revokeObjectURL(pdfPreviewUrl);
+                                            setPdfPreviewUrl(null);
+                                            setPreviewType(null);
+                                        }}
+                                        className="flex-1 sm:flex-none bg-white dark:bg-slate-800 text-slate-400 dark:text-slate-500 px-4 sm:px-8 py-3 sm:py-4 rounded-xl sm:rounded-2xl text-[9px] sm:text-[10px] font-black uppercase tracking-widest border border-slate-200 dark:border-slate-700 hover:bg-slate-50 dark:hover:bg-slate-700 transition-all flex items-center justify-center"
+                                    >
+                                        Fechar
+                                    </button>
+                                </div>
+                            </div>
+                            <div className="flex-1 bg-slate-200 dark:bg-slate-950 p-4 sm:p-8 flex flex-col justify-center items-center overflow-hidden">
+                                {isMobile ? (
+                                    <div className="flex flex-col items-center justify-center gap-6 p-8 bg-white dark:bg-slate-900 rounded-[2rem] shadow-2xl text-center max-w-sm">
+                                        <div className="p-6 bg-blue-50 dark:bg-blue-900/20 text-blue-600 rounded-full animate-bounce">
+                                            <Icons.Print />
+                                        </div>
+                                        <div>
+                                            <h4 className="text-xl font-black text-slate-800 dark:text-white uppercase tracking-tighter">Relatório Pronto</h4>
+                                            <p className="text-sm text-slate-500 font-bold mt-2">Toque no botão abaixo para abrir o documento em tela cheia.</p>
+                                        </div>
+                                        <button
+                                            onClick={() => window.open(pdfPreviewUrl, '_blank')}
+                                            className="w-full py-5 bg-blue-600 hover:bg-blue-700 text-white rounded-2xl font-black uppercase text-xs tracking-widest shadow-xl transition-all"
+                                        >
+                                            Abrir Relatório
+                                        </button>
+                                    </div>
+                                ) : (
+                                    <iframe
+                                        src={pdfPreviewUrl}
+                                        className="w-full h-full rounded-2xl shadow-xl bg-white"
+                                        title="Report Preview"
+                                    />
+                                )}
+                            </div>
+                        </div>
+                    </div>
+                )
+            }
+        </div >
+    );
+};
+
+export default Reports;

@@ -1,0 +1,147 @@
+@import "tailwindcss";
+
+/* Required for manual toggle of dark mode in Tailwind v4 */
+@custom-variant dark (&:is(.dark *));
+
+@layer base {
+    button {
+        @apply cursor-pointer;
+    }
+
+    /* Fix autofill colors globally */
+    input:-webkit-autofill,
+    input:-webkit-autofill:hover,
+    input:-webkit-autofill:focus,
+    textarea:-webkit-autofill,
+    textarea:-webkit-autofill:hover,
+    textarea:-webkit-autofill:focus,
+    select:-webkit-autofill,
+    select:-webkit-autofill:hover,
+    select:-webkit-autofill:focus {
+        -webkit-text-fill-color: white !important;
+        -webkit-box-shadow: 0 0 0px 1000px #1e293b inset !important;
+        transition: background-color 5000s ease-in-out 0s;
+    }
+
+    /* Fix browser date/time picker icon colors in dark mode */
+    .dark input::-webkit-calendar-picker-indicator {
+        filter: invert(1);
+    }
+}
+
+@theme {
+    --color-blue-50: #eef2ff;
+    --color-blue-100: #e0e7ff;
+    --color-blue-200: #c7d2fe;
+    --color-blue-300: #a5b4fc;
+    --color-blue-400: #818cf8;
+    --color-blue-500: #6366f1;
+    --color-blue-600: #4f46e5;
+    --color-blue-700: #4338ca;
+    --color-blue-800: #3730a3;
+    --color-blue-900: #312e81;
+    --color-blue-950: #1e1b4b;
+}
+
+@media print {
+  /* 1. Remove elementos não necessários na impressão */
+  body * {
+    visibility: hidden;
+  }
+
+  .is-receipt, .is-receipt * {
+    visibility: visible;
+  }
+
+  .is-receipt {
+    position: fixed !important; /* Changed from absolute to fixed to ensure it stays at the top of the viewport/page */
+    left: 0 !important;
+    right: 0 !important;
+    top: 0 !important;
+    width: 100% !important;
+    max-width: 48mm !important; /* Standard 48mm width matching Sales Monitor */
+    margin: 0 auto !important;
+    padding: 0 !important;
+    background: white !important;
+    z-index: 9999 !important;
+  }
+
+  .no-print {
+    display: none !important;
+  }
+
+  /* 2. Força o navegador a entender o tamanho exato da bobina e zera margens do S.O. */
+  @page {
+    margin: 0;
+    size: 58mm auto; /* Largura da bobina x altura automática */
+  }
+
+  /* 3. Reseta o body para não empurrar nada e evitar alinhamento flex centralizado */
+  body, html {
+    margin: 0 !important;
+    padding: 0 !important;
+    width: 100% !important;
+    height: auto !important;
+    min-height: auto !important;
+    display: block !important; /* Force block to avoid flex centering from parent styles */
+    background-color: white !important;
+    overflow: visible !important;
+  }
+
+  /* Limitador de Corte - REMOVED per user request */
+  .is-receipt::after {
+    display: none;
+  }
+
+  /* Utilitários para flexbox separando "Produto" e "Preço" */
+  .is-receipt .linha-produto {
+    display: flex;
+    justify-content: space-between;
+    width: 100%;
+  }
+  
+  .is-receipt .nome-produto {
+    flex: 1;
+    padding-right: 2px;
+  }
+
+  /* Compact Printing Styles (Modelo Laranjinha) */
+  .is-receipt {
+    width: 100% !important;
+    max-width: 42mm !important; /* Reduzido de 44mm p/ evitar cortes */
+    padding: 2mm !important; /* Margem de segurança */
+    color: black !important;
+    background: white !important;
+    font-family: 'Courier New', Courier, monospace !important;
+    font-size: 9px !important; /* Reduzido de 11px p/ metade da percepção visual */
+    line-height: 1.0 !important; /* Espaçamento vertical mínimo */
+    letter-spacing: -0.2px !important;
+    box-sizing: border-box !important;
+  }
+
+  .is-receipt h2 {
+    font-size: 11px !important; /* Título menor */
+    margin: 0 0 2px 0 !important;
+    text-transform: uppercase !important;
+  }
+
+  .is-receipt p, .is-receipt span, .is-receipt div {
+    margin: 0 !important; /* Retira espaços verticais */
+  }
+
+  .is-receipt table {
+    width: 100%;
+    border-collapse: collapse;
+  }
+
+  .is-receipt th, .is-receipt td {
+    padding: 0 !important;
+  }
+
+  /* Simple sections separators */
+  .is-receipt .section-divider {
+    border-top: 1px solid black !important;
+    margin: 2px 0 !important;
+    width: 100% !important;
+  }
+}

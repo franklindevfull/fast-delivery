@@ -1,0 +1,137 @@
+import { Request, Response } from 'express';
+import prisma from '../prisma';
+import bcrypt from 'bcryptjs';
+
+export const getWaiters = async (req: Request, res: Response) => {
+    const waiters = await prisma.waiter.findMany();
+    res.json(waiters);
+};
+
+export const saveWaiter = async (req: Request, res: Response) => {
+    const data = req.body;
+    const { email, phone, name, id } = data;
+
+    // 1. Save Waiter
+    const waiter = await prisma.waiter.upsert({
+        where: { id: id || '' },
+        update: { name, phone, email },
+        create: { name, phone, email }
+    });
+
+    // 2. Sync with User (if email provided)
+    if (email) {
+        const existingUser = await prisma.user.findUnique({ where: { email } });
+        const hashedPassword = await bcrypt.hash('123', 10); // Default password for new waiters: 123
+
+        const generateRecoveryCode = () => {
+            const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789';
+            let code = '';
+            for (let i = 0; i < 6; i++) {
+                code += chars.charAt(Math.floor(Math.random() * chars.length));
+            }
+            return code;
+        };
+
+        if (existingUser) {
+            // Update existing user permissions to include waiter if not present
+            const permissions = new Set(existingUser.permissions);
+            permissions.add('waiter');
+            await prisma.user.update({
+                where: { id: existingUser.id },
+                data: {
+                    name,
+                    phone,
+                    permissions: Array.from(permissions)
+                }
+            });
+        } else {
+            // Create new user for waiter app
+            await prisma.user.create({
+                data: {
+                    name,
+                    email,
+                    phone,
+                    password: hashedPassword,
+                    permissions: ['waiter', 'dashboard'], // Essential permissions
+                    active: true,
+                    mustChangePassword: true,
+                    recoveryCode: generateRecoveryCode()
+                }
+            });
+        }
+    }
+
+    res.json(waiter);
+};
+
+export const deleteWaiter = async (req: Request, res: Response) => {
+    const id = req.params.id as string;
+    const waiter = await prisma.waiter.findUnique({ where: { id } });
+
+    if (waiter?.email) {
+        // Deactivate corresponding user instead of deleting to keep history
+        const user = await prisma.user.findUnique({ where: { email: waiter.email } });
+        if (user) {
+            await prisma.user.update({
+                where: { id: user.id },
+                data: { active: false }
+            });
+        }
+    }
+
+    await prisma.waiter.delete({ where: { id: id as string } });
+    res.json({ message: 'Garçom removido' });
+};
+
+export const toggleWaiterStatus = async (req: Request, res: Response) => {
+    const { id, active } = req.body;
+
+    // Update Waiter
+    await prisma.waiter.update({
+        where: { id },
+        data: { active }
+    });
+
+    const waiter = await prisma.waiter.findUnique({ where: { id } });
+
+    if (waiter?.email) {
+        const user = await prisma.user.findUnique({ where: { email: waiter.email } });
+        if (user) {
+            await prisma.user.update({
+                where: { id: user.id },
+                data: { active }
+            });
+        }
+    }
+
+    res.json({ message: `Status alterado para ${active ? 'Ativo' : 'Inativo'}` });
+};
+
+export const resetWaiter = async (req: Request, res: Response) => {
+    const { id } = req.body;
+    const waiter = await prisma.waiter.findUnique({ where: { id } });
+
+    if (waiter?.email) {
+        const user = await prisma.user.findUnique({ where: { email: waiter.email } });
+        if (user) {
+            const hashedPassword = await bcrypt.hash('123', 10);
+
+            const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789';
+            let recoveryCode = '';
+            for (let i = 0; i < 6; i++) {
+                recoveryCode += chars.charAt(Math.floor(Math.random() * chars.length));
+            }
+
+            await prisma.user.update({
+                where: { id: user.id },
+                data: {
+                    password: hashedPassword,
+                    mustChangePassword: true,
+                    recoveryCode
+                }
+            });
+        }
+    }
+
+    res.json({ message: 'Segurança do garçom resetada com sucesso' });
+};

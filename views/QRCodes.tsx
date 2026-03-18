@@ -1,0 +1,145 @@
+import React, { useState, useEffect } from 'react';
+import { QRCodeSVG } from 'qrcode.react';
+import { db } from '../services/db';
+import { BusinessSettings } from '../types';
+import { Icons } from '../constants';
+
+const QRCodes: React.FC = () => {
+    const [settings, setSettings] = useState<BusinessSettings | null>(null);
+    const [isLoading, setIsLoading] = useState(false);
+
+    useEffect(() => {
+        const init = async () => {
+            setIsLoading(true);
+            try {
+                const s = await db.getSettings();
+                setSettings(s);
+            } catch (error) {
+                console.error("Error fetching QR Code settings:", error);
+            } finally {
+                setIsLoading(false);
+            }
+        };
+        init();
+    }, []);
+
+    if (!settings) return null;
+
+    // Base da URL do cardápio digital (via Configuração, Variável de Ambiente ou Local)
+    const MENU_BASE_URL = settings.qrCodeBaseUrl || import.meta.env.VITE_MENU_URL || 'http://localhost:5173';
+
+    const tables = Array.from({ length: settings.tableCount }).map((_, i) => i + 1);
+
+    return (
+        <div className="flex flex-col h-full gap-8 relative">
+            {isLoading && (
+                <div className="absolute top-0 left-0 w-full h-1 bg-indigo-100 dark:bg-blue-900/20 overflow-hidden z-50">
+                    <div className="h-full bg-indigo-600 dark:bg-blue-600 animate-[loading_2s_infinite]"></div>
+                </div>
+            )}
+            <style>{`
+                @keyframes loading {
+                    0% { transform: translateX(-100%); }
+                    100% { transform: translateX(100%); }
+                }
+            `}</style>
+            {/* Header (Oculto na impressão) */}
+            <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center bg-white dark:bg-slate-900/50 p-6 rounded-[2rem] border border-slate-100 dark:border-slate-800 shadow-sm print:hidden gap-4">
+                <div>
+                    <h2 className="text-2xl font-black text-slate-800 dark:text-white uppercase tracking-tighter">QR Codes das Mesas</h2>
+                    <p className="text-xs text-slate-400 dark:text-slate-500 font-bold uppercase tracking-widest">
+                        Gere e imprima os QR Codes para o Menu Digital
+                    </p>
+                </div>
+                <div className="flex items-center gap-4">
+                    <button
+                        onClick={() => window.print()}
+                        className="w-full sm:w-auto px-6 py-3 bg-slate-900 text-white rounded-xl text-xs font-black uppercase hover:bg-slate-800 transition-all flex items-center justify-center gap-2 shadow-lg"
+                    >
+                        <Icons.Print />
+                        Imprimir Todos
+                    </button>
+                </div>
+            </div>
+
+            {/* Grid de QR Codes */}
+            <div id="print-area" className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-8 overflow-y-auto pb-12 print:overflow-visible print:pb-0 print:grid-cols-3 print:gap-8">
+                {tables.map((tableNum) => {
+                    const tableUrl = `${MENU_BASE_URL}/?mesa=${tableNum}`;
+
+
+                    return (
+                        <div
+                            key={tableNum}
+                            className="bg-white dark:bg-slate-900 p-6 rounded-[2rem] border-2 border-dashed border-slate-200 dark:border-slate-800 flex flex-col items-center justify-center gap-4 print:border-solid print:border-black print:rounded-xl print:p-4 break-inside-avoid"
+                        >
+                            <div className="text-center">
+                                <h3 className="text-xl font-black text-slate-800 dark:text-white uppercase tracking-tighter print:text-lg">
+                                    Mesa {tableNum}
+                                </h3>
+                                <p className="text-[10px] font-bold text-slate-400 dark:text-slate-500 uppercase tracking-widest print:text-[8px]">
+                                    Escaneie para Pedir
+                                </p>
+                            </div>
+
+                            <div className="p-4 bg-white rounded-2xl shadow-sm border border-slate-100 print:shadow-none print:border-none print:p-2">
+                                <QRCodeSVG
+                                    value={tableUrl}
+                                    size={140}
+                                    level="H"
+                                    includeMargin={false}
+                                    className="print:w-[120px] print:h-[120px]"
+                                />
+                            </div>
+
+                            <div className="text-center mt-2 opacity-30 dark:opacity-50 print:opacity-100 print:mt-1">
+                                <p className="text-[8px] font-bold uppercase tracking-widest break-all w-full select-all text-slate-700 dark:text-slate-500">
+                                    {MENU_BASE_URL}
+                                </p>
+                            </div>
+                        </div>
+                    );
+                })}
+            </div>
+
+            {/* Estilos de Impressão Específicos para a página toda */}
+            <style>{`
+        @media print {
+          body {
+            background-color: white !important;
+            visibility: hidden; /* Oculta tudo por padrão (Herdado do index.html) */
+          }
+          
+          /* Força a visibilidade Apenas da área de QR Codes */
+          #print-area, #print-area * {
+            visibility: visible !important;
+            background-color: transparent !important;
+            color: black !important;
+            border-color: black !important;
+          }
+
+          #print-area > div {
+             background-color: white !important;
+             border: 1px solid black !important;
+          }
+          
+          #print-area {
+            position: absolute;
+            left: 0;
+            top: 0;
+            width: 100%;
+            margin: 0;
+            padding: 20px;
+          }
+
+          /* Esconder Sidebar e Header (Garantia extra) */
+          aside, header, nav {
+            display: none !important;
+          }
+        }
+      `}</style>
+        </div>
+    );
+};
+
+export default QRCodes;
