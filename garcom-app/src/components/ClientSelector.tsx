@@ -1,9 +1,9 @@
 import React, { useState, useEffect } from 'react';
-import { Search, X, ArrowRight, UserPlus } from 'lucide-react';
+import { Search, X, ArrowRight } from 'lucide-react';
 import { db } from '../api';
 
 interface ClientSelectorProps {
-    onSelect: (clientId: string | null, clientName: string) => void;
+    onSelect: (clientId: string, clientName: string) => void;
     onClose: () => void;
     title?: string;
 }

@@ -121,7 +121,7 @@ const TableDetails: React.FC<TableDetailsProps> = ({ table, user, onClose, onRef
         }
     };
 
-    const handleCheckout = async (clientId?: string | null, clientName?: string) => {
+    const handleCheckout = async (clientId?: string, clientName?: string) => {
         if (!isResponsible) {
             showAlert('Acesso Negado', 'Somente o garçom responsável por esta mesa pode solicitar a conta.', 'error');
             return;
