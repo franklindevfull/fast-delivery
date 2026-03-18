@@ -85,15 +85,6 @@ export const resetSystem = async (req: Request, res: Response) => {
                 }
             });
 
-            // Create default ANONYMOUS client
-            await tx.client.create({
-                data: {
-                    id: 'ANONYMOUS',
-                    name: 'Consumidor Avulso',
-                    phone: '0000000000',
-                    addresses: []
-                }
-            });
         });
 
         res.json({ message: 'Sistema reiniciado com sucesso para os padrões de fábrica.' });

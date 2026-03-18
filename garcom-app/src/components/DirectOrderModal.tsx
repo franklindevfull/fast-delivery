@@ -71,7 +71,7 @@ const DirectOrderModal: React.FC<DirectOrderModalProps> = ({ user, onClose, onRe
         setShowClientSelect(true);
     };
 
-    const submitOrder = async (clientId: string, clientName: string) => {
+    const submitOrder = async (clientId: string | null, clientName: string) => {
         setLoading(true);
         setShowClientSelect(false);
         try {

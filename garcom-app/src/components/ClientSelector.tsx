@@ -3,19 +3,15 @@ import { Search, X, ArrowRight, UserPlus } from 'lucide-react';
 import { db } from '../api';
 
 interface ClientSelectorProps {
-    onSelect: (clientId: string, clientName: string) => void;
+    onSelect: (clientId: string | null, clientName: string) => void;
     onClose: () => void;
     title?: string;
-    showAnonymous?: boolean;
-    anonymousLabel?: string;
 }
 
 const ClientSelector: React.FC<ClientSelectorProps> = ({
     onSelect,
     onClose,
-    title = "Identificar Cliente",
-    showAnonymous = true,
-    anonymousLabel = "Consumidor Avulso"
+    title = "Identificar Cliente"
 }) => {
     const [clients, setClients] = useState<any[]>([]);
     const [search, setSearch] = useState('');
@@ -66,19 +62,6 @@ const ClientSelector: React.FC<ClientSelectorProps> = ({
                 </div>
 
                 <div className="max-h-64 overflow-y-auto mb-2 pr-2 space-y-2 custom-scrollbar">
-                    {showAnonymous && (
-                        <button
-                            onClick={() => onSelect('ANONYMOUS', anonymousLabel)}
-                            className="w-full p-4 bg-blue-50 border border-blue-100 rounded-xl flex items-center justify-between group hover:bg-blue-600 transition-all"
-                        >
-                            <div className="flex items-center gap-3">
-                                <UserPlus size={18} className="text-blue-500 group-hover:text-white" />
-                                <span className="text-xs font-black text-blue-600 uppercase tracking-widest group-hover:text-white">{anonymousLabel}</span>
-                            </div>
-                            <ArrowRight size={16} className="text-blue-400 group-hover:text-white" />
-                        </button>
-                    )}
-
                     {loading ? (
                         <div className="py-8 text-center">
                             <div className="w-6 h-6 border-2 border-blue-500 border-t-transparent rounded-full animate-spin mx-auto mb-2"></div>

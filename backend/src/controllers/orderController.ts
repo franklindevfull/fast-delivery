@@ -66,30 +66,16 @@ const syncClientStats = async (tx: any, order: any, oldStatus?: string) => {
     const isReverting = order.status !== 'DELIVERED' && oldStatus === 'DELIVERED';
     let finalClientId = order.clientId;
 
-    // 1. Handle Auto-Registration for Avulso Clients
+    // 1. Remove Auto-Registration for Avulso Clients (Disabled as per new requirements)
+    /*
     if (isNewFinalization && (order.clientId === 'ANONYMOUS' || !order.clientId) && order.clientPhone && order.clientPhone !== '0000000000') {
-        const safePhone = order.clientPhone.toString();
-        let client = await tx.client.findFirst({
-            where: { phone: safePhone }
-        });
-
-        if (!client) {
-            client = await tx.client.create({
-                data: {
-                    name: order.clientName || 'Consumidor Avulso',
-                    phone: safePhone,
-                    email: order.clientEmail || null,
-                    document: order.clientDocument || null,
-                    addresses: [order.clientAddress?.toString() || 'S/ Endereço'],
-                    totalOrders: 0
-                }
-            });
-        }
-        finalClientId = client.id;
+        ...
     }
+    */
+    finalClientId = order.clientId;
 
     // 2. Increment on Finalization
-    if (isNewFinalization && finalClientId && finalClientId !== 'ANONYMOUS') {
+    if (isNewFinalization && finalClientId) {
         try {
             await tx.client.update({
                 where: { id: finalClientId },
@@ -105,7 +91,7 @@ const syncClientStats = async (tx: any, order: any, oldStatus?: string) => {
     }
 
     // 3. Decrement on Reversion (Reopen)
-    if (isReverting && finalClientId && finalClientId !== 'ANONYMOUS') {
+    if (isReverting && finalClientId) {
         try {
             await tx.client.update({
                 where: { id: finalClientId },
@@ -340,7 +326,7 @@ export const saveOrder = async (req: Request, res: Response) => {
             }
 
             // 2. Client Synchronization and Order Counting
-            const clientId = order.clientId && order.clientId !== "" ? order.clientId : 'ANONYMOUS';
+            const clientId = order.clientId && order.clientId !== "" ? order.clientId : null;
 
             // Recover waiterId if missing (e.g. POS finalizing a waiter's table)
             let waiterId = resolvedWaiterId;
@@ -357,18 +343,8 @@ export const saveOrder = async (req: Request, res: Response) => {
 
             const driverId = order.driverId && order.driverId !== "" ? order.driverId : null;
 
-            if (clientId === 'ANONYMOUS') {
-                await tx.client.upsert({
-                    where: { id: 'ANONYMOUS' },
-                    update: {},
-                    create: {
-                        id: 'ANONYMOUS',
-                        name: 'Consumidor Avulso',
-                        phone: '0000000000',
-                        addresses: []
-                    }
-                });
-            }
+            // Removing the automatic creation of ANONYMOUS client.
+            // Orders must now have a valid clientId.
 
             order.clientId = await syncClientStats(tx, { ...order, clientId }, oldStatus);
 
@@ -487,8 +463,8 @@ export const saveOrder = async (req: Request, res: Response) => {
 
         // 4. Receivable Fiado Processing
         if (result.status === 'DELIVERED' && result.paymentMethod === 'FIADO') {
-            if (!result.clientId || result.clientId === 'ANONYMOUS') {
-                console.warn('Cannot create Receivable for ANONYMOUS client on Order:', result.id);
+            if (!result.clientId) {
+                console.warn('Cannot create Receivable for unindentified client on Order:', result.id);
             } else {
                 const dueDate = new Date();
                 dueDate.setDate(dueDate.getDate() + 30); // Default 30 days
@@ -515,7 +491,7 @@ export const saveOrder = async (req: Request, res: Response) => {
 
                 // Also notify the specific client room if applicable
                 const clientId = order.clientId || result.clientId;
-                if (clientId && clientId !== 'ANONYMOUS') {
+                if (clientId) {
                     getIO().to(`client_${clientId}`).emit('orderUpdated', { id: result.id, action: 'create' });
                 }
             } catch (e) {
@@ -586,7 +562,7 @@ export const deleteOrder = async (req: Request, res: Response) => {
                 await handleInventoryImpact(tx, orderToDelete.items, 'INCREMENT', orderToDelete.id);
 
                 // Se tinha um ID próprio de CRM, abassa 1
-                if (orderToDelete.clientId && orderToDelete.clientId !== 'ANONYMOUS') {
+                if (orderToDelete.clientId) {
                     const client = await tx.client.findUnique({ where: { id: orderToDelete.clientId } });
                     if (client && client.totalOrders > 0) {
                         await tx.client.update({
@@ -754,7 +730,7 @@ export const updateOrderStatus = async (req: Request, res: Response) => {
                         create: {
                             tableNumber: oldOrder.tableNumber,
                             status: 'occupied',
-                            clientId: oldOrder.clientId === 'ANONYMOUS' ? null : oldOrder.clientId,
+                            clientId: oldOrder.clientId,
                             clientName: oldOrder.clientName,
                             pin: oldOrder.digitalPin,
                             sessionToken: oldOrder.digitalToken,
@@ -793,7 +769,7 @@ export const updateOrderStatus = async (req: Request, res: Response) => {
             // 4. Receivable Fiado Processing
             if (newStatus === 'DELIVERED' && (updateData.paymentMethod === 'FIADO' || oldOrder.paymentMethod === 'FIADO')) {
                 const realClientId = finalClientId || order.clientId;
-                if (realClientId && realClientId !== 'ANONYMOUS') {
+                if (realClientId) {
                     console.log(`[OrderController] Creating fiado receivable for order ${id}`);
                     const dueDate = new Date();
                     dueDate.setDate(dueDate.getDate() + 30);

@@ -121,7 +121,7 @@ const TableDetails: React.FC<TableDetailsProps> = ({ table, user, onClose, onRef
         }
     };
 
-    const handleCheckout = async (clientId?: string, clientName?: string) => {
+    const handleCheckout = async (clientId?: string | null, clientName?: string) => {
         if (!isResponsible) {
             showAlert('Acesso Negado', 'Somente o garçom responsável por esta mesa pode solicitar a conta.', 'error');
             return;
@@ -162,7 +162,7 @@ const TableDetails: React.FC<TableDetailsProps> = ({ table, user, onClose, onRef
                 tableNumber: table.tableNumber,
                 items: [...table.items, ...cart.map(item => ({ ...item, id: undefined }))],
                 status: 'occupied',
-                clientId: table.clientId || 'ANONYMOUS',
+                clientId: table.clientId || null,
                 clientName: table.clientName || `Mesa ${table.tableNumber}`,
                 waiterId: actingWaiterId,
                 userPermissions: user.permissions
@@ -207,7 +207,7 @@ const TableDetails: React.FC<TableDetailsProps> = ({ table, user, onClose, onRef
                     status: 'occupied',
                     hasPendingDigital: false,
                     pendingReviewItems: null as any, // Explicitly null to clear in Prisma
-                    clientId: table.clientId || 'ANONYMOUS',
+                    clientId: table.clientId || null,
                     clientName: table.clientName || `Mesa ${table.tableNumber}`,
                     waiterId: actingWaiterId,
                     userPermissions: user.permissions
@@ -653,7 +653,6 @@ const TableDetails: React.FC<TableDetailsProps> = ({ table, user, onClose, onRef
                     <ClientSelector
                         onSelect={(id, name) => handleCheckout(id, name)}
                         onClose={() => setShowClientSelect(false)}
-                        anonymousLabel={`Mesa ${table.tableNumber}`}
                     />
                 )}
             </div>

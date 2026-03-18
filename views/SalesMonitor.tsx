@@ -387,7 +387,7 @@ const SalesMonitor: React.FC = () => {
                     </div>
 
                     <div className="text-center space-y-1 border-t border-dashed border-black dark:border-slate-700 pt-2">
-                      <p className="font-bold">{printingOrder.clientName === 'Consumidor' ? 'CONSUMIDOR NAO INFORMADO' : `CLIENTE: ${printingOrder.clientName?.toUpperCase()}`}</p>
+                      <p className="font-bold">{!printingOrder.clientName || printingOrder.clientName === 'Não Identificado' ? 'CLIENTE NÃO IDENTIFICADO' : `CLIENTE: ${printingOrder.clientName.toUpperCase()}`}</p>
                       <p>Protocolo de Autorizacao: {Math.floor(Math.random() * 100000000000000)}</p>
                       <div className="flex justify-between text-[8px]">
                         <span>Tributos Totais Incidentes (Lei Federal 12.741/2012)</span>

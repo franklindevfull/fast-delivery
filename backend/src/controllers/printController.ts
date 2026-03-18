@@ -62,7 +62,7 @@ export const printReceipt = async (req: Request, res: Response): Promise<void> =
         const timeStr = dateObj.toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' });
         printer.leftRight(`DATA: ${dateStr}`, timeStr);
 
-        printer.println(`CLIENTE: ${(data.clientName || 'CONSUMIDOR').toUpperCase()}`);
+        printer.println(`CLIENTE: ${(data.clientName || 'NÃO IDENTIFICADO').toUpperCase()}`);
         if(data.clientPhone) printer.println(`FONE: ${data.clientPhone}`);
         
         // Só imprime endereço se for DELIVERY

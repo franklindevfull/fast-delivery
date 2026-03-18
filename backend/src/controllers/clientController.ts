@@ -16,15 +16,13 @@ export const saveClient = async (req: Request, res: Response) => {
     let newPassword = undefined;
 
     // Check if client is new
-    if (!data.id) {
-        newPassword = await bcrypt.hash('123', 10);
-    } else {
+    if (data.id) {
         const existingById = await prisma.client.findUnique({ where: { id: data.id } });
         if (!existingById) {
             newPassword = await bcrypt.hash('123', 10);
-        } else if (existingById.name === 'Consumidor Avulso' && data.name !== 'Consumidor Avulso') {
-            return res.status(400).json({ message: 'Não é permitido alterar o Nome do cliente padrão do sistema, mas você pode editar os ou outros dados livremente.' });
         }
+    } else {
+        newPassword = await bcrypt.hash('123', 10);
     }
 
     // Validation: Duplicate phone or email
@@ -67,10 +65,8 @@ export const deleteClient = async (req: Request, res: Response) => {
     }
 
     try {
-        const targetClient = await prisma.client.findUnique({ where: { id: id as string }});
-        if (targetClient && targetClient.name === 'Consumidor Avulso') {
-            return res.status(400).json({ message: 'Proteção do Sistema: Não é permitido excluir o Cliente Avulso pois ele recebe todos os pedidos não identificados da loja.' });
-        }
+        // Removing protection for "Consumidor Avulso" as requested.
+        // Prisma will handle P2003 if orders exist.
 
         await prisma.client.delete({ where: { id: id as string } });
         res.json({ message: 'Cliente removido' });

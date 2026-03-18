@@ -850,7 +850,7 @@ const Logistics: React.FC = () => {
 
             <div className="text-[9px] mb-1">
               <p>DATA: {new Date(printingOrder.createdAt).toLocaleDateString('pt-BR')} {new Date(printingOrder.createdAt).toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' })}</p>
-              <p>CLIENTE: {(printingOrder.clientName || 'CONSUMIDOR').toUpperCase()}</p>
+              <p>CLIENTE: {(printingOrder.clientName || 'NÃO IDENTIFICADO').toUpperCase()}</p>
               {printingOrder.clientPhone && <p>FONE: {printingOrder.clientPhone}</p>}
               
               {/* Só imprime endereço se for DELIVERY */}
@@ -904,7 +904,7 @@ const Logistics: React.FC = () => {
                         businessName: businessSettings.name,
                         cnpj: businessSettings.cnpj,
                         date: printingOrder.createdAt,
-                        clientName: printingOrder.clientName || 'CONSUMIDOR',
+                        clientName: printingOrder.clientName || 'NÃO IDENTIFICADO',
                         clientPhone: printingOrder.clientPhone,
                         clientAddress: printingOrder.clientAddress,
                         status: OrderStatusLabels[printingOrder.status],
@@ -1016,7 +1016,7 @@ const Logistics: React.FC = () => {
                         businessName: businessSettings.name,
                         cnpj: businessSettings.cnpj,
                         date: printingHistoryOrder.createdAt,
-                        clientName: printingHistoryOrder.clientName || 'CONSUMIDOR',
+                        clientName: printingHistoryOrder.clientName || 'NÃO IDENTIFICADO',
                         clientPhone: printingHistoryOrder.clientPhone,
                         clientAddress: printingHistoryOrder.clientAddress,
                         status: 'ENTREGUE',

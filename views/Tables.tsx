@@ -39,20 +39,7 @@ const Tables: React.FC<TablesProps> = ({ currentUser }) => {
   const [selectedProductForLaunch, setSelectedProductForLaunch] = useState<Product | null>(null);
   const [modalObservation, setModalObservation] = useState('');
 
-  const [isUnregisteredClient, setIsUnregisteredClient] = useState(false);
-  const [manualClientName, setManualClientName] = useState('');
-  const [manualClientPhone, setManualClientPhone] = useState('');
-  const [manualClientEmail, setManualClientEmail] = useState('');
-  const [manualClientDocument, setManualClientDocument] = useState('');
-  const [manualClientAddress, setManualClientAddress] = useState('');
-  const [manualClientStreet, setManualClientStreet] = useState('');
-  const [manualClientNumber, setManualClientNumber] = useState('');
-  const [manualClientNeighborhood, setManualClientNeighborhood] = useState('');
-  const [manualClientCity, setManualClientCity] = useState('');
-  const [manualClientState, setManualClientState] = useState('');
-  const [manualClientComplement, setManualClientComplement] = useState('');
-  const [manualClientCep, setManualClientCep] = useState('');
-  const [isLoadingCep, setIsLoadingCep] = useState(false);
+
   const [clientSearch, setClientSearch] = useState('');
   const [showClientList, setShowClientList] = useState(false);
   const [selectedClient, setSelectedClient] = useState<Client | null>(null);
@@ -341,7 +328,7 @@ const Tables: React.FC<TablesProps> = ({ currentUser }) => {
         await db.saveTableSession({ ...sess });
         const kitchenOrder: Order = {
           id: `TABLE-${selectedTable}`,
-          clientId: 'ANONYMOUS',
+          clientId: null as any,
           clientName: `Mesa ${selectedTable}`,
           items: sess.items,
           total: sess.items.reduce((acc, it) => acc + (it.price * it.quantity), 0),
@@ -500,43 +487,8 @@ const Tables: React.FC<TablesProps> = ({ currentUser }) => {
 
   const startBillingRequest = (sess: TableSession) => {
     const newErrors: Record<string, boolean> = {};
-    const hasClient = isUnregisteredClient ? manualClientName.trim() : selectedClient;
-
-    if (!hasClient) {
-      if (isUnregisteredClient) newErrors.manualClientName = true;
-      addToast({ title: 'CLIENTE NECESSÁRIO', message: 'Identifique o cliente para fechar a conta.', type: 'INFO' });
-      return;
-    }
-
-    if (isUnregisteredClient && manualClientEmail && !validateEmail(manualClientEmail)) {
-      newErrors.manualClientEmail = true;
-    }
-
-    if (isUnregisteredClient && manualClientPhone) {
-      const cleanPhone = manualClientPhone.replace(/\D/g, '');
-      if (cleanPhone.length < 11) newErrors.manualClientPhone = true;
-    }
-
-    if (manualClientDocument) {
-      const cleanDoc = manualClientDocument.replace(/\D/g, '');
-      if (cleanDoc.length === 11) {
-        if (!validateCPF(cleanDoc)) newErrors.manualClientDocument = true;
-      } else if (cleanDoc.length === 14) {
-        if (!validateCNPJ(cleanDoc)) newErrors.manualClientDocument = true;
-      } else {
-        newErrors.manualClientDocument = true;
-      }
-    }
-
-    if (Object.keys(newErrors).length > 0) {
-      setErrors(newErrors);
-      return addToast({ title: "DADOS INVÁLIDOS", message: "Verifique os campos destacados em vermelho.", type: "DANGER" });
-    }
-
-    setErrors({});
-
-    if (!isUnregisteredClient && !selectedClient) {
-      return addToast({ title: "IDENTIFICAÇÃO REQUERIDA", message: "Por favor, selecione um cliente da base ou use a opção 'Avulso'.", type: "DANGER" });
+    if (!selectedClient) {
+      return addToast({ title: "IDENTIFICAÇÃO REQUERIDA", message: "Por favor, identifique um cliente antes de fechar a conta.", type: "DANGER" });
     }
 
     setPrintingPreBill(sess);
@@ -546,60 +498,15 @@ const Tables: React.FC<TablesProps> = ({ currentUser }) => {
   const confirmBilling = async () => {
     if (!printingPreBill) return;
 
-    const clientName = isUnregisteredClient ? toTitleCase(manualClientName) : (selectedClient?.name || 'Consumidor');
-    const clientPhone = isUnregisteredClient ? manualClientPhone : selectedClient?.phone;
-    const clientEmail = isUnregisteredClient ? manualClientEmail : selectedClient?.email;
-    const clientDocument = isUnregisteredClient ? manualClientDocument : selectedClient?.document;
-    const clientAddress = isUnregisteredClient ? toTitleCase(manualClientAddress) : selectedClient?.addresses[0];
+    const clientName = selectedClient?.name || 'Não Identificado';
+    const clientPhone = selectedClient?.phone;
+    const clientEmail = selectedClient?.email;
+    const clientDocument = selectedClient?.document;
+    const clientAddress = selectedClient?.addresses[0];
 
-    let finalClientId = isUnregisteredClient ? undefined : selectedClient?.id;
+    let finalClientId = selectedClient?.id;
 
-    if (isUnregisteredClient && manualClientName) {
-      // Here we attempt to find or create the client in the DB
-      try {
-        const formattedPhone = manualClientPhone.replace(/\D/g, ''); // just numbers
-        const existingClient = clients.find(c => c.phone?.replace(/\D/g, '') === formattedPhone);
 
-        if (existingClient) {
-          finalClientId = existingClient.id; // It actually existed, we can just use the ID
-        } else {
-          // Let's create a real client using db
-          const manualData = {
-            street: manualClientStreet,
-            addressNumber: manualClientNumber,
-            neighborhood: manualClientNeighborhood,
-            city: manualClientCity,
-            state: manualClientState,
-            complement: manualClientComplement,
-            cep: manualClientCep
-          };
-
-          const newClient: Client = {
-            id: `CLIENT-${Date.now()}`,
-            name: toTitleCase(manualClientName),
-            phone: manualClientPhone.replace(/\D/g, ''),
-            email: manualClientEmail || undefined,
-            document: manualClientDocument || undefined,
-            cep: manualClientCep || undefined,
-            street: toTitleCase(manualClientStreet),
-            addressNumber: manualClientNumber || undefined,
-            neighborhood: toTitleCase(manualClientNeighborhood),
-            city: toTitleCase(manualClientCity),
-            state: manualClientState?.toUpperCase() || undefined,
-            complement: manualClientComplement || undefined,
-            addresses: [formatAddress({ ...manualData })],
-            totalOrders: 0
-          };
-          await db.saveClient(newClient);
-          finalClientId = newClient.id;
-          // Add to local state so next searches find them
-          setClients(prev => [...prev, newClient]);
-        }
-      } catch (err) {
-        console.error('Error auto-registering client', err);
-        // It fails gracefully, let backend create ANONYMOUS if undefined
-      }
-    }
 
     await db.saveTableSession({
       ...printingPreBill,
@@ -609,15 +516,7 @@ const Tables: React.FC<TablesProps> = ({ currentUser }) => {
       clientPhone,
       clientEmail,
       clientDocument,
-      clientAddress: isUnregisteredClient ? formatAddress({
-        street: manualClientStreet,
-        addressNumber: manualClientNumber,
-        neighborhood: manualClientNeighborhood,
-        city: manualClientCity,
-        state: manualClientState,
-        complement: manualClientComplement,
-        cep: manualClientCep
-      }) : (selectedClient ? formatAddress(selectedClient) : undefined)
+      clientAddress: selectedClient ? formatAddress(selectedClient) : undefined
     });
 
     await db.logAction(currentUser, 'TABLE_BILL_REQUEST', `Mesa ${printingPreBill.tableNumber}: Pré-conta para ${clientName}.`);
@@ -649,8 +548,8 @@ const Tables: React.FC<TablesProps> = ({ currentUser }) => {
 
     const pseudoOrder: Order = {
       id: `TABLE-${sessionToPrint.tableNumber}`,
-      clientId: sessionToPrint.clientId || 'ANONYMOUS',
-      clientName: isConfirmingBilling ? (isUnregisteredClient ? manualClientName : (selectedClient?.name || 'CONSUMIDOR PADRÃO')) : (sessionToPrint.clientName || 'EM ATENDIMENTO'),
+      clientId: sessionToPrint.clientId || undefined,
+      clientName: isConfirmingBilling ? (isUnregisteredClient ? manualClientName : (selectedClient?.name || 'Não Identificado')) : (sessionToPrint.clientName || 'EM ATENDIMENTO'),
       clientPhone: isConfirmingBilling ? (isUnregisteredClient ? manualClientPhone : selectedClient?.phone) : sessionToPrint.clientPhone,
       items: sessionToPrint.items,
       total: sessionToPrint.items.reduce((acc, it) => acc + (it.price * it.quantity), 0) + (settings.serviceFeeStatus ? (sessionToPrint.items.reduce((acc, it) => acc + (it.price * it.quantity), 0) * (settings.serviceFeePercentage || 10) / 100) : 0),
@@ -747,19 +646,7 @@ const Tables: React.FC<TablesProps> = ({ currentUser }) => {
                 setActiveModalTab(status === 'billing' ? 'CHECKOUT' : 'LAUNCH');
               }
 
-              setIsUnregisteredClient(false);
-              setManualClientName(s?.clientName || '');
-              setManualClientPhone(s?.clientPhone || '');
-              setManualClientEmail(s?.clientEmail || '');
-              setManualClientDocument(s?.clientDocument || '');
-              setManualClientAddress(s?.clientAddress || '');
-              setManualClientStreet(s?.street || '');
-              setManualClientNumber(s?.addressNumber || '');
-              setManualClientNeighborhood(s?.neighborhood || '');
-              setManualClientCity(s?.city || '');
-              setManualClientState(s?.state || '');
-              setManualClientComplement(s?.complement || '');
-              setManualClientCep(s?.cep || '');
+
               setClientSearch('');
               setSelectedClient(null);
             }}
@@ -948,185 +835,16 @@ const Tables: React.FC<TablesProps> = ({ currentUser }) => {
                       (settings.serviceFeeStatus ? ((getSessForTable(selectedTable)?.items.reduce((acc, it) => acc + (it.price * it.quantity), 0) || 0) * (settings.serviceFeePercentage || 10) / 100) : 0)
                     ).toFixed(2)}</h4></div>
                     <div className="w-full max-w-2xl bg-slate-50 dark:bg-slate-800/50 p-8 rounded-[2rem] border border-slate-100 dark:border-slate-700 space-y-6">
-                      <div className="flex items-center justify-between"><label className="text-[10px] font-black text-slate-500 dark:text-slate-400 uppercase tracking-widest">Identificação do Cliente</label><button onClick={() => { setIsUnregisteredClient(!isUnregisteredClient); setSelectedClient(null); setManualClientName(''); setManualClientPhone(''); setManualClientAddress(''); setManualClientCep(''); setClientSearch(''); setManualClientEmail(''); setManualClientDocument(''); }} className={`text-[9px] font-black uppercase px-2 py-1 rounded-lg transition-all ${isUnregisteredClient ? 'bg-blue-600 text-white shadow-md' : 'bg-slate-200 dark:bg-slate-700 text-slate-500 dark:text-slate-400'}`}>{isUnregisteredClient ? 'Mudar para Base' : 'Cliente Avulso?'}</button></div>
-                      {isUnregisteredClient ? (
-                        <div className="space-y-4 animate-in zoom-in-95">
-                          <div className="flex flex-col md:flex-row gap-4">
-                            <div className="flex-1 space-y-1.5">
-                              <label className={`text-[9px] font-black uppercase tracking-widest ml-1 ${errors.manualClientName ? 'text-red-500' : 'text-slate-400 dark:text-slate-500'}`}>Nome Completo *</label>
-                              <input
-                                type="text"
-                                className={`w-full p-4 md:p-5 bg-white dark:bg-slate-900 border-2 rounded-2xl text-xs font-black outline-none focus:ring-4 focus:ring-blue-50 dark:focus:ring-blue-900/20 transition-all dark:text-white ${errors.manualClientName ? 'border-red-500 animate-shake' : 'border-slate-200 dark:border-slate-700'}`}
-                                placeholder="Nome do Cliente"
-                                value={manualClientName}
-                                onChange={e => {
-                                  setManualClientName(e.target.value);
-                                  if (errors.manualClientName) setErrors(prev => ({ ...prev, manualClientName: false }));
-                                }}
-                              />
-                            </div>
-                            <div className="w-full md:w-1/3 space-y-1.5">
-                              <label className={`text-[9px] font-black uppercase tracking-widest ml-1 ${errors.manualClientPhone ? 'text-red-500' : 'text-slate-400 dark:text-slate-500'}`}>Telefone *</label>
-                              <input
-                                type="text"
-                                className={`w-full p-4 md:p-5 bg-white dark:bg-slate-900 border-2 rounded-2xl text-xs font-black outline-none focus:ring-4 focus:ring-blue-50 dark:focus:ring-blue-900/20 transition-all dark:text-white ${errors.manualClientPhone ? 'border-red-500 animate-shake' : 'border-slate-200 dark:border-slate-700'}`}
-                                placeholder="(00) 9 0000-0000"
-                                value={manualClientPhone}
-                                onChange={e => {
-                                  setManualClientPhone(maskPhone(e.target.value));
-                                  if (errors.manualClientPhone) setErrors(prev => ({ ...prev, manualClientPhone: false }));
-                                }}
-                              />
-                            </div>
+                      <div className="flex items-center justify-between"><label className="text-[10px] font-black text-slate-500 dark:text-slate-400 uppercase tracking-widest">Identificação do Cliente</label></div>
+                      <div className="relative animate-in zoom-in-95">
+                        <input type="text" className="w-full p-4 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-2xl text-[11px] font-black uppercase outline-none focus:ring-4 focus:ring-emerald-50 dark:focus:ring-emerald-900/20 transition-all dark:text-white" placeholder="Pesquisar por Nome ou Fone..." value={clientSearch} onChange={(e) => { setClientSearch(e.target.value); setShowClientList(true); }} />
+                        {showClientList && clientSearch && (
+                          <div className="absolute z-30 w-full bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-2xl shadow-2xl max-h-56 overflow-y-auto mt-3 p-2">
+                            {clients.filter(c => c.name.toLowerCase().includes(clientSearch.toLowerCase())).map(c => (<button key={c.id} onClick={() => { setSelectedClient(c); setClientSearch(c.name); setShowClientList(false); }} className="w-full text-left p-4 hover:bg-slate-50 dark:hover:bg-slate-700 border-b border-slate-50 dark:border-slate-700 last:border-0 rounded-2xl"><p className="text-xs font-black text-slate-800 dark:text-white uppercase tracking-tighter">{c.name}</p><p className="text-[10px] text-slate-400 dark:text-slate-500 font-bold">{c.phone}</p></button>))}
                           </div>
-                          <div className="flex flex-col md:flex-row gap-4">
-                            <div className="flex-1 space-y-1.5">
-                              <label className={`text-[9px] font-black uppercase tracking-widest ml-1 ${errors.manualClientEmail ? 'text-red-500' : 'text-slate-400 dark:text-slate-500'}`}>E-mail</label>
-                              <input
-                                type="email"
-                                className={`w-full p-4 md:p-5 bg-white dark:bg-slate-900 border-2 rounded-2xl text-xs font-black outline-none focus:ring-4 focus:ring-blue-50 dark:focus:ring-blue-900/20 transition-all dark:text-white ${errors.manualClientEmail ? 'border-red-500 animate-shake' : 'border-slate-200 dark:border-slate-700'}`}
-                                placeholder="Email"
-                                value={manualClientEmail}
-                                onChange={e => {
-                                  setManualClientEmail(e.target.value);
-                                  if (errors.manualClientEmail) setErrors(prev => ({ ...prev, manualClientEmail: false }));
-                                }}
-                              />
-                            </div>
-                            <div className="flex-1 space-y-1.5">
-                              <label className={`text-[9px] font-black uppercase tracking-widest ml-1 ${errors.manualClientDocument ? 'text-red-500' : 'text-slate-400 dark:text-slate-500'}`}>CPF / CNPJ</label>
-                              <input
-                                type="text"
-                                className={`w-full p-4 md:p-5 bg-white dark:bg-slate-900 border-2 rounded-2xl text-xs font-black outline-none focus:ring-4 focus:ring-blue-50 dark:focus:ring-blue-900/20 transition-all dark:text-white ${errors.manualClientDocument ? 'border-red-500 animate-shake' : 'border-slate-200 dark:border-slate-700'}`}
-                                placeholder="000.000.000-00"
-                                value={manualClientDocument}
-                                onChange={e => {
-                                  setManualClientDocument(maskDocument(e.target.value));
-                                  if (errors.manualClientDocument) setErrors(prev => ({ ...prev, manualClientDocument: false }));
-                                }}
-                              />
-                            </div>
-                          </div>
-                          <div className="space-y-4">
-                            <div className="flex flex-col md:flex-row gap-4">
-                              <div className="w-full md:w-32 shrink-0 relative">
-                                <label className="text-[9px] font-black text-slate-400 dark:text-slate-500 uppercase tracking-widest ml-1">CEP</label>
-                                <input
-                                  type="text"
-                                  className={`w-full p-4 md:p-5 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-2xl text-xs font-black outline-none focus:ring-4 focus:ring-blue-50 dark:focus:ring-blue-900/20 transition-all dark:text-white ${isLoadingCep ? 'opacity-50' : ''}`}
-                                  placeholder="00000000"
-                                  maxLength={8}
-                                  value={manualClientCep}
-                                  onChange={async e => {
-                                    const cep = e.target.value.replace(/\D/g, '').slice(0, 8);
-                                    setManualClientCep(cep);
-                                    if (cep.length === 8) {
-                                      setIsLoadingCep(true);
-                                      try {
-                                        const res = await fetch(`https://viacep.com.br/ws/${cep}/json/`);
-                                        const data = await res.json();
-                                        if (!data.erro) {
-                                          setManualClientStreet(data.logradouro || '');
-                                          setManualClientNeighborhood(data.bairro || '');
-                                          setManualClientCity(data.localidade || '');
-                                          setManualClientState(data.uf || '');
-                                        }
-                                      } catch (err) {
-                                        console.error('ViaCep error:', err);
-                                      } finally {
-                                        setIsLoadingCep(false);
-                                      }
-                                    }
-                                  }}
-                                />
-                                {isLoadingCep && (
-                                  <div className="absolute right-3 top-1/2 -translate-y-1/2 mt-2">
-                                    <div className="w-4 h-4 border-2 border-blue-600 border-t-transparent rounded-full animate-spin"></div>
-                                  </div>
-                                )}
-                              </div>
-                              <div className="flex-1">
-                                <label className="text-[9px] font-black text-slate-400 dark:text-slate-500 uppercase tracking-widest ml-1">Logradouro</label>
-                                <input
-                                  type="text"
-                                  className="w-full p-4 md:p-5 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-2xl text-xs font-black outline-none focus:ring-4 focus:ring-blue-50 dark:focus:ring-blue-900/20 transition-all dark:text-white"
-                                  placeholder="Rua / Avenida"
-                                  value={manualClientStreet}
-                                  onChange={e => setManualClientStreet(e.target.value)}
-                                />
-                              </div>
-                            </div>
-
-                            <div className="flex flex-col md:flex-row gap-4">
-                              <div className="w-full md:w-24 shrink-0">
-                                <label className="text-[9px] font-black text-slate-400 dark:text-slate-500 uppercase tracking-widest ml-1">Número</label>
-                                <input
-                                  type="text"
-                                  className="w-full p-4 md:p-5 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-2xl text-xs font-black outline-none focus:ring-4 focus:ring-blue-50 dark:focus:ring-blue-900/20 transition-all dark:text-white"
-                                  placeholder="123"
-                                  value={manualClientNumber}
-                                  onChange={e => setManualClientNumber(e.target.value)}
-                                />
-                              </div>
-                              <div className="flex-1">
-                                <label className="text-[9px] font-black text-slate-400 dark:text-slate-500 uppercase tracking-widest ml-1">Bairro</label>
-                                <input
-                                  type="text"
-                                  className="w-full p-4 md:p-5 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-2xl text-xs font-black outline-none focus:ring-4 focus:ring-blue-50 dark:focus:ring-blue-900/20 transition-all dark:text-white"
-                                  placeholder="Bairro"
-                                  value={manualClientNeighborhood}
-                                  onChange={e => setManualClientNeighborhood(e.target.value)}
-                                />
-                              </div>
-                            </div>
-
-                            <div className="flex flex-col md:flex-row gap-4">
-                              <div className="flex-1">
-                                <label className="text-[9px] font-black text-slate-400 dark:text-slate-500 uppercase tracking-widest ml-1">Cidade</label>
-                                <input
-                                  type="text"
-                                  className="w-full p-4 md:p-5 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-2xl text-xs font-black outline-none focus:ring-4 focus:ring-blue-50 dark:focus:ring-blue-900/20 transition-all dark:text-white"
-                                  placeholder="Cidade"
-                                  value={manualClientCity}
-                                  onChange={e => setManualClientCity(e.target.value)}
-                                />
-                              </div>
-                              <div className="w-full md:w-16 shrink-0">
-                                <label className="text-[9px] font-black text-slate-400 dark:text-slate-500 uppercase tracking-widest ml-1">UF</label>
-                                <input
-                                  type="text"
-                                  className="w-full p-4 md:p-5 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-2xl text-xs font-black outline-none focus:ring-4 focus:ring-blue-50 dark:focus:ring-blue-900/20 transition-all dark:text-white"
-                                  placeholder="SP"
-                                  maxLength={2}
-                                  value={manualClientState}
-                                  onChange={e => setManualClientState(e.target.value.toUpperCase())}
-                                />
-                              </div>
-                            </div>
-
-                            <div className="space-y-1">
-                              <label className="text-[9px] font-black text-slate-400 dark:text-slate-500 uppercase tracking-widest ml-1">Complemento / Referência</label>
-                              <input
-                                type="text"
-                                placeholder="Ex: Próximo ao mercado..."
-                                value={manualClientComplement}
-                                onChange={e => setManualClientComplement(e.target.value)}
-                                className="w-full p-4 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-2xl text-[11px] font-black outline-none focus:ring-4 focus:ring-blue-50 dark:focus:ring-blue-900/20 transition-all dark:text-white"
-                              />
-                            </div>
-                          </div>
-                        </div>
-                      ) : (
-                        <div className="relative animate-in zoom-in-95">
-                          <input type="text" className="w-full p-4 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-2xl text-[11px] font-black uppercase outline-none focus:ring-4 focus:ring-emerald-50 dark:focus:ring-emerald-900/20 transition-all dark:text-white" placeholder="Pesquisar por Nome ou Fone..." value={clientSearch} onChange={(e) => { setClientSearch(e.target.value); setShowClientList(true); }} />
-                          {showClientList && clientSearch && (
-                            <div className="absolute z-30 w-full bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-2xl shadow-2xl max-h-56 overflow-y-auto mt-3 p-2">
-                              {clients.filter(c => c.name.toLowerCase().includes(clientSearch.toLowerCase())).map(c => (<button key={c.id} onClick={() => { setSelectedClient(c); setClientSearch(c.name); setShowClientList(false); }} className="w-full text-left p-4 hover:bg-slate-50 dark:hover:bg-slate-700 border-b border-slate-50 dark:border-slate-700 last:border-0 rounded-2xl"><p className="text-xs font-black text-slate-800 dark:text-white uppercase tracking-tighter">{c.name}</p><p className="text-[10px] text-slate-400 dark:text-slate-500 font-bold">{c.phone}</p></button>))}
-                            </div>
-                          )}
-                          {selectedClient && <div className="mt-4 bg-emerald-50 dark:bg-emerald-900/20 p-4 rounded-2xl border border-emerald-100 dark:border-emerald-900/30 flex justify-between items-center animate-in fade-in"><div className="flex-1 min-w-0"><p className="text-[10px] font-black text-emerald-700 dark:text-emerald-400 uppercase">{selectedClient.name}</p><p className="text-[8px] text-emerald-400 dark:text-emerald-500 truncate uppercase">{formatAddress(selectedClient)}</p></div><button onClick={() => setSelectedClient(null)} className="text-emerald-400 font-black px-2 text-xl">×</button></div>}
-                        </div>
-                      )}
+                        )}
+                        {selectedClient && <div className="mt-4 bg-emerald-50 dark:bg-emerald-900/20 p-4 rounded-2xl border border-emerald-100 dark:border-emerald-900/30 flex justify-between items-center animate-in fade-in"><div className="flex-1 min-w-0"><p className="text-[10px] font-black text-emerald-700 dark:text-emerald-400 uppercase">{selectedClient.name}</p><p className="text-[8px] text-emerald-400 dark:text-emerald-500 truncate uppercase">{formatAddress(selectedClient)}</p></div><button onClick={() => setSelectedClient(null)} className="text-emerald-400 font-black px-2 text-xl">×</button></div>}
+                      </div>
                       <button onClick={() => { const sess = getSessForTable(selectedTable!); if (sess) startBillingRequest(sess); }} disabled={getSessForTable(selectedTable)?.items.length === 0} className="w-full py-5 bg-orange-500 text-white font-black text-xs uppercase tracking-widest rounded-2xl shadow-xl shadow-orange-100 hover:bg-orange-600 transition-all active:scale-95 disabled:opacity-50">Solicitar Pré-Fechamento / Ir para Cupom</button>
                     </div>
                   </div>
@@ -1177,7 +895,7 @@ const Tables: React.FC<TablesProps> = ({ currentUser }) => {
                   <span>{new Date().toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' })}</span>
                 </div>
                 <p>MESA: {selectedTable}</p>
-                <p>CLIENTE: {isConfirmingBilling ? (isUnregisteredClient ? manualClientName.toUpperCase() : (selectedClient?.name.toUpperCase() || 'CONSUMIDOR PADRAO')) : (getSessForTable(selectedTable!)?.clientName?.toUpperCase() || 'EM ATENDIMENTO')}</p>
+                <p>CLIENTE: {isConfirmingBilling ? (selectedClient?.name.toUpperCase() || 'NÃO IDENTIFICADO') : (getSessForTable(selectedTable!)?.clientName?.toUpperCase() || 'EM ATENDIMENTO')}</p>
               </div>
               <div className="mb-2 border-t border-dashed border-black pt-1">
                 {getGroupedItems((isConfirmingBilling ? printingPreBill : getSessForTable(selectedTable!))?.items || []).map((it, i) => (
@@ -1236,12 +954,12 @@ const Tables: React.FC<TablesProps> = ({ currentUser }) => {
                   <div>
                     <p className="text-xs font-black text-slate-700 dark:text-white uppercase truncate">
                       {isConfirmingBilling
-                        ? (isUnregisteredClient ? manualClientName.toUpperCase() : (selectedClient?.name.toUpperCase() || 'CONSUMIDOR PADRÃO'))
+                        ? (selectedClient?.name.toUpperCase() || 'NÃO IDENTIFICADO')
                         : (getSessForTable(selectedTable!)?.clientName?.toUpperCase() || 'EM ATENDIMENTO')}
                     </p>
-                    {(isConfirmingBilling ? (isUnregisteredClient ? manualClientPhone : selectedClient?.phone) : getSessForTable(selectedTable!)?.clientPhone) && (
+                    {(isConfirmingBilling ? selectedClient?.phone : getSessForTable(selectedTable!)?.clientPhone) && (
                       <p className="text-[10px] font-bold text-slate-400/80 uppercase">
-                        Contato: {isConfirmingBilling ? (isUnregisteredClient ? manualClientPhone : selectedClient?.phone) : getSessForTable(selectedTable!)?.clientPhone}
+                        Contato: {isConfirmingBilling ? selectedClient?.phone : getSessForTable(selectedTable!)?.clientPhone}
                       </p>
                     )}
                   </div>

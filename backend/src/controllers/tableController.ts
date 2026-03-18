@@ -101,8 +101,8 @@ export const saveTableSession = async (req: Request, res: Response) => {
                 }
             });
 
-            // 5. Ensure 'ANONYMOUS' client exists if needed
-            const clientId = sessionData.clientId && sessionData.clientId !== "" ? sessionData.clientId : 'ANONYMOUS';
+            // 5. Client ID (null if not provided)
+            const clientId = sessionData.clientId && sessionData.clientId !== "" ? sessionData.clientId : null;
 
             // Resolve true Waiter.id from User.id if needed
             let waiterId = sessionData.waiterId && sessionData.waiterId !== "" ? sessionData.waiterId : (existingSession?.waiterId || null);
@@ -124,18 +124,8 @@ export const saveTableSession = async (req: Request, res: Response) => {
                 }
             }
 
-            if (clientId === 'ANONYMOUS') {
-                await tx.client.upsert({
-                    where: { id: 'ANONYMOUS' },
-                    update: {},
-                    create: {
-                        id: 'ANONYMOUS',
-                        name: 'Consumidor Avulso',
-                        phone: '0000000000',
-                        addresses: []
-                    }
-                });
-            }
+            // Removing the automatic creation of ANONYMOUS client.
+            // Table sessions now link to a real client or null.
 
             // Regra de Negócio: Somente o garçom responsável ou se a mesa estiver livre (novo atendimento)
             const settings = await tx.businessSettings.findFirst();
@@ -232,7 +222,7 @@ export const saveTableSession = async (req: Request, res: Response) => {
                 update: {
                     ...sessionData,
                     startTime: actualStartTime,
-                    clientId: clientId === 'ANONYMOUS' ? null : clientId, // TableSession allows null clientId
+                    clientId: clientId, // TableSession allows null clientId
                     waiterId: waiterId,
                     pin: pinToSet,
                     sessionToken: tokenToSet,
@@ -560,7 +550,7 @@ export const requestCheckout = async (req: Request, res: Response) => {
             where: { tableNumber: tableNum },
             data: {
                 status: 'billing',
-                clientId: clientId === 'ANONYMOUS' ? null : clientId,
+                clientId: clientId,
                 clientName: clientName || `Mesa ${tableNum}`
             }
         });

@@ -325,7 +325,7 @@ const App: React.FC = () => {
              data: {
                  businessName: settings.name,
                  date: printingHistoryOrder.createdAt || new Date().toISOString(),
-                 clientName: printingHistoryOrder.clientName || 'Consumidor',
+                 clientName: printingHistoryOrder.clientName || 'Não Identificado',
                  clientAddress: printingHistoryOrder.clientAddress,
                  paymentMethod: printingHistoryOrder.paymentMethod,
                  deliveryFee: printingHistoryOrder.deliveryFee || 0,

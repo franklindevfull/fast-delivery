@@ -177,7 +177,7 @@ const CheckoutTab: React.FC<{ onOrderPlaced: () => void }> = ({ onOrderPlaced })
                     const client = clientStr ? JSON.parse(clientStr) : null;
 
                     const orderData = {
-                        clientId: client?.id || 'ANONYMOUS',
+                        clientId: client?.id || (null as any),
                         clientName: client?.name || 'Cliente App',
                         clientPhone: client?.phone || '',
                         clientEmail: client?.email || '',

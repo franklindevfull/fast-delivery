@@ -1,26 +1,9 @@
-import { PrismaClient } from '@prisma/client';
-import 'dotenv/config';
-
-const prisma = new PrismaClient();
+// This file previously ensured an anonymous client existed.
+// As per the new business rules, all orders must be associated with a registered client.
+// The anonymous client logic has been removed.
 
 async function main() {
-    try {
-        const client = await prisma.client.upsert({
-            where: { id: 'ANONYMOUS' },
-            update: {},
-            create: {
-                id: 'ANONYMOUS',
-                name: 'Consumidor Final',
-                phone: '0000000000',
-                addresses: ['Balcão']
-            }
-        });
-        console.log('Default anonymous client ensured:', client);
-    } catch (error) {
-        console.error('Error ensuring anonymous client:', error);
-    } finally {
-        await prisma.$disconnect();
-    }
+    console.log('Anonymous client logic is now disabled.');
 }
 
 main();

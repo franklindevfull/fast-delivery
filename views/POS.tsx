@@ -35,21 +35,7 @@ const POS: React.FC<POSProps> = ({ currentUser }) => {
   const [clientSearch, setClientSearch] = useState('');
   const [showClientList, setShowClientList] = useState(false);
 
-  const [isAvulso, setIsAvulso] = useState(false);
-  const [avulsoData, setAvulsoData] = useState({
-    phone: '',
-    name: '',
-    email: '',
-    document: '',
-    cep: '',
-    street: '',
-    addressNumber: '',
-    neighborhood: '',
-    city: '',
-    state: '',
-    complement: ''
-  });
-  const [isLoadingCep, setIsLoadingCep] = useState(false);
+
 
   const [tableNumberInput, setTableNumberInput] = useState('');
   const [tableNumber, setTableNumber] = useState<number | ''>('');
@@ -242,23 +228,14 @@ const POS: React.FC<POSProps> = ({ currentUser }) => {
     setTableNumber('');
     setTableNumberInput('');
 
-    if (order.clientId && order.clientId !== 'ANONYMOUS' && order.clientId !== 'AVULSO') {
+    if (order.clientId) {
       const cl = clients.find(c => c.id === order.clientId);
       if (cl) {
         setSelectedClient(cl);
         setClientSearch(cl.name);
-        setIsAvulso(false);
       }
-    } else if (order.clientId === 'ANONYMOUS' && order.clientName !== 'Consumidor Padrão') {
-      setIsAvulso(true);
-      setAvulsoData({
-        name: order.clientName,
-        phone: order.clientPhone || '',
-        address: order.clientAddress || '',
-        cep: '',
-        email: order.clientEmail || '',
-        document: order.clientDocument || ''
-      });
+    } else {
+      setSelectedClient(null);
     }
 
     if (order.deliveryFee !== undefined) {
@@ -486,7 +463,7 @@ const POS: React.FC<POSProps> = ({ currentUser }) => {
     }
 
     // Rule: Delivery and Counter MUST have a client to send to kitchen or finalize.
-    if ((isDelivery || isCounterSale) && !selectedClient && !avulsoData.name) {
+    if ((isDelivery || isCounterSale) && !selectedClient) {
       setIsClientModalOpen(true);
       const modeLabel = isDelivery ? 'Delivery' : 'Balcão';
       addToast({ title: 'Identificar Cliente', message: `A modalidade ${modeLabel} exige um cliente selecionado para prosseguir. Identifique o cliente.`, type: 'DANGER' });
@@ -521,65 +498,32 @@ const POS: React.FC<POSProps> = ({ currentUser }) => {
     let freshTableSession = isTableSale ? ((await db.getTableSessions()).find(t => t.tableNumber === finalTableNum)) : null;
     let tableSessionToClose = isTableSale ? (freshTableSession || pendingTables.find(t => t.tableNumber === finalTableNum)) : null;
 
-    let finalClientId = isTableSale ? (tableSessionToClose?.clientId || 'ANONYMOUS') : (selectedClient?.id || 'ANONYMOUS');
+    let finalClientId = isTableSale ? (tableSessionToClose?.clientId || null) : (selectedClient?.id || null);
     let finalClientName = isTableSale
       ? (tableSessionToClose?.clientName || `Mesa ${finalTableNum}`)
-      : (isAvulso ? toTitleCase(avulsoData.name) : (selectedClient?.name || 'Consumidor Padrão'));
+      : (selectedClient?.name || 'Não Identificado');
 
-    if (!isTableSale && (isAvulso || selectedClient) && (avulsoData.name || selectedClient?.name)) {
-      try {
-        const phoneToSearch = isAvulso ? avulsoData.phone : selectedClient?.phone;
-        if (phoneToSearch) {
-          const formattedPhone = phoneToSearch.replace(/\D/g, '');
-          const existingClient = clients.find(c => c.phone.replace(/\D/g, '') === formattedPhone);
 
-          if (existingClient) {
-            finalClientId = existingClient.id;
-            finalClientName = existingClient.name;
-          } else if (isAvulso && avulsoData.name && avulsoData.phone) {
-            const newClient: Client = {
-              id: `CLIENT-${Date.now()}`,
-              name: toTitleCase(avulsoData.name),
-              phone: avulsoData.phone.replace(/\D/g, ''),
-              email: avulsoData.email || undefined,
-              document: avulsoData.document || undefined,
-              cep: avulsoData.cep || undefined,
-              street: toTitleCase(avulsoData.street),
-              addressNumber: avulsoData.addressNumber || undefined,
-              neighborhood: toTitleCase(avulsoData.neighborhood),
-              city: toTitleCase(avulsoData.city),
-              state: avulsoData.state?.toUpperCase() || undefined,
-              complement: avulsoData.complement || undefined,
-              addresses: [formatAddress({ ...avulsoData })],
-              totalOrders: 0
-            };
-            await db.saveClient(newClient);
-            finalClientId = newClient.id;
-            setClients(prev => [...prev, newClient]);
-          }
-        }
-      } catch (err) {
-        console.error('Error auto-registering client', err);
-      }
+
+    if (!finalClientId && !isTableSale) {
+      return showAlert("Identificação Necessária", "Por favor, selecione ou cadastre um cliente para continuar.", "DANGER");
     }
-
-    if (!finalClientId) finalClientId = 'ANONYMOUS';
 
     const finalAddress = isTableSale
       ? (pendingTables.find(t => t.tableNumber === finalTableNum)?.clientAddress || undefined)
-      : (isAvulso ? formatAddress({ ...avulsoData }) : (selectedClient ? formatAddress(selectedClient) : undefined));
+      : (selectedClient ? formatAddress(selectedClient) : undefined);
 
     const finalPhone = isTableSale
       ? (pendingTables.find(t => t.tableNumber === finalTableNum)?.clientPhone || undefined)
-      : (isAvulso ? avulsoData.phone : (selectedClient?.phone || undefined));
+      : (selectedClient?.phone || undefined);
 
     const finalEmail = isTableSale
       ? (pendingTables.find(t => t.tableNumber === finalTableNum)?.clientEmail || undefined)
-      : (isAvulso ? avulsoData.email : (selectedClient?.email || undefined));
+      : (selectedClient?.email || undefined);
 
     const finalDocument = isTableSale
       ? (pendingTables.find(t => t.tableNumber === finalTableNum)?.clientDocument || undefined)
-      : (isAvulso ? avulsoData.document : (selectedClient?.document || undefined));
+      : (selectedClient?.document || undefined);
 
     const existingTableOrderId = isTableSale ? `TABLE-${finalTableNum}` : null;
     const existingOrderId = existingTableOrderId || editingOrderId;
@@ -675,20 +619,6 @@ const POS: React.FC<POSProps> = ({ currentUser }) => {
     setCurrentOrderStatus(null);
     setEditingOrderId(null);
     if (!keepPrinting) setPrintingOrder(null);
-    setIsAvulso(false);
-    setAvulsoData({
-      phone: '',
-      name: '',
-      email: '',
-      document: '',
-      cep: '',
-      street: '',
-      addressNumber: '',
-      neighborhood: '',
-      city: '',
-      state: '',
-      complement: ''
-    });
     setManualDeliveryFee(null);
     setPayments([]);
     setCurrentPaymentAmount('');
@@ -1182,71 +1112,7 @@ const POS: React.FC<POSProps> = ({ currentUser }) => {
                   </div>
                 </div>
                 <div className="flex items-center gap-2">
-                  {isAvulso && (
-                    <button
-                      onClick={() => {
-                        const newErrors: Record<string, boolean> = {};
-                        if (!avulsoData.name) newErrors.avulsoName = true;
 
-                        const cleanPhone = avulsoData.phone.replace(/\D/g, '');
-                        if ((saleType === SaleType.OWN_DELIVERY || saleType === SaleType.COUNTER) && cleanPhone.length < 11) {
-                          newErrors.avulsoPhone = true;
-                        } else if (cleanPhone.length > 0 && cleanPhone.length < 11) {
-                          newErrors.avulsoPhone = true;
-                        }
-
-                        if (avulsoData.email && !validateEmail(avulsoData.email)) newErrors.avulsoEmail = true;
-
-                        if (avulsoData.document) {
-                          const cleanDoc = avulsoData.document.replace(/\D/g, '');
-                          if (cleanDoc.length === 11) {
-                            if (!validateCPF(cleanDoc)) newErrors.avulsoDocument = true;
-                          } else if (cleanDoc.length === 14) {
-                            if (!validateCNPJ(cleanDoc)) newErrors.avulsoDocument = true;
-                          } else {
-                            newErrors.avulsoDocument = true;
-                          }
-                        }
-
-                        if (Object.keys(newErrors).length > 0) {
-                          setErrors(newErrors);
-                          addToast({ title: "Dados Inválidos", message: "Verifique os campos destacados em vermelho.", type: "DANGER" });
-                          return;
-                        }
-
-                        setIsClientModalOpen(false);
-                        setErrors({});
-                      }}
-                      className="w-10 h-10 flex items-center justify-center bg-emerald-100 dark:bg-emerald-900/40 text-emerald-600 dark:text-emerald-400 rounded-full hover:bg-emerald-600 dark:hover:bg-emerald-500 hover:text-white transition-all shadow-lg shadow-emerald-100/50 dark:shadow-none"
-                      title="Confirmar Identificação"
-                    >
-                      <Icons.Check className="w-5 h-5" />
-                    </button>
-                  )}
-                  {isAvulso && (
-                    <button
-                      onClick={() => {
-                        setAvulsoData({
-                          phone: '',
-                          name: '',
-                          email: '',
-                          document: '',
-                          cep: '',
-                          street: '',
-                          addressNumber: '',
-                          neighborhood: '',
-                          city: '',
-                          state: '',
-                          complement: ''
-                        });
-                        setErrors({});
-                      }}
-                      className="w-10 h-10 flex items-center justify-center bg-red-100 dark:bg-red-900/40 text-red-600 dark:text-red-400 rounded-full hover:bg-red-600 dark:hover:bg-red-500 hover:text-white transition-all shadow-lg shadow-red-100/50 dark:shadow-none"
-                      title="Limpar Tudo"
-                    >
-                      <Icons.Delete className="w-5 h-5" />
-                    </button>
-                  )}
                   <button
                     onClick={() => setIsClientModalOpen(false)}
                     className="w-10 h-10 flex items-center justify-center bg-slate-100 dark:bg-slate-800 rounded-full text-slate-400 dark:text-slate-500 hover:bg-red-50 dark:hover:bg-red-900/30 hover:text-red-500 dark:hover:text-red-400 transition-all font-black text-lg"
@@ -1256,46 +1122,10 @@ const POS: React.FC<POSProps> = ({ currentUser }) => {
                 </div>
               </div>
 
-              <div className="flex gap-2 bg-slate-100 dark:bg-slate-800 p-1.5 rounded-2xl">
-                <button
-                  onClick={() => {
-                    setIsAvulso(false);
-                    setSelectedClient(null);
-                    setClientSearch('');
-                  }}
-                  className={`flex-1 py-3 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all ${!isAvulso ? 'bg-white dark:bg-slate-700 text-blue-600 shadow-md' : 'text-slate-400 dark:text-slate-500'}`}
-                >
-                  Buscar Cliente
-                </button>
-                <button
-                  onClick={() => {
-                    setIsAvulso(true);
-                    setSelectedClient(null);
-                    setClientSearch('');
-                    setAvulsoData({
-                      phone: '',
-                      name: '',
-                      email: '',
-                      document: '',
-                      cep: '',
-                      street: '',
-                      addressNumber: '',
-                      neighborhood: '',
-                      city: '',
-                      state: '',
-                      complement: ''
-                    });
-                    setErrors({});
-                  }}
-                  className={`flex-1 py-3 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all ${isAvulso ? 'bg-white dark:bg-slate-700 text-blue-600 shadow-md' : 'text-slate-400 dark:text-slate-500'}`}
-                >
-                  Novo / Avulso
-                </button>
-              </div>
+
             </div>
 
             <div className="flex-1 p-8 pt-6 overflow-y-auto">
-              {!isAvulso ? (
                 <div className="space-y-4">
                   <div className="relative">
                     <input
@@ -1355,183 +1185,7 @@ const POS: React.FC<POSProps> = ({ currentUser }) => {
                     )}
                   </div>
                 </div>
-              ) : (
-                <div className="space-y-4">
-                  <div className="flex gap-2">
-                    <div className="flex-1 space-y-1.5">
-                      <label className={`text-[9px] font-black uppercase tracking-widest ml-1 ${errors.avulsoName ? 'text-red-500' : 'text-slate-400'}`}>Nome Completo *</label>
-                      <input
-                        type="text"
-                        className={`w-full p-4 bg-slate-50 dark:bg-slate-800 border-2 rounded-2xl text-xs font-black outline-none focus:border-blue-500 transition-all dark:text-white ${errors.avulsoName ? 'border-red-500 animate-shake' : 'border-slate-100 dark:border-slate-700'}`}
-                        placeholder="Nome do Cliente"
-                        value={avulsoData.name}
-                        onChange={(e) => {
-                          setAvulsoData({ ...avulsoData, name: e.target.value });
-                          if (errors.avulsoName) setErrors(prev => ({ ...prev, avulsoName: false }));
-                        }}
-                      />
-                    </div>
-                    <div className="w-1/3 space-y-1.5">
-                      <label className={`text-[9px] font-black uppercase tracking-widest ml-1 ${errors.avulsoPhone ? 'text-red-500' : 'text-slate-400'}`}>Telefone {(saleType === SaleType.OWN_DELIVERY || saleType === SaleType.COUNTER) ? '*' : ''}</label>
-                      <input
-                        type="text"
-                        className={`w-full p-4 bg-slate-50 dark:bg-slate-800 border-2 rounded-2xl text-xs font-black outline-none focus:border-blue-500 transition-all dark:text-white ${errors.avulsoPhone ? 'border-red-500 animate-shake' : 'border-slate-100 dark:border-slate-700'}`}
-                        placeholder="(00) 9 0000-0000"
-                        value={avulsoData.phone}
-                        onChange={(e) => {
-                          const val = maskPhone(e.target.value);
-                          setAvulsoData({ ...avulsoData, phone: val });
-                          if (errors.avulsoPhone) setErrors(prev => ({ ...prev, avulsoPhone: false }));
-                          const match = clients.find(c => c.phone === val);
-                          if (match) {
-                            setSelectedClient(match);
-                            setClientSearch(match.name);
-                            setIsAvulso(false);
-                          }
-                        }}
-                      />
-                    </div>
-                  </div>
 
-                  <div className="grid grid-cols-2 gap-4">
-                    <div className="space-y-1.5">
-                      <label className={`text-[9px] font-black uppercase tracking-widest ml-1 ${errors.avulsoEmail ? 'text-red-500' : 'text-slate-400'}`}>E-mail</label>
-                      <input
-                        type="email"
-                        className={`w-full p-4 bg-slate-50 dark:bg-slate-800 border-2 rounded-2xl text-xs font-black outline-none focus:border-blue-500 transition-all dark:text-white ${errors.avulsoEmail ? 'border-red-500 animate-shake' : 'border-slate-100 dark:border-slate-700'}`}
-                        placeholder="exemplo@email.com"
-                        value={avulsoData.email}
-                        onChange={(e) => {
-                          setAvulsoData({ ...avulsoData, email: e.target.value });
-                          if (errors.avulsoEmail) setErrors(prev => ({ ...prev, avulsoEmail: false }));
-                        }}
-                      />
-                    </div>
-                    <div className="space-y-1.5">
-                      <label className={`text-[9px] font-black uppercase tracking-widest ml-1 ${errors.avulsoDocument ? 'text-red-500' : 'text-slate-400'}`}>CPF / CNPJ</label>
-                      <input
-                        type="text"
-                        className={`w-full p-4 bg-slate-50 dark:bg-slate-800 border-2 rounded-2xl text-xs font-black outline-none focus:border-blue-500 transition-all dark:text-white ${errors.avulsoDocument ? 'border-red-500 animate-shake' : 'border-slate-100 dark:border-slate-700'}`}
-                        placeholder="000.000.000-00"
-                        value={avulsoData.document}
-                        onChange={(e) => {
-                          setAvulsoData({ ...avulsoData, document: maskDocument(e.target.value) });
-                          if (errors.avulsoDocument) setErrors(prev => ({ ...prev, avulsoDocument: false }));
-                        }}
-                      />
-                    </div>
-                  </div>
-
-                  {(saleType === SaleType.OWN_DELIVERY || saleType === SaleType.THIRD_PARTY || saleType === SaleType.COUNTER) && (
-                    <div className="space-y-4">
-                      <div className="flex gap-2">
-                        <div className="w-32 shrink-0 relative">
-                          <label className="text-[9px] font-black text-slate-400 uppercase tracking-widest ml-1">CEP</label>
-                          <input
-                            type="text"
-                            placeholder="00000000"
-                            maxLength={8}
-                            value={avulsoData.cep}
-                            onChange={async e => {
-                              const cep = e.target.value.replace(/\D/g, '').slice(0, 8);
-                              setAvulsoData(prev => ({ ...prev, cep }));
-                              if (cep.length === 8) {
-                                setIsLoadingCep(true);
-                                try {
-                                  const res = await fetch(`https://viacep.com.br/ws/${cep}/json/`);
-                                  const data = await res.json();
-                                  if (!data.erro) {
-                                    setAvulsoData(prev => ({
-                                      ...prev,
-                                      street: data.logradouro || '',
-                                      neighborhood: data.bairro || '',
-                                      city: data.localidade || '',
-                                      state: data.uf || ''
-                                    }));
-                                  }
-                                } catch (err) {
-                                  console.error('ViaCep error:', err);
-                                } finally {
-                                  setIsLoadingCep(false);
-                                }
-                              }
-                            }}
-                            className={`w-full p-4 bg-slate-50 dark:bg-slate-800 border-2 border-slate-100 dark:border-slate-700 rounded-2xl text-xs font-black outline-none focus:border-blue-500 transition-all dark:text-white ${isLoadingCep ? 'opacity-50' : ''}`}
-                          />
-                        </div>
-                        <div className="flex-1">
-                          <label className="text-[9px] font-black text-slate-400 uppercase tracking-widest ml-1">Logradouro</label>
-                          <input
-                            type="text"
-                            placeholder="Rua / Avenida"
-                            value={avulsoData.street}
-                            onChange={e => setAvulsoData({ ...avulsoData, street: e.target.value })}
-                            className="w-full p-4 bg-slate-50 dark:bg-slate-800 border-2 border-slate-100 dark:border-slate-700 rounded-2xl text-xs font-black outline-none focus:border-blue-500 transition-all dark:text-white"
-                          />
-                        </div>
-                      </div>
-
-                      <div className="flex gap-2">
-                        <div className="w-24 shrink-0">
-                          <label className="text-[9px] font-black text-slate-400 uppercase tracking-widest ml-1">Número</label>
-                          <input
-                            type="text"
-                            placeholder="123"
-                            value={avulsoData.addressNumber}
-                            onChange={e => setAvulsoData({ ...avulsoData, addressNumber: e.target.value })}
-                            className="w-full p-4 bg-slate-50 dark:bg-slate-800 border-2 border-slate-100 dark:border-slate-700 rounded-2xl text-xs font-black outline-none focus:border-blue-500 transition-all dark:text-white focus:ring-4 focus:ring-blue-500/10"
-                          />
-                        </div>
-                        <div className="flex-1">
-                          <label className="text-[9px] font-black text-slate-400 uppercase tracking-widest ml-1">Bairro</label>
-                          <input
-                            type="text"
-                            placeholder="Bairro"
-                            value={avulsoData.neighborhood}
-                            onChange={e => setAvulsoData({ ...avulsoData, neighborhood: e.target.value })}
-                            className="w-full p-4 bg-slate-50 dark:bg-slate-800 border-2 border-slate-100 dark:border-slate-700 rounded-2xl text-xs font-black outline-none focus:border-blue-500 transition-all dark:text-white"
-                          />
-                        </div>
-                      </div>
-
-                      <div className="flex gap-2">
-                        <div className="flex-1">
-                          <label className="text-[9px] font-black text-slate-400 uppercase tracking-widest ml-1">Cidade</label>
-                          <input
-                            type="text"
-                            placeholder="Cidade"
-                            value={avulsoData.city}
-                            onChange={e => setAvulsoData({ ...avulsoData, city: e.target.value })}
-                            className="w-full p-4 bg-slate-50 dark:bg-slate-800 border-2 border-slate-100 dark:border-slate-700 rounded-2xl text-xs font-black outline-none focus:border-blue-500 transition-all dark:text-white"
-                          />
-                        </div>
-                        <div className="w-16 shrink-0">
-                          <label className="text-[9px] font-black text-slate-400 uppercase tracking-widest ml-1">UF</label>
-                          <input
-                            type="text"
-                            placeholder="SP"
-                            maxLength={2}
-                            value={avulsoData.state}
-                            onChange={e => setAvulsoData({ ...avulsoData, state: e.target.value.toUpperCase() })}
-                            className="w-full p-4 bg-slate-50 dark:bg-slate-800 border-2 border-slate-100 dark:border-slate-700 rounded-2xl text-xs font-black outline-none focus:border-blue-500 transition-all dark:text-white"
-                          />
-                        </div>
-                      </div>
-
-                      <div className="space-y-1.5">
-                        <label className="text-[9px] font-black text-slate-400 uppercase tracking-widest ml-1">Complemento / Referência</label>
-                        <input
-                          type="text"
-                          placeholder="Ex: Apto 101, Próximo ao mercado..."
-                          value={avulsoData.complement}
-                          onChange={e => setAvulsoData({ ...avulsoData, complement: e.target.value })}
-                          className="w-full p-4 bg-slate-50 dark:bg-slate-800 border-2 border-slate-100 dark:border-slate-700 rounded-2xl text-xs font-black outline-none focus:border-blue-500 transition-all dark:text-white"
-                        />
-                      </div>
-                    </div>
-                  )}
-                </div>
-              )}
             </div>
           </div>
         </div>
@@ -1874,18 +1528,18 @@ const POS: React.FC<POSProps> = ({ currentUser }) => {
                       setIsClientModalOpen(true);
                       setErrors({});
                     }}
-                    className={`w-full p-4 rounded-2xl border-2 transition-all flex items-center justify-between group ${selectedClient || (isAvulso && avulsoData.name) ? 'bg-blue-50 dark:bg-blue-900/20 border-blue-200 dark:border-blue-500/30 shadow-sm' : 'bg-slate-50 dark:bg-slate-800 border-dashed border-slate-200 dark:border-slate-700 hover:border-blue-300 dark:hover:border-blue-500'}`}
+                    className={`w-full p-4 rounded-2xl border-2 transition-all flex items-center justify-between group ${selectedClient ? 'bg-blue-50 dark:bg-blue-900/20 border-blue-200 dark:border-blue-500/30 shadow-sm' : 'bg-slate-50 dark:bg-slate-800 border-dashed border-slate-200 dark:border-slate-700 hover:border-blue-300 dark:hover:border-blue-500'}`}
                   >
                     <div className="flex items-center gap-3">
-                      <div className={`w-8 h-8 rounded-full flex items-center justify-center transition-colors ${selectedClient || (isAvulso && avulsoData.name) ? 'bg-blue-600 text-white' : 'bg-slate-200 dark:bg-slate-700 text-slate-400 dark:text-slate-500 group-hover:bg-blue-100 dark:group-hover:bg-blue-900 group-hover:text-blue-500'}`}>
+                      <div className={`w-8 h-8 rounded-full flex items-center justify-center transition-colors ${selectedClient ? 'bg-blue-600 text-white' : 'bg-slate-200 dark:bg-slate-700 text-slate-400 dark:text-slate-500 group-hover:bg-blue-100 dark:group-hover:bg-blue-900 group-hover:text-blue-500'}`}>
                         <Icons.User className="w-4 h-4" />
                       </div>
                       <div className="text-left">
-                        <p className={`text-[10px] font-black uppercase tracking-tighter ${selectedClient || (isAvulso && avulsoData.name) ? 'text-blue-700 dark:text-blue-400' : 'text-slate-400 dark:text-slate-500'}`}>
-                          {selectedClient?.name || avulsoData.name || 'Clique para Identificar'}
+                        <p className={`text-[10px] font-black uppercase tracking-tighter ${selectedClient ? 'text-blue-700 dark:text-blue-400' : 'text-slate-400 dark:text-slate-500'}`}>
+                          {selectedClient?.name || 'Clique para Identificar'}
                         </p>
                         <p className="text-[8px] font-bold text-slate-400 dark:text-slate-500 uppercase">
-                          {selectedClient?.phone || avulsoData.phone || 'Sem cliente vinculado'}
+                          {selectedClient?.phone || 'Sem cliente vinculado'}
                         </p>
                       </div>
                     </div>
@@ -1893,13 +1547,6 @@ const POS: React.FC<POSProps> = ({ currentUser }) => {
                       <Icons.View className="w-4 h-4" />
                     </div>
                   </button>
-
-                  {isAvulso && avulsoData.address && (
-                    <div className="px-3 py-2 bg-slate-50 dark:bg-slate-800 rounded-xl border border-slate-100 dark:border-slate-700 flex items-start gap-2">
-                      <div className="mt-0.5 text-slate-400 dark:text-slate-500"><Icons.MapPin className="w-3 h-3" /></div>
-                      <p className="text-[8px] font-bold text-slate-500 dark:text-slate-400 uppercase leading-tight line-clamp-2">{avulsoData.address}</p>
-                    </div>
-                  )}
                 </div>
               )}
 
@@ -2122,7 +1769,7 @@ const POS: React.FC<POSProps> = ({ currentUser }) => {
                     <p className="text-[13px] font-bold break-all leading-none">35240212345678000190650010000000011000000012</p>
                   </div>
                   <div className="text-center space-y-1 border-t border-dashed border-black pt-2">
-                    <p className="font-bold">{!printingOrder.clientName || printingOrder.clientName === 'Consumidor' || printingOrder.clientName === 'Consumidor Padrão' ? 'CONSUMIDOR NAO INFORMADO' : `CLIENTE: ${printingOrder.clientName?.toUpperCase()}`}</p>
+                    <p className="font-bold">{!printingOrder.clientName ? 'CLIENTE NAO IDENTIFICADO' : `CLIENTE: ${printingOrder.clientName?.toUpperCase()}`}</p>
                     {printingOrder.clientDocument && <p className="font-bold">CPF/CNPJ: {printingOrder.clientDocument}</p>}
                   </div>
                   <div className="flex justify-center py-4">
@@ -2151,7 +1798,7 @@ const POS: React.FC<POSProps> = ({ currentUser }) => {
                       <span>DATA: {new Date(printingOrder.createdAt).toLocaleDateString('pt-BR')}</span>
                       <span>{new Date(printingOrder.createdAt).toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' })}</span>
                     </div>
-                    <p>CLIENTE: {(printingOrder.clientName || 'CONSUMIDOR').toUpperCase()}</p>
+                    <p>CLIENTE: {(printingOrder.clientName || 'NÃO IDENTIFICADO').toUpperCase()}</p>
                     <p>PAGTO: {(printingOrder.paymentMethod || 'PENDENTE').toUpperCase()}</p>
                     
                     {/* Condicional de Endereço: Só se for Delivery */}
@@ -2216,7 +1863,7 @@ const POS: React.FC<POSProps> = ({ currentUser }) => {
                   <div className="grid grid-cols-2 gap-4 bg-slate-50 dark:bg-slate-800/50 p-4 rounded-3xl border border-slate-100 dark:border-slate-700">
                     <div>
                       <p className="text-[8px] font-black text-slate-400 uppercase tracking-widest mb-1">Cliente</p>
-                      <p className="text-[11px] font-black text-slate-700 dark:text-slate-200 uppercase">{printingOrder.clientName || 'Consumidor Padrão'}</p>
+                      <p className="text-[11px] font-black text-slate-700 dark:text-slate-200 uppercase">{printingOrder.clientName || 'Não Identificado'}</p>
                     </div>
                     <div>
                       <p className="text-[8px] font-black text-slate-400 uppercase tracking-widest mb-1">Mesa / Pedido</p>

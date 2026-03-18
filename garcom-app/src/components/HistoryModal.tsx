@@ -35,7 +35,7 @@ const HistoryModal: React.FC<HistoryModalProps> = ({ user, tables, settings, res
                  data: {
                      businessName: settings.name,
                      date: printingOrder.createdAt || new Date().toISOString(),
-                     clientName: printingOrder.clientName || 'Consumidor',
+                     clientName: printingOrder.clientName || 'Não Identificado',
                      table: printingOrder.tableNumber,
                      paymentMethod: printingOrder.paymentMethod,
                      subtotal: printingOrder.items.reduce((acc, item) => acc + (item.quantity * item.price), 0),
@@ -299,7 +299,7 @@ const HistoryModal: React.FC<HistoryModalProps> = ({ user, tables, settings, res
                 
                 <div className="text-[9px] mb-1">
                     <p>DATA: {new Date(printingOrder.createdAt || new Date()).toLocaleDateString('pt-BR')} {new Date(printingOrder.createdAt || new Date()).toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' })}</p>
-                    <p>CLIENTE: {(printingOrder.clientName || 'CONSUMIDOR').toUpperCase()}</p>
+                    <p>CLIENTE: {(printingOrder.clientName || 'NÃO IDENTIFICADO').toUpperCase()}</p>
                     <p>PAGTO: {(printingOrder.paymentMethod || 'PENDENTE').toUpperCase()}</p>
                     <p>GARÇOM: {user.name?.toUpperCase()}</p>
                     {printingOrder.tableNumber && <p className="font-bold">MESA: {printingOrder.tableNumber}</p>}

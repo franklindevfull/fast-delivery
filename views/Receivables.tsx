@@ -567,7 +567,7 @@ const Receivables: React.FC<ReceivablesProps> = ({ currentUser, setActiveTab }) 
                                                 businessName: businessSettings.name,
                                                 cnpj: businessSettings.cnpj,
                                                 date: printingOrder.createdAt,
-                                                clientName: printingOrder.clientName || 'CONSUMIDOR',
+                                                clientName: printingOrder.clientName || 'NÃO IDENTIFICADO',
                                                 status: 'PENDENTE',
                                                 paymentMethod: 'FIADO / RECEBÍVEL',
                                                 subtotal: printingOrder.total - (printingOrder.deliveryFee || 0),
