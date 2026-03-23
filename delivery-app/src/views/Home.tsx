@@ -8,7 +8,9 @@ import { useCart } from '../CartContext';
 import CustomAlert from '../components/CustomAlert';
 import CompleteProfileModal from '../components/CompleteProfileModal';
 import ProfilePhotoModal from '../components/ProfilePhotoModal';
+import ProfileQuickModal from '../components/ProfileQuickModal';
 import NotificationCenterModal from '../components/NotificationCenterModal';
+import { useUI } from '../UIContext';
 
 import CheckoutTab from '../components/CheckoutTab';
 
@@ -16,6 +18,7 @@ const Home: React.FC = () => {
     const { addToCart, items, total } = useCart();
     const navigate = useNavigate();
     const [activeTab, setActiveTab] = useState<'CARDAPIO' | 'CARRINHO'>('CARDAPIO');
+    const { setIsSidebarOpen } = useUI();
     const [showMenu, setShowMenu] = useState(false);
     const [products, setProducts] = useState<Product[]>([]);
     const [categories, setCategories] = useState<string[]>([]);
@@ -28,6 +31,7 @@ const Home: React.FC = () => {
     const [showLogoutAlert, setShowLogoutAlert] = useState(false);
     const [showCompleteProfile, setShowCompleteProfile] = useState(false);
     const [showProfilePhotoModal, setShowProfilePhotoModal] = useState(false);
+    const [showProfileQuickModal, setShowProfileQuickModal] = useState(false);
     const [showNotificationCenter, setShowNotificationCenter] = useState(false);
 
     const isProfileIncomplete = !!(client && (client.phone === '00000000000' || !client.street || !client.cep));
@@ -125,7 +129,14 @@ const Home: React.FC = () => {
                     <div className="flex items-center justify-between relative z-10">
                         {/* Left: Store Status */}
                         <div className="flex items-center gap-2">
-                            <div className="w-12 h-12 shrink-0" />
+                            <button
+                                onClick={() => setIsSidebarOpen(true)}
+                                className="w-12 h-12 bg-[#4f39f6] dark:bg-indigo-600 rounded-2xl flex flex-col items-center justify-center gap-1.5 active:scale-90 transition-all shrink-0 shadow-lg shadow-indigo-200 dark:shadow-none"
+                            >
+                                <div className="w-6 h-1 bg-white rounded-full"></div>
+                                <div className="w-6 h-1 bg-white rounded-full"></div>
+                                <div className="w-6 h-1 bg-white rounded-full"></div>
+                            </button>
                             <div className={`flex items-center gap-1.5 px-3 py-1.5 rounded-full border border-slate-100/50 dark:border-slate-700/50 whitespace-nowrap ${storeStatus?.status === 'offline' ? 'bg-rose-50 dark:bg-rose-900/20 text-rose-600 dark:text-rose-400' : 'bg-emerald-50 dark:bg-emerald-900/20 text-emerald-600 dark:text-emerald-400'}`}>
                                 <Icons.Globe className={`w-3.5 h-3.5 ${storeStatus?.status !== 'offline' ? 'animate-pulse' : ''}`} />
                                 <span className="text-[10px] font-black uppercase tracking-widest">
@@ -149,7 +160,7 @@ const Home: React.FC = () => {
                             </button>
 
                             <button 
-                                onClick={() => setShowProfilePhotoModal(true)}
+                                onClick={() => setShowProfileQuickModal(true)}
                                 className="w-10 h-10 bg-white dark:bg-slate-800 rounded-xl flex items-center justify-center shadow-sm border border-slate-100 dark:border-slate-700 active:scale-95 overflow-hidden"
                             >
                                 {client?.avatarUrl ? (
@@ -331,6 +342,7 @@ const Home: React.FC = () => {
                     client={client}
                     onComplete={(updatedClient) => {
                         setClient(updatedClient);
+                        localStorage.setItem('delivery_app_client', JSON.stringify(updatedClient));
                         setShowCompleteProfile(false);
                     }}
                     onClose={() => setShowCompleteProfile(false)}
@@ -352,6 +364,18 @@ const Home: React.FC = () => {
                     }
                 }}
             />
+
+            {client && (
+                <ProfileQuickModal 
+                    isOpen={showProfileQuickModal}
+                    onClose={() => setShowProfileQuickModal(false)}
+                    client={client}
+                    onEditPhoto={() => {
+                        setShowProfileQuickModal(false);
+                        setShowProfilePhotoModal(true);
+                    }}
+                />
+            )}
 
             {client && (
                 <NotificationCenterModal 

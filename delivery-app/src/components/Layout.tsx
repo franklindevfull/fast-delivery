@@ -3,6 +3,7 @@ import { useLocation } from 'react-router-dom';
 import FooterNav from './FooterNav';
 import { Phone, Facebook, Instagram, Globe, Ticket, LogOut, Sun, Moon } from 'lucide-react';
 import { useTheme } from '../ThemeContext';
+import { useUI } from '../UIContext';
 import { api } from '../services/api';
 import { socket } from '../services/socket';
 import type { BusinessSettings, StoreStatus } from '../types';
@@ -13,8 +14,8 @@ const Layout: React.FC<{ children: React.ReactNode }> = ({ children }) => {
     const hideFooterPaths = ['/login', '/register', '/recover'];
     const shouldShowFooter = !hideFooterPaths.includes(location.pathname);
 
+    const { isSidebarOpen, setIsSidebarOpen } = useUI();
     const [hasUnread, setHasUnread] = useState(false);
-    const [isSidebarOpen, setIsSidebarOpen] = useState(false);
     const [coupons, setCoupons] = useState<any[]>([]);
 
     // Business Status & Countdown
@@ -163,17 +164,6 @@ const Layout: React.FC<{ children: React.ReactNode }> = ({ children }) => {
                 </div>
             ) : (
                 <>
-                    {/* Hamburger Menu Button */}
-                    {isHome && (
-                        <div className="fixed top-4 left-4 z-[70]">
-                            <button
-                                onClick={() => setIsSidebarOpen(true)}
-                                className="w-12 h-12 bg-[#4f39f6] dark:bg-indigo-600 rounded-2xl flex flex-col items-center justify-center gap-1.5 active:scale-90 transition-all"
-                            >
-                                <div className="w-6 h-1 bg-white rounded-full"></div>
-                                <div className="w-6 h-1 bg-white rounded-full"></div>
-                                <div className="w-6 h-1 bg-white rounded-full"></div>
-                            </button>
                         </div>
                     )}
 
