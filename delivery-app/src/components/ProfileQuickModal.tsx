@@ -7,16 +7,17 @@ interface ProfileQuickModalProps {
     onClose: () => void;
     client: any;
     onEditPhoto: () => void;
+    onChangePassword: () => void;
 }
 
-const ProfileQuickModal: React.FC<ProfileQuickModalProps> = ({ isOpen, onClose, client, onEditPhoto }) => {
+const ProfileQuickModal: React.FC<ProfileQuickModalProps> = ({ isOpen, onClose, client, onEditPhoto, onChangePassword }) => {
     const navigate = useNavigate();
 
     if (!isOpen) return null;
 
     return (
         <div className="fixed inset-0 z-[100] flex items-center justify-center p-6 animate-in fade-in duration-300">
-            <div className="absolute inset-0 bg-slate-900/60 backdrop-blur-sm" onClick={onClose}></div>
+            <div className="absolute inset-0 bg-slate-900/60 backdrop-blur-sm"></div>
             
             <div className="bg-white dark:bg-slate-900 w-full max-w-sm rounded-[2.5rem] p-8 shadow-2xl relative animate-in zoom-in-95 duration-300 border border-white dark:border-slate-800">
                 {/* Close Button */}
@@ -67,7 +68,7 @@ const ProfileQuickModal: React.FC<ProfileQuickModalProps> = ({ isOpen, onClose, 
                     <button
                         onClick={() => {
                             onClose();
-                            navigate('/profile');
+                            navigate('/profile', { state: { fromQuickModal: true } });
                         }}
                         className="w-full p-4 bg-indigo-50 dark:bg-indigo-900/20 text-indigo-600 dark:text-indigo-400 rounded-2xl flex items-center justify-between group hover:bg-indigo-600 hover:text-white transition-all active:scale-[0.98]"
                     >
@@ -79,10 +80,7 @@ const ProfileQuickModal: React.FC<ProfileQuickModalProps> = ({ isOpen, onClose, 
                     </button>
 
                     <button
-                        onClick={() => {
-                            onClose();
-                            navigate('/profile');
-                        }}
+                        onClick={onChangePassword}
                         className="w-full p-4 bg-slate-50 dark:bg-slate-800 text-slate-600 dark:text-slate-300 rounded-2xl flex items-center justify-between group hover:bg-slate-800 dark:hover:bg-slate-700 hover:text-white transition-all active:scale-[0.98]"
                     >
                         <div className="flex items-center gap-3">

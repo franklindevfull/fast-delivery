@@ -1,24 +1,19 @@
 import React, { useState, useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useLocation } from 'react-router-dom';
 import { api } from '../services/api';
 import { Icons } from '../constants';
 
 const Profile: React.FC = () => {
     const navigate = useNavigate();
+    const location = useLocation();
     const [isLoading, setIsLoading] = useState(true);
     const [isSavingDetails, setIsSavingDetails] = useState(false);
-    const [isSavingPassword, setIsSavingPassword] = useState(false);
     const [client, setClient] = useState<any>(null);
-    const [showCurrentPassword, setShowCurrentPassword] = useState(false);
-    const [showPassword, setShowPassword] = useState(false);
-    const [showConfirmPassword, setShowConfirmPassword] = useState(false);
     const [isEditingAddress, setIsEditingAddress] = useState(false);
 
     const [detailsError, setDetailsError] = useState('');
     const [detailsSuccess, setDetailsSuccess] = useState('');
     const [isFetchingCep, setIsFetchingCep] = useState(false);
-    const [passwordError, setPasswordError] = useState('');
-    const [passwordSuccess, setPasswordSuccess] = useState('');
 
     const [formData, setFormData] = useState({
         name: '',
@@ -29,10 +24,7 @@ const Profile: React.FC = () => {
         neighborhood: '',
         city: '',
         state: '',
-        complement: '',
-        currentPassword: '',
-        password: '',
-        confirmPassword: ''
+        complement: ''
     });
 
     useEffect(() => {
@@ -54,10 +46,7 @@ const Profile: React.FC = () => {
                 neighborhood: data.neighborhood || '',
                 city: data.city || '',
                 state: data.state || '',
-                complement: data.complement || '',
-                currentPassword: '',
-                password: '',
-                confirmPassword: ''
+                complement: data.complement || ''
             });
         } catch (e) {
             console.error("Error parsing client data", e);
@@ -121,39 +110,6 @@ const Profile: React.FC = () => {
         }
     };
 
-    const handleSavePassword = async () => {
-        setPasswordError('');
-        setPasswordSuccess('');
-
-        if (!formData.currentPassword || !formData.password || !formData.confirmPassword) {
-            setPasswordError('Preencha os três campos para atualizar sua senha.');
-            return;
-        }
-
-        if (formData.password !== formData.confirmPassword) {
-            setPasswordError('As novas senhas não coincidem.');
-            return;
-        }
-
-        setIsSavingPassword(true);
-        try {
-            const updateData = {
-                currentPassword: formData.currentPassword,
-                password: formData.password
-            };
-
-            const updatedClient = await api.updateClient(client.id, updateData);
-            localStorage.setItem('delivery_app_client', JSON.stringify(updatedClient));
-            setClient(updatedClient);
-            setPasswordSuccess('Senha substituída com sucesso!');
-            setFormData(prev => ({ ...prev, currentPassword: '', password: '', confirmPassword: '' }));
-        } catch (err: any) {
-            setPasswordError(err.response?.data?.error || err.message || 'Erro ao trocar senha. Verifique sua senha atual.');
-        } finally {
-            setIsSavingPassword(false);
-        }
-    };
-
     if (isLoading) return (
         <div className="h-screen bg-slate-50 dark:bg-slate-950 flex flex-col items-center justify-center transition-colors duration-500">
             <div className="w-16 h-16 border-4 border-indigo-500/20 border-t-indigo-500 rounded-full animate-spin mb-4"></div>
@@ -167,7 +123,13 @@ const Profile: React.FC = () => {
                 <div className="absolute top-0 right-0 w-64 h-64 bg-indigo-50 dark:bg-indigo-900/10 rounded-full mix-blend-multiply filter blur-3xl opacity-50 animate-float"></div>
                 <div className="absolute bottom-0 left-0 w-64 h-64 bg-rose-50 dark:bg-rose-900/10 rounded-full mix-blend-multiply filter blur-3xl opacity-50 animate-float" style={{ animationDelay: '2s' }}></div>
 
-                <button onClick={() => navigate('/')} className="w-12 h-12 bg-slate-50 dark:bg-slate-800 rounded-2xl flex items-center justify-center text-slate-400 dark:text-slate-500 hover:text-indigo-600 dark:hover:text-indigo-400 hover:bg-white dark:hover:bg-slate-700 transition-all shadow-sm border border-slate-100 dark:border-slate-700 active:scale-95 z-10">
+                <button 
+                    onClick={() => {
+                        const fromQuickModal = location.state?.fromQuickModal;
+                        navigate('/', { state: { openQuickModal: fromQuickModal } });
+                    }} 
+                    className="w-12 h-12 bg-slate-50 dark:bg-slate-800 rounded-2xl flex items-center justify-center text-slate-400 dark:text-slate-500 hover:text-indigo-600 dark:hover:text-indigo-400 hover:bg-white dark:hover:bg-slate-700 transition-all shadow-sm border border-slate-100 dark:border-slate-700 active:scale-95 z-10"
+                >
                     <Icons.ArrowLeft className="w-5 h-5" />
                 </button>
                 <div className="flex-1 z-10">
@@ -383,7 +345,7 @@ const Profile: React.FC = () => {
                                 onClick={handleSavePersonalInfo}
                                 disabled={isSavingDetails}
                                 className="w-full py-4 bg-blue-600 text-white rounded-2xl font-black uppercase text-[11px] tracking-widest shadow-lg shadow-blue-200 active:scale-95 transition-all disabled:opacity-50 mt-4"
-                            >
+                              >
                                 {isSavingDetails ? 'Salvando...' : 'Salvar Dados e Endereço'}
                             </button>
                         </div>
@@ -407,79 +369,6 @@ const Profile: React.FC = () => {
                             </p>
                         </div>
                     </div>
-
-                    {!client?.googleId && (
-                        <div className="bg-white dark:bg-slate-900 p-6 rounded-[2.5rem] shadow-sm border border-slate-100 dark:border-slate-800 space-y-4 transition-colors duration-500">
-                            <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest px-4 mb-2 block">Alterar Senha (Opcional)</label>
-                            <div className="space-y-3">
-                                <div className="relative group">
-                                    <div className="absolute left-5 top-1/2 -translate-y-1/2 text-slate-300 group-focus-within:text-indigo-500 transition-colors">
-                                        <Icons.Lock className="w-5 h-5" />
-                                    </div>
-                                    <input
-                                        type={showCurrentPassword ? "text" : "password"}
-                                        placeholder="Senha Atual"
-                                        value={formData.currentPassword}
-                                        onChange={e => setFormData({ ...formData, currentPassword: e.target.value })}
-                                        className="w-full pl-14 pr-4 py-4 bg-slate-50 dark:bg-slate-800 border border-slate-100 dark:border-slate-700 rounded-2xl font-bold text-sm text-slate-800 dark:text-slate-100 focus:ring-4 focus:ring-indigo-50 dark:focus:ring-indigo-900/20 transition-all outline-none"
-                                    />
-                                    <button type="button" onClick={() => setShowCurrentPassword(!showCurrentPassword)} className="absolute right-4 top-1/2 -translate-y-1/2 text-slate-400 hover:text-indigo-500 transition-colors">
-                                        {showCurrentPassword ? <Icons.EyeOff className="w-5 h-5" /> : <Icons.Eye className="w-5 h-5" />}
-                                    </button>
-                                </div>
-                                <div className="relative group">
-                                    <div className="absolute left-5 top-1/2 -translate-y-1/2 text-slate-300 group-focus-within:text-indigo-500 transition-colors">
-                                        <Icons.Lock className="w-5 h-5" />
-                                    </div>
-                                    <input
-                                        type={showPassword ? "text" : "password"}
-                                        placeholder="Nova Senha"
-                                        value={formData.password}
-                                        onChange={e => setFormData({ ...formData, password: e.target.value })}
-                                        className="w-full pl-14 pr-4 py-4 bg-slate-50 dark:bg-slate-800 border border-slate-100 dark:border-slate-700 rounded-2xl font-bold text-sm text-slate-800 dark:text-slate-100 focus:ring-4 focus:ring-indigo-50 dark:focus:ring-indigo-900/20 transition-all outline-none"
-                                    />
-                                    <button type="button" onClick={() => setShowPassword(!showPassword)} className="absolute right-4 top-1/2 -translate-y-1/2 text-slate-400 hover:text-indigo-500 transition-colors">
-                                        {showPassword ? <Icons.EyeOff className="w-5 h-5" /> : <Icons.Eye className="w-5 h-5" />}
-                                    </button>
-                                </div>
-                                <div className="relative group">
-                                    <div className="absolute left-5 top-1/2 -translate-y-1/2 text-slate-300 group-focus-within:text-indigo-500 transition-colors">
-                                        <Icons.Lock className="w-5 h-5" />
-                                    </div>
-                                    <input
-                                        type={showConfirmPassword ? "text" : "password"}
-                                        placeholder="Confirmar Nova Senha"
-                                        value={formData.confirmPassword}
-                                        onChange={e => setFormData({ ...formData, confirmPassword: e.target.value })}
-                                        className="w-full pl-14 pr-4 py-4 bg-slate-50 dark:bg-slate-800 border border-slate-100 dark:border-slate-700 rounded-2xl font-bold text-sm text-slate-800 dark:text-slate-100 focus:ring-4 focus:ring-indigo-50 dark:focus:ring-indigo-900/20 transition-all outline-none"
-                                    />
-                                    <button type="button" onClick={() => setShowConfirmPassword(!showConfirmPassword)} className="absolute right-4 top-1/2 -translate-y-1/2 text-slate-400 hover:text-indigo-500 transition-colors">
-                                        {showConfirmPassword ? <Icons.EyeOff className="w-5 h-5" /> : <Icons.Eye className="w-5 h-5" />}
-                                    </button>
-                                </div>
-
-                                {passwordError && (
-                                    <div className="bg-rose-50 text-rose-600 p-4 rounded-2xl text-[10px] font-black uppercase tracking-widest border border-rose-100 animate-in fade-in duration-300">
-                                        {passwordError}
-                                    </div>
-                                )}
-                                {passwordSuccess && (
-                                    <div className="bg-emerald-50 text-emerald-600 p-4 rounded-2xl text-[10px] font-black uppercase tracking-widest border border-emerald-100 animate-in fade-in duration-300">
-                                        {passwordSuccess}
-                                    </div>
-                                )}
-
-                                <button
-                                    type="button"
-                                    onClick={handleSavePassword}
-                                    disabled={isSavingPassword}
-                                    className="w-full py-4 bg-indigo-600 dark:bg-indigo-500 text-white rounded-2xl font-black uppercase text-[11px] tracking-widest shadow-lg shadow-indigo-200 dark:shadow-none active:scale-95 transition-all disabled:opacity-50 mt-2"
-                                >
-                                    {isSavingPassword ? 'Atualizando...' : 'Alterar Senha'}
-                                </button>
-                            </div>
-                        </div>
-                    )}
                 </div>
             </div>
         </div>

@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useLocation } from 'react-router-dom';
 import { api } from '../services/api';
 import { socket } from '../services/socket';
 import type { Product, StoreStatus, Client, BusinessSettings } from '../types';
@@ -10,6 +10,7 @@ import CompleteProfileModal from '../components/CompleteProfileModal';
 import ProfilePhotoModal from '../components/ProfilePhotoModal';
 import ProfileQuickModal from '../components/ProfileQuickModal';
 import NotificationCenterModal from '../components/NotificationCenterModal';
+import ChangePasswordModal from '../components/ChangePasswordModal';
 import { useUI } from '../UIContext';
 
 import CheckoutTab from '../components/CheckoutTab';
@@ -17,6 +18,7 @@ import CheckoutTab from '../components/CheckoutTab';
 const Home: React.FC = () => {
     const { addToCart, items, total } = useCart();
     const navigate = useNavigate();
+    const location = useLocation();
     const [activeTab, setActiveTab] = useState<'CARDAPIO' | 'CARRINHO'>('CARDAPIO');
     const { setIsSidebarOpen } = useUI();
     const [showMenu, setShowMenu] = useState(false);
@@ -32,6 +34,7 @@ const Home: React.FC = () => {
     const [showCompleteProfile, setShowCompleteProfile] = useState(false);
     const [showProfilePhotoModal, setShowProfilePhotoModal] = useState(false);
     const [showProfileQuickModal, setShowProfileQuickModal] = useState(false);
+    const [showChangePasswordModal, setShowChangePasswordModal] = useState(false);
     const [showNotificationCenter, setShowNotificationCenter] = useState(false);
 
     const isProfileIncomplete = !!(client && (client.phone === '00000000000' || !client.street || !client.cep));
@@ -90,6 +93,14 @@ const Home: React.FC = () => {
             socket.off('store_status_changed');
         };
     }, []);
+
+    useEffect(() => {
+        if (location.state?.openQuickModal) {
+            setShowProfileQuickModal(true);
+            // Clear state to avoid reopening on refresh
+            window.history.replaceState({}, document.title);
+        }
+    }, [location]);
 
     const filteredProducts = products.filter(p => {
         const matchesCategory = selectedCategory === 'Todos' || p.category === selectedCategory;
@@ -351,7 +362,10 @@ const Home: React.FC = () => {
 
             <ProfilePhotoModal 
                 isOpen={showProfilePhotoModal}
-                onClose={() => setShowProfilePhotoModal(false)}
+                onClose={() => {
+                    setShowProfilePhotoModal(false);
+                    setShowProfileQuickModal(true);
+                }}
                 onPhotoSelected={async (base64: string | null) => {
                     if (client) {
                         try {
@@ -374,6 +388,21 @@ const Home: React.FC = () => {
                         setShowProfileQuickModal(false);
                         setShowProfilePhotoModal(true);
                     }}
+                    onChangePassword={() => {
+                        setShowProfileQuickModal(false);
+                        setShowChangePasswordModal(true);
+                    }}
+                />
+            )}
+
+            {client && (
+                <ChangePasswordModal 
+                    isOpen={showChangePasswordModal}
+                    onClose={(reopenProfile) => {
+                        setShowChangePasswordModal(false);
+                        if (reopenProfile) setShowProfileQuickModal(true);
+                    }}
+                    client={client}
                 />
             )}
 
