@@ -26,36 +26,22 @@ const Layout: React.FC<{ children: React.ReactNode }> = ({ children }) => {
     const [settings, setSettings] = useState<BusinessSettings | null>(null);
 
     const updateCountdown = React.useCallback(() => {
-        const s = settingsRef.current;
-        if (s && s.operatingHours && !s.isManuallyClosed) {
-            try {
-                const hours = JSON.parse(s.operatingHours);
-                const now = new Date();
-                const day = now.getDay();
-                const config = hours.find((h: any) => h.dayOfWeek === day);
-
-                if (config && config.isOpen) {
-                    const [closeH, closeM] = config.closeTime.split(':').map(Number);
-                    const closeDate = new Date();
-                    closeDate.setHours(closeH, closeM, 0);
-
-                    const diffMs = closeDate.getTime() - now.getTime();
-                    if (diffMs > 0 && diffMs <= 30 * 60 * 1000) {
-                        setIsClosingSoon(true);
-                        const mins = Math.floor(diffMs / 60000);
-                        const secs = Math.floor((diffMs % 60000) / 1000);
-                        setCountdown(`${String(mins).padStart(2, '0')}:${String(secs).padStart(2, '0')}`);
-                    } else {
-                        setIsClosingSoon(false);
-                    }
-                } else {
-                    setIsClosingSoon(false);
-                }
-            } catch (e) {
-                console.error("Error parsing operating hours:", e);
+        if (storeStatus?.status === 'online' && storeStatus.next_status_change) {
+            const diffMs = new Date(storeStatus.next_status_change).getTime() - new Date().getTime();
+            if (diffMs > 0 && diffMs <= 30 * 60 * 1000) {
+                setIsClosingSoon(true);
+                const mins = Math.floor(diffMs / 60000);
+                const secs = Math.floor((diffMs % 60000) / 1000);
+                setCountdown(`${String(mins).padStart(2, '0')}:${String(secs).padStart(2, '0')}`);
+            } else {
+                setIsClosingSoon(false);
+                setCountdown('');
             }
+        } else {
+            setIsClosingSoon(false);
+            setCountdown('');
         }
-    }, []);
+    }, [storeStatus]);
 
     const fetchSettings = React.useCallback(async () => {
         try {

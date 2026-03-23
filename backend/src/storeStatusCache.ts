@@ -162,7 +162,8 @@ const calculateCurrentStoreStatus = (): StoreStatus => {
         }
     })();
 
-    console.log(`[STATUS-CHECK] Status: ${result.status} (Manual: ${result.is_manually_closed}, Now: ${hour}:${minute}, Day: ${todayConfig?.dayOfWeek}, Open: ${todayConfig?.openTime})`);
+
+    console.log(`[STATUS-CHECK] Result: ${result.status.toUpperCase()} | Manual: ${result.is_manually_closed} | TZ: SP | Time: ${String(hour).padStart(2, '0')}:${String(minute).padStart(2, '0')} | Day: ${currentDayNum} (${getP('weekday')}) | Config: ${todayConfig ? `Open ${todayConfig.openTime}-${todayConfig.closeTime}` : 'CLOSED'}`);
     return result;
 };
 
