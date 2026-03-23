@@ -14,8 +14,24 @@ import jwt from 'jsonwebtoken';
 const JWT_SECRET = process.env.JWT_SECRET || 'fallback_secret_delivery_fast';
 const RP_NAME = 'Delivery Fast';
 
-const getRpId = (req: Request) => process.env.RP_ID || req.hostname;
-const getOrigin = (req: Request) => process.env.FRONTEND_URL || `${req.protocol}://${req.get('host')}`;
+const getRpId = (req: Request) => {
+    if (process.env.RP_ID) return process.env.RP_ID;
+    
+    // Tenta extrair o domínio do Referer ou Origin (onde o usuário está navegando)
+    const origin = req.get('origin') || req.get('referer');
+    if (origin) {
+        try {
+            const url = new URL(origin);
+            return url.hostname;
+        } catch (e) {
+            console.error('Error parsing origin for RP_ID:', e);
+        }
+    }
+    return req.hostname;
+};
+const getOrigin = (req: Request) => {
+    return process.env.FRONTEND_URL || req.get('origin') || `${req.protocol}://${req.get('host')}`;
+};
 
 // Temporary in-memory store for challenges (In production, use Redis or a DB table)
 const challengeStore = new Map<string, string>();
