@@ -7,6 +7,7 @@ import {
   VerifyRegistrationResponseOpts,
   VerifyAuthenticationResponseOpts,
 } from '@simplewebauthn/server';
+import { AuthenticationResponseJSON, RegistrationResponseJSON } from '@simplewebauthn/types';
 import prisma from '../prisma.js';
 import jwt from 'jsonwebtoken';
 
@@ -33,7 +34,7 @@ export const getRegistrationOptions = async (req: Request, res: Response) => {
     const options = await generateRegistrationOptions({
       rpName: RP_NAME,
       rpID: RP_ID,
-      userID: client.id,
+      userID: Buffer.from(client.id),
       userName: client.phone,
       attestationType: 'none',
       authenticatorSelection: {
@@ -66,16 +67,16 @@ export const verifyRegistration = async (req: Request, res: Response) => {
     }
 
     const verification = await verifyRegistrationResponse({
-      response: credential,
+      response: credential as RegistrationResponseJSON,
       expectedChallenge,
       expectedOrigin: ORIGIN,
       expectedRPID: RP_ID,
-    } as VerifyRegistrationResponseOpts);
+    } as any);
 
-    if (verification.verified && verification.registrationInfo) {
-      const { credentialPublicKey, credentialID, counter } = verification.registrationInfo;
+    if (verification.verified && (verification as any).registrationInfo) {
+      const { credentialPublicKey, credentialID, counter } = (verification as any).registrationInfo;
 
-      await prisma.client.update({
+      await (prisma.client as any).update({
         where: { id: clientId },
         data: {
           webauthnId: Buffer.from(credentialID).toString('base64'),
@@ -101,7 +102,7 @@ export const verifyRegistration = async (req: Request, res: Response) => {
 export const getLoginOptions = async (req: Request, res: Response) => {
   try {
     const { phone } = req.body;
-    const client = await prisma.client.findFirst({ where: { phone } });
+    const client = await (prisma.client as any).findFirst({ where: { phone } });
 
     if (!client || !client.webauthnId) {
       return res.status(404).json({ message: 'Biometria não configurada para este número.' });
@@ -113,7 +114,7 @@ export const getLoginOptions = async (req: Request, res: Response) => {
         id: Buffer.from(client.webauthnId, 'base64'),
         type: 'public-key',
         transports: ['internal'],
-      }],
+      } as any],
       userVerification: 'preferred',
     });
 
@@ -133,7 +134,7 @@ export const getLoginOptions = async (req: Request, res: Response) => {
 export const verifyLogin = async (req: Request, res: Response) => {
   try {
     const { phone, credential } = req.body;
-    const client = await prisma.client.findFirst({ where: { phone } });
+    const client = await (prisma.client as any).findFirst({ where: { phone } });
 
     if (!client || !client.webauthnId || !client.webauthnPublicKey) {
       return res.status(404).json({ message: 'Dados de biometria não encontrados.' });
@@ -145,22 +146,22 @@ export const verifyLogin = async (req: Request, res: Response) => {
     }
 
     const verification = await verifyAuthenticationResponse({
-      response: credential,
+      response: credential as AuthenticationResponseJSON,
       expectedChallenge,
       expectedOrigin: ORIGIN,
       expectedRPID: RP_ID,
-      authenticator: {
-        credentialID: Buffer.from(client.webauthnId, 'base64'),
-        credentialPublicKey: Buffer.from(client.webauthnPublicKey, 'base64'),
+      credential: {
+        id: Buffer.from(client.webauthnId, 'base64'),
+        publicKey: Buffer.from(client.webauthnPublicKey, 'base64'),
         counter: client.webauthnCounter,
       },
-    } as VerifyAuthenticationResponseOpts);
+    } as any);
 
     if (verification.verified) {
       // Update counter
-      await prisma.client.update({
+      await (prisma.client as any).update({
         where: { id: client.id },
-        data: { webauthnCounter: verification.authenticationInfo.newCounter },
+        data: { webauthnCounter: (verification as any).authenticationInfo.newCounter },
       });
 
       const token = jwt.sign({ id: client.id, role: 'CLIENT' }, JWT_SECRET, { expiresIn: '30d' });
