@@ -105,6 +105,8 @@ export interface BusinessSettings {
   website?: string;
   campaignLogoUrl?: string;
   appBannerUrl?: string;
+  appBannerUrl2?: string;
+  appBannerUrl3?: string;
 }
 
 export interface Waiter {

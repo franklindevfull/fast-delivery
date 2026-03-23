@@ -13,6 +13,13 @@ import NotificationCenterModal from '../components/NotificationCenterModal';
 import ChangePasswordModal from '../components/ChangePasswordModal';
 import { useUI } from '../UIContext';
 
+// Swiper Imports
+import { Swiper, SwiperSlide } from 'swiper/react';
+import { Autoplay, Pagination, Navigation } from 'swiper/modules';
+import 'swiper/css';
+import 'swiper/css/pagination';
+import 'swiper/css/navigation';
+
 import CheckoutTab from '../components/CheckoutTab';
 
 const Home: React.FC = () => {
@@ -262,10 +269,41 @@ const Home: React.FC = () => {
                 <div className="flex-1 flex flex-col animate-in fade-in duration-500 overflow-hidden">
                     {!showMenu ? (
                         /* Advertisement Banner Space - Fixed/Fitting screen */
-                        <div className="flex-1 flex flex-col px-6 pt-0 pb-0">
-                            <div className="flex-1 w-full bg-slate-100 dark:bg-slate-800 rounded-[2.5rem] overflow-hidden shadow-sm relative group flex items-center justify-center">
-                                {settings?.appBannerUrl ? (
-                                    <img src={settings.appBannerUrl} alt="Propaganda" className="w-full h-full object-cover" />
+                        <div className="flex-1 flex flex-col px-6 pt-0 pb-0 mb-4">
+                            <div className="flex-1 w-full bg-slate-100 dark:bg-slate-800 rounded-[2.5rem] overflow-hidden shadow-sm relative group">
+                                {settings && (settings.appBannerUrl || settings.appBannerUrl2 || settings.appBannerUrl3) ? (
+                                    <Swiper
+                                        modules={[Autoplay, Pagination, Navigation]}
+                                        spaceBetween={0}
+                                        slidesPerView={1}
+                                        autoplay={{ delay: 5000, disableOnInteraction: false }}
+                                        pagination={{ clickable: true, dynamicBullets: true }}
+                                        navigation={true}
+                                        loop={true}
+                                        className="w-full h-full mySwiper"
+                                        style={{
+                                            // @ts-ignore
+                                            '--swiper-navigation-color': '#fff',
+                                            '--swiper-pagination-color': '#fff',
+                                            '--swiper-navigation-size': '20px'
+                                        }}
+                                    >
+                                        {settings.appBannerUrl && (
+                                            <SwiperSlide>
+                                                <img src={settings.appBannerUrl} alt="Propaganda 1" className="w-full h-full object-cover" />
+                                            </SwiperSlide>
+                                        )}
+                                        {settings.appBannerUrl2 && (
+                                            <SwiperSlide>
+                                                <img src={settings.appBannerUrl2} alt="Propaganda 2" className="w-full h-full object-cover" />
+                                            </SwiperSlide>
+                                        )}
+                                        {settings.appBannerUrl3 && (
+                                            <SwiperSlide>
+                                                <img src={settings.appBannerUrl3} alt="Propaganda 3" className="w-full h-full object-cover" />
+                                            </SwiperSlide>
+                                        )}
+                                    </Swiper>
                                 ) : (
                                     <div className="w-full h-full flex flex-col items-center justify-center bg-gradient-to-br from-indigo-500 to-purple-600 p-8 text-center rounded-[2.5rem]">
                                         <Icons.ShoppingCart className="w-16 h-16 text-white/20 mb-4" />

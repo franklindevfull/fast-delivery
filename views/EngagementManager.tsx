@@ -21,6 +21,8 @@ const EngagementManager: React.FC<EngagementManagerProps> = ({ currentUser }) =>
   const { addToast } = useToast();
   const logoFileInputRef = React.useRef<HTMLInputElement>(null);
   const bannerFileInputRef = React.useRef<HTMLInputElement>(null);
+  const bannerFileInputRef2 = React.useRef<HTMLInputElement>(null);
+  const bannerFileInputRef3 = React.useRef<HTMLInputElement>(null);
 
   const [alertConfig, setAlertConfig] = useState<{
     isOpen: boolean;
@@ -159,6 +161,24 @@ const EngagementManager: React.FC<EngagementManagerProps> = ({ currentUser }) =>
     if (file) {
       const reader = new FileReader();
       reader.onloadend = () => setSettings(prev => ({ ...prev, appBannerUrl: reader.result as string }));
+      reader.readAsDataURL(file);
+    }
+  };
+
+  const handleBannerUpload2 = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file) {
+      const reader = new FileReader();
+      reader.onloadend = () => setSettings(prev => ({ ...prev, appBannerUrl2: reader.result as string }));
+      reader.readAsDataURL(file);
+    }
+  };
+
+  const handleBannerUpload3 = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file) {
+      const reader = new FileReader();
+      reader.onloadend = () => setSettings(prev => ({ ...prev, appBannerUrl3: reader.result as string }));
       reader.readAsDataURL(file);
     }
   };
@@ -357,7 +377,7 @@ const EngagementManager: React.FC<EngagementManagerProps> = ({ currentUser }) =>
               </div>
 
               <div className="space-y-2">
-                <label className="text-[10px] font-black uppercase text-slate-400 tracking-widest px-1">Banner de Propaganda (Home)</label>
+                <label className="text-[10px] font-black uppercase text-slate-400 tracking-widest px-1">Banner de Propaganda 1 (Home)</label>
                 <div className="flex gap-3 items-center">
                   <input
                     type="text"
@@ -381,7 +401,7 @@ const EngagementManager: React.FC<EngagementManagerProps> = ({ currentUser }) =>
                       <button
                         type="button"
                         onClick={() => {
-                          showAlert('Confirmar Exclusão', 'Deseja remover a imagem de propaganda?', 'DANGER', () => {
+                          showAlert('Confirmar Exclusão', 'Deseja remover a imagem de propaganda 1?', 'DANGER', () => {
                             setSettings({ ...settings, appBannerUrl: '' });
                             setAlertConfig(prev => ({ ...prev, isOpen: false }));
                           }, () => setAlertConfig(prev => ({ ...prev, isOpen: false })));
@@ -400,11 +420,105 @@ const EngagementManager: React.FC<EngagementManagerProps> = ({ currentUser }) =>
                     </div>
                   )}
                 </div>
-                <p className="text-[9px] text-slate-400 font-bold uppercase mt-1 px-1 tracking-tighter">Essa imagem aparecerá na tela inicial do app quando o cardápio estiver oculto.</p>
+              </div>
+
+              <div className="space-y-2">
+                <label className="text-[10px] font-black uppercase text-slate-400 tracking-widest px-1">Banner de Propaganda 2 (Home)</label>
+                <div className="flex gap-3 items-center">
+                  <input
+                    type="text"
+                    className="flex-1 p-4 bg-white dark:bg-slate-900 rounded-2xl border-none shadow-sm font-bold text-slate-800 dark:text-slate-200 text-sm"
+                    placeholder="https://link-da-imagem.com/banner.png"
+                    value={settings.appBannerUrl2 || ''}
+                    onChange={e => setSettings({ ...settings, appBannerUrl2: e.target.value })}
+                  />
+                  
+                  <div className="flex gap-2">
+                    <button
+                      type="button"
+                      onClick={() => bannerFileInputRef2.current?.click()}
+                      className="p-4 bg-blue-600 text-white rounded-2xl shadow-lg shadow-blue-200 dark:shadow-blue-900/40 transition-all active:scale-95 flex items-center justify-center"
+                      title="Upload de Imagem"
+                    >
+                      <Upload className="w-5 h-5" />
+                    </button>
+
+                    {settings.appBannerUrl2 && (
+                      <button
+                        type="button"
+                        onClick={() => {
+                          showAlert('Confirmar Exclusão', 'Deseja remover a imagem de propaganda 2?', 'DANGER', () => {
+                            setSettings({ ...settings, appBannerUrl2: '' });
+                            setAlertConfig(prev => ({ ...prev, isOpen: false }));
+                          }, () => setAlertConfig(prev => ({ ...prev, isOpen: false })));
+                        }}
+                        className="p-4 bg-rose-50 dark:bg-rose-900/20 text-rose-500 rounded-2xl border border-rose-100 dark:border-rose-800 transition-all active:scale-95 flex items-center justify-center"
+                        title="Remover Imagem"
+                      >
+                        <Trash2 className="w-5 h-5" />
+                      </button>
+                    )}
+                  </div>
+                  
+                  {settings.appBannerUrl2 && (
+                    <div className="w-14 h-14 rounded-2xl bg-white dark:bg-slate-900 p-1 shadow-sm overflow-hidden border border-slate-100 dark:border-slate-800 shrink-0">
+                      <img src={settings.appBannerUrl2} alt="Preview" className="w-full h-full object-contain" />
+                    </div>
+                  )}
+                </div>
+              </div>
+
+              <div className="space-y-2">
+                <label className="text-[10px] font-black uppercase text-slate-400 tracking-widest px-1">Banner de Propaganda 3 (Home)</label>
+                <div className="flex gap-3 items-center">
+                  <input
+                    type="text"
+                    className="flex-1 p-4 bg-white dark:bg-slate-900 rounded-2xl border-none shadow-sm font-bold text-slate-800 dark:text-slate-200 text-sm"
+                    placeholder="https://link-da-imagem.com/banner.png"
+                    value={settings.appBannerUrl3 || ''}
+                    onChange={e => setSettings({ ...settings, appBannerUrl3: e.target.value })}
+                  />
+                  
+                  <div className="flex gap-2">
+                    <button
+                      type="button"
+                      onClick={() => bannerFileInputRef3.current?.click()}
+                      className="p-4 bg-blue-600 text-white rounded-2xl shadow-lg shadow-blue-200 dark:shadow-blue-900/40 transition-all active:scale-95 flex items-center justify-center"
+                      title="Upload de Imagem"
+                    >
+                      <Upload className="w-5 h-5" />
+                    </button>
+
+                    {settings.appBannerUrl3 && (
+                      <button
+                        type="button"
+                        onClick={() => {
+                          showAlert('Confirmar Exclusão', 'Deseja remover a imagem de propaganda 3?', 'DANGER', () => {
+                            setSettings({ ...settings, appBannerUrl3: '' });
+                            setAlertConfig(prev => ({ ...prev, isOpen: false }));
+                          }, () => setAlertConfig(prev => ({ ...prev, isOpen: false })));
+                        }}
+                        className="p-4 bg-rose-50 dark:bg-rose-900/20 text-rose-500 rounded-2xl border border-rose-100 dark:border-rose-800 transition-all active:scale-95 flex items-center justify-center"
+                        title="Remover Imagem"
+                      >
+                        <Trash2 className="w-5 h-5" />
+                      </button>
+                    )}
+                  </div>
+                  
+                  {settings.appBannerUrl3 && (
+                    <div className="w-14 h-14 rounded-2xl bg-white dark:bg-slate-900 p-1 shadow-sm overflow-hidden border border-slate-100 dark:border-slate-800 shrink-0">
+                      <img src={settings.appBannerUrl3} alt="Preview" className="w-full h-full object-contain" />
+                    </div>
+                  )}
+                </div>
+                <p className="text-[9px] text-slate-400 font-bold uppercase mt-1 px-1 tracking-tighter">Essas imagens aparecerão em carrossel na tela inicial do app quando o cardápio estiver oculto.</p>
               </div>
 
               <input type="file" ref={logoFileInputRef} className="hidden" accept="image/*" onChange={handleLogoUpload} />
               <input type="file" ref={bannerFileInputRef} className="hidden" accept="image/*" onChange={handleBannerUpload} />
+              <input type="file" ref={bannerFileInputRef2} className="hidden" accept="image/*" onChange={handleBannerUpload2} />
+              <input type="file" ref={bannerFileInputRef3} className="hidden" accept="image/*" onChange={handleBannerUpload3} />
 
               <button
                 type="submit"
