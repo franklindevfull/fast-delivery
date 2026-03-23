@@ -133,9 +133,9 @@ const Layout: React.FC<{ children: React.ReactNode }> = ({ children }) => {
         setTouchStartX(null);
     };
 
-    const isHome = location.pathname === '/';
 
     const isAuthenticated = !!localStorage.getItem('delivery_app_client');
+
 
     return (
         <div className={`min-h-screen bg-slate-50 dark:bg-slate-950 transition-colors duration-300 ${shouldShowFooter ? 'pb-28' : ''}`}>
