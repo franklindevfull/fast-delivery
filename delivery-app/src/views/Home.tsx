@@ -279,8 +279,10 @@ const Home: React.FC = () => {
                                         autoplay={{ delay: 5000, disableOnInteraction: false }}
                                         pagination={{ clickable: true, dynamicBullets: true }}
                                         navigation={true}
-                                        loop={true}
-                                        className="w-full h-full mySwiper"
+                                         observer={true}
+                                         observeParents={true}
+                                         loop={true}
+                                         className="w-full h-full mySwiper"
                                         style={{
                                             // @ts-ignore
                                             '--swiper-navigation-color': '#fff',
@@ -289,19 +291,19 @@ const Home: React.FC = () => {
                                         }}
                                     >
                                         {settings.appBannerUrl && (
-                                            <SwiperSlide>
-                                                <img src={settings.appBannerUrl} alt="Propaganda 1" className="w-full h-full object-cover" />
-                                            </SwiperSlide>
+                                             <SwiperSlide key="banner-1" className="bg-slate-950 flex items-center justify-center">
+                                                 <img src={settings.appBannerUrl} alt="Propaganda 1" className="w-full h-full object-contain" />
+                                             </SwiperSlide>
                                         )}
                                         {settings.appBannerUrl2 && (
-                                            <SwiperSlide>
-                                                <img src={settings.appBannerUrl2} alt="Propaganda 2" className="w-full h-full object-cover" />
-                                            </SwiperSlide>
+                                             <SwiperSlide key="banner-2" className="bg-slate-950 flex items-center justify-center">
+                                                 <img src={settings.appBannerUrl2} alt="Propaganda 2" className="w-full h-full object-contain" />
+                                             </SwiperSlide>
                                         )}
                                         {settings.appBannerUrl3 && (
-                                            <SwiperSlide>
-                                                <img src={settings.appBannerUrl3} alt="Propaganda 3" className="w-full h-full object-cover" />
-                                            </SwiperSlide>
+                                             <SwiperSlide key="banner-3" className="bg-slate-950 flex items-center justify-center">
+                                                 <img src={settings.appBannerUrl3} alt="Propaganda 3" className="w-full h-full object-contain" />
+                                             </SwiperSlide>
                                         )}
                                     </Swiper>
                                 ) : (

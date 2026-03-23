@@ -3,10 +3,10 @@ import 'dotenv/config';
 
 // Força o limite de 1 conexão para evitar estourar a RAM no plano Free do Render
 const databaseUrl = process.env.DATABASE_URL || '';
-const isRender = databaseUrl.includes('render.com') || process.env.NODE_ENV === 'production';
-
-// No plano free do Render usamos 1 conexão. Local/Outros usamos 3 para evitar timeouts em processos paralelos.
-const connectionLimit = isRender ? 1 : 3;
+// No plano free do Render somos obrigados a usar poucas conexões.
+// Localmente aumentamos o limite para evitar timeouts durante o desenvolvimento.
+const isRender = !!process.env.RENDER;
+const connectionLimit = isRender ? 1 : 10;
 const timeout = 30;
 
 const finalUrl = databaseUrl.includes('connection_limit')
