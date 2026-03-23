@@ -109,6 +109,47 @@ const Login: React.FC = () => {
         }
     };
 
+    const handleBiometricLogin = async () => {
+        const cleanPhone = phone.replace(/\D/g, '');
+        if (cleanPhone.length !== 11) {
+            setAlertState({
+                isOpen: true,
+                title: 'Atenção',
+                message: 'Informe seu WhatsApp para usar a biometria.',
+                type: 'INFO',
+                onConfirm: () => setAlertState(prev => ({ ...prev, isOpen: false })),
+                onCancel: undefined
+            });
+            return;
+        }
+
+        setIsLoading(true);
+        try {
+            const options = await api.getBiometricLoginOptions(cleanPhone);
+            
+            const { startAuthentication } = await import('@simplewebauthn/browser');
+            const credential = await startAuthentication({ optionsJSON: options });
+            
+            const data = await api.verifyBiometricLogin(cleanPhone, credential);
+            
+            localStorage.setItem('delivery_app_token', data.token);
+            localStorage.setItem('delivery_app_client', JSON.stringify(data.client));
+            navigate('/');
+        } catch (err: any) {
+            console.error('Biometric Login Error:', err);
+            setAlertState({
+                isOpen: true,
+                title: 'Biometria Falhou',
+                message: err.message || 'Não foi possível autenticar via biometria.',
+                type: 'DANGER',
+                onConfirm: () => setAlertState(prev => ({ ...prev, isOpen: false })),
+                onCancel: undefined
+            });
+        } finally {
+            setIsLoading(false);
+        }
+    };
+
     const handleResetPassword = async (e: React.FormEvent) => {
         e.preventDefault();
         if (newPassword !== confirmPassword) {
@@ -240,13 +281,24 @@ const Login: React.FC = () => {
                                 </div>
                             </div>
 
-                            <button
-                                disabled={isLoading}
-                                type="submit"
-                                className="w-full bg-slate-900 dark:bg-indigo-600 hover:bg-black dark:hover:bg-indigo-500 text-white py-3 md:py-4 rounded-2xl font-black uppercase text-xs tracking-widest transition-all shadow-xl shadow-slate-900/20 dark:shadow-black/20 mt-2 md:mt-4 active:scale-[0.98]"
-                            >
-                                {isLoading ? 'Entrando...' : 'Entrar no Sistema'}
-                            </button>
+                            <div className="flex gap-3 mt-2 md:mt-4">
+                                <button
+                                    disabled={isLoading}
+                                    type="submit"
+                                    className="flex-1 bg-slate-900 dark:bg-indigo-600 hover:bg-black dark:hover:bg-indigo-500 text-white py-3 md:py-4 rounded-2xl font-black uppercase text-xs tracking-widest transition-all shadow-xl shadow-slate-900/20 dark:shadow-black/20 active:scale-[0.98]"
+                                >
+                                    {isLoading ? 'Entrando...' : 'Entrar no Sistema'}
+                                </button>
+                                <button
+                                    type="button"
+                                    onClick={handleBiometricLogin}
+                                    disabled={isLoading}
+                                    className="w-14 bg-indigo-50 dark:bg-slate-700 text-indigo-600 dark:text-indigo-400 rounded-2xl flex items-center justify-center hover:bg-indigo-100 dark:hover:bg-slate-600 transition-all active:scale-90 border border-indigo-100 dark:border-slate-600 shadow-sm"
+                                    title="Entrar com biometria"
+                                >
+                                    <Icons.Fingerprint className="w-6 h-6" />
+                                </button>
+                            </div>
                         </form>
 
                         <div className="mt-5 md:mt-8 flex flex-col items-center gap-3 md:gap-6">

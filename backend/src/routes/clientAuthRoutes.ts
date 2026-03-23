@@ -1,5 +1,6 @@
 import { Router } from 'express';
 import { loginClient, registerClient, recoverPassword, updateClientProfile, googleLoginClient, checkPhoneAvailability, checkGoogleAccount, getClientNotifications } from '../controllers/clientAuthController.js';
+import { getRegistrationOptions, verifyRegistration, getLoginOptions, verifyLogin } from '../controllers/biometricController.js';
 
 const router = Router();
 
@@ -11,5 +12,11 @@ router.put('/profile/:id', updateClientProfile);
 router.get('/check-phone/:phone', checkPhoneAvailability);
 router.get('/check-google-account', checkGoogleAccount);
 router.get('/:id/notifications', getClientNotifications);
+
+// Biometric Auth
+router.post('/biometric/register-options', getRegistrationOptions);
+router.post('/biometric/register-verify', verifyRegistration);
+router.post('/biometric/login-options', getLoginOptions);
+router.post('/biometric/login-verify', verifyLogin);
 
 export default router;

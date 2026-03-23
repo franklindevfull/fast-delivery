@@ -159,6 +159,35 @@ class DeliveryApiService {
         });
     }
 
+    // Biometrics
+    async getBiometricRegisterOptions(clientId: string) {
+        return this.request<any>('/client-auth/biometric/register-options', {
+            method: 'POST',
+            body: JSON.stringify({ clientId }),
+        });
+    }
+
+    async verifyBiometricRegister(clientId: string, credential: any) {
+        return this.request<any>('/client-auth/biometric/register-verify', {
+            method: 'POST',
+            body: JSON.stringify({ clientId, credential }),
+        });
+    }
+
+    async getBiometricLoginOptions(phone: string) {
+        return this.request<any>('/client-auth/biometric/login-options', {
+            method: 'POST',
+            body: JSON.stringify({ phone }),
+        });
+    }
+
+    async verifyBiometricLogin(phone: string, credential: any) {
+        return this.request<{ token: string, client: any }>('/client-auth/biometric/login-verify', {
+            method: 'POST',
+            body: JSON.stringify({ phone, credential }),
+        });
+    }
+
     logout() {
         localStorage.removeItem('delivery_app_token');
         localStorage.removeItem('delivery_app_client');

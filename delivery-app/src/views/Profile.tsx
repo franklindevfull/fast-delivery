@@ -352,6 +352,61 @@ const Profile: React.FC = () => {
                     </div>
 
                     <div className="bg-white dark:bg-slate-900 transition-colors duration-500 p-6 rounded-[2.5rem] shadow-sm border border-slate-100 dark:border-slate-800 space-y-4">
+                        <div className="flex items-center justify-between px-2">
+                            <div className="flex items-center gap-3">
+                                <div className="w-8 h-8 bg-indigo-50 dark:bg-indigo-900/20 rounded-xl flex items-center justify-center text-indigo-500 dark:text-indigo-400">
+                                    <Icons.Fingerprint className="w-4 h-4" />
+                                </div>
+                                <div>
+                                    <p className="text-[10px] font-black text-slate-400 dark:text-slate-500 uppercase tracking-widest leading-none">Segurança</p>
+                                    <h3 className="text-xs font-bold text-slate-800 dark:text-slate-100 mt-1">Acesso Biométrico</h3>
+                                </div>
+                            </div>
+                            <div className="flex items-center">
+                                {client?.webauthnId ? (
+                                    <span className="text-[9px] font-black text-emerald-500 uppercase bg-emerald-50 dark:bg-emerald-900/20 px-3 py-1 rounded-full border border-emerald-100 dark:border-emerald-900/30">Ativo</span>
+                                ) : (
+                                    <span className="text-[9px] font-black text-slate-400 uppercase bg-slate-50 dark:bg-slate-800 px-3 py-1 rounded-full border border-slate-100 dark:border-slate-700">Inativo</span>
+                                )}
+                            </div>
+                        </div>
+
+                        <p className="text-[10px] text-slate-500 dark:text-slate-400 px-2 leading-relaxed">
+                            Use sua impressão digital ou reconhecimento facial para entrar no app rapidamente sem digitar sua senha.
+                        </p>
+
+                        <button
+                            type="button"
+                            onClick={async () => {
+                                try {
+                                    setIsSavingDetails(true);
+                                    const options = await api.getBiometricRegisterOptions(client.id);
+                                    
+                                    const { startRegistration } = await import('@simplewebauthn/browser');
+                                    const credential = await startRegistration({ optionsJSON: options });
+                                    
+                                    await api.verifyBiometricRegister(client.id, credential);
+                                    
+                                    // Update local client data
+                                    const updatedClient = { ...client, webauthnId: 'configured' };
+                                    localStorage.setItem('delivery_app_client', JSON.stringify(updatedClient));
+                                    setClient(updatedClient);
+                                    setDetailsSuccess('Biometria configurada com sucesso!');
+                                } catch (err: any) {
+                                    console.error('Biometric Error:', err);
+                                    setDetailsError(err.message || 'Erro ao configurar biometria. Verifique se seu dispositivo suporta esta função.');
+                                } finally {
+                                    setIsSavingDetails(false);
+                                }
+                            }}
+                            className="w-full py-3 bg-slate-900 dark:bg-indigo-600 text-white rounded-2xl font-black uppercase text-[10px] tracking-widest hover:bg-black dark:hover:bg-indigo-500 transition-all flex items-center justify-center gap-2 active:scale-95"
+                        >
+                            <Icons.Fingerprint className="w-4 h-4" />
+                            {client?.webauthnId ? 'Atualizar Biometria' : 'Ativar Biometria agora'}
+                        </button>
+                    </div>
+
+                    <div className="bg-white dark:bg-slate-900 transition-colors duration-500 p-6 rounded-[2.5rem] shadow-sm border border-slate-100 dark:border-slate-800 space-y-4">
                         <div className="flex items-center gap-3 px-2 mb-2">
                             <div className="w-8 h-8 bg-amber-50 rounded-xl flex items-center justify-center text-amber-500">
                                 <Icons.Smartphone className="w-4 h-4" />
