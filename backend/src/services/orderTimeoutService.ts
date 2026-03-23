@@ -1,6 +1,6 @@
 
-import prisma from '../prisma';
-import { getIO } from '../socket';
+import prisma from '../prisma.js';
+import { getIO } from '../socket.js';
 
 export const startOrderTimeoutService = () => {
     console.log('Order Timeout Service initialized.');

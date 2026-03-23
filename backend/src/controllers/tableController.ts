@@ -1,7 +1,7 @@
 import { Request, Response } from 'express';
-import prisma from '../prisma';
+import prisma from '../prisma.js';
 import { TableSession } from '@prisma/client';
-import { getIO } from '../socket';
+import { getIO } from '../socket.js';
 import crypto from 'crypto';
 
 const mapSessionResponse = (session: any) => {

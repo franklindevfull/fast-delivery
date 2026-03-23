@@ -1,6 +1,6 @@
 import { Router } from 'express';
-import { getProducts, verifyTable, createOrder, getStoreStatusEndpoint, validatePin, submitFeedback, getTableConsumption, getFeedbacks, acknowledgeRejection } from '../controllers/publicController';
-import { getAllCoupons } from '../controllers/promotionController';
+import { getProducts, verifyTable, createOrder, getStoreStatusEndpoint, validatePin, submitFeedback, getTableConsumption, getFeedbacks, acknowledgeRejection } from '../controllers/publicController.js';
+import { getAllCoupons } from '../controllers/promotionController.js';
 
 const router = Router();
 

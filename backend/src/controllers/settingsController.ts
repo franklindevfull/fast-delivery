@@ -1,6 +1,6 @@
 import { Request, Response } from 'express';
-import prisma from '../prisma';
-import { updateCacheAndEmit } from '../storeStatusCache';
+import prisma from '../prisma.js';
+import { updateCacheAndEmit } from '../storeStatusCache.js';
 
 
 export const getSettings = async (req: Request, res: Response) => {

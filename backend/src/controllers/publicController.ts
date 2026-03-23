@@ -1,7 +1,7 @@
 import { Request, Response } from 'express';
-import { getIO } from '../socket';
-import { getStoreStatus } from '../storeStatusCache';
-import prisma from '../prisma';
+import { getIO } from '../socket.js';
+import { getStoreStatus } from '../storeStatusCache.js';
+import prisma from '../prisma.js';
 import crypto from 'crypto';
 
 export const getStoreStatusEndpoint = (req: Request, res: Response) => {

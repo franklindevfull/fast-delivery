@@ -1,6 +1,6 @@
 import { Request, Response } from 'express';
-import prisma from '../prisma';
-import { getIO } from '../socket';
+import prisma from '../prisma.js';
+import { getIO } from '../socket.js';
 
 const mapOrderResponse = (order: any) => {
     if (!order) return null;

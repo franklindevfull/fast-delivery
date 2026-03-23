@@ -1,6 +1,6 @@
 import { Request, Response } from 'express';
 import { MercadoPagoConfig, Preference, Payment } from 'mercadopago';
-import prisma from '../prisma';
+import prisma from '../prisma.js';
 
 
 
@@ -111,7 +111,7 @@ export const receiveWebhook = async (req: Request, res: Response) => {
                         }
                     });
 
-                    import('../socket').then(({ getIO }) => {
+                    import('../socket.js').then(({ getIO }) => {
                         getIO().emit('ordersUpdated');
                         getIO().emit('newOrderAlert', { id: targetOrder.id, message: `Pagamento Online Aprovado: ${targetOrder.id}` });
                     });
@@ -124,7 +124,7 @@ export const receiveWebhook = async (req: Request, res: Response) => {
                         }
                     });
 
-                    import('../socket').then(({ getIO }) => {
+                    import('../socket.js').then(({ getIO }) => {
                         getIO().emit('ordersUpdated');
                     });
                 }

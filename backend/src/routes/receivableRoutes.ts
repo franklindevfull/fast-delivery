@@ -1,5 +1,5 @@
 import express from 'express';
-import { getReceivables, createReceivable, updateReceivable, deleteReceivable, receivePayment } from '../controllers/receivableController';
+import { getReceivables, createReceivable, updateReceivable, deleteReceivable, receivePayment } from '../controllers/receivableController.js';
 
 const router = express.Router();
 

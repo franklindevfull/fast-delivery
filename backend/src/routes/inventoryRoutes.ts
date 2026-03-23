@@ -1,5 +1,5 @@
 import { Router } from 'express';
-import * as inventoryController from '../controllers/inventoryController';
+import * as inventoryController from '../controllers/inventoryController.js';
 const router = Router();
 router.get('/', inventoryController.getAllInventory);
 router.get('/movements', inventoryController.getInventoryMovements);

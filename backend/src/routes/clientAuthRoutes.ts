@@ -1,5 +1,5 @@
 import { Router } from 'express';
-import { loginClient, registerClient, recoverPassword, updateClientProfile, googleLoginClient, checkPhoneAvailability, checkGoogleAccount, getClientNotifications } from '../controllers/clientAuthController';
+import { loginClient, registerClient, recoverPassword, updateClientProfile, googleLoginClient, checkPhoneAvailability, checkGoogleAccount, getClientNotifications } from '../controllers/clientAuthController.js';
 
 const router = Router();
 

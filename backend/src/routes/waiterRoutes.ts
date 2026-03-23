@@ -1,5 +1,5 @@
 import { Router } from 'express';
-import * as waiterController from '../controllers/waiterController';
+import * as waiterController from '../controllers/waiterController.js';
 const router = Router();
 router.get('/', waiterController.getWaiters);
 router.post('/', waiterController.saveWaiter);

@@ -1,5 +1,5 @@
 import { Router } from 'express';
-import * as tableController from '../controllers/tableController';
+import * as tableController from '../controllers/tableController.js';
 const router = Router();
 router.get('/', tableController.getTableSessions);
 router.post('/', tableController.saveTableSession);
