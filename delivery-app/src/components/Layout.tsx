@@ -164,8 +164,6 @@ const Layout: React.FC<{ children: React.ReactNode }> = ({ children }) => {
                 </div>
             ) : (
                 <>
-                        </div>
-                    )}
 
                     {/* Sidebar Overlay */}
                     <div
