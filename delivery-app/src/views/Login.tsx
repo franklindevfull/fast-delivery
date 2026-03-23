@@ -30,6 +30,13 @@ const Login: React.FC = () => {
         const token = localStorage.getItem('delivery_app_token');
         if (token) {
             navigate('/', { replace: true });
+            return;
+        }
+        
+        // Load last used phone
+        const lastPhone = localStorage.getItem('delivery_app_last_phone');
+        if (lastPhone) {
+            setPhone(maskPhone(lastPhone));
         }
     }, [navigate]);
 
@@ -70,6 +77,7 @@ const Login: React.FC = () => {
                 // Fluxo normal
                 localStorage.setItem('delivery_app_token', data.token);
                 localStorage.setItem('delivery_app_client', JSON.stringify(data.client));
+                localStorage.setItem('delivery_app_last_phone', cleanPhone);
                 navigate('/');
             }
         } catch (err: any) {
@@ -134,14 +142,21 @@ const Login: React.FC = () => {
             
             localStorage.setItem('delivery_app_token', data.token);
             localStorage.setItem('delivery_app_client', JSON.stringify(data.client));
+            localStorage.setItem('delivery_app_last_phone', cleanPhone);
             navigate('/');
         } catch (err: any) {
             console.error('Biometric Login Error:', err);
+            
+            let errorMessage = 'Não foi possível autenticar via biometria.';
+            if (err.name === 'NotAllowedError') {
+                errorMessage = 'Autenticação cancelada.';
+            }
+
             setAlertState({
                 isOpen: true,
-                title: 'Biometria Falhou',
-                message: err.message || 'Não foi possível autenticar via biometria.',
-                type: 'DANGER',
+                title: 'Biometria',
+                message: `${errorMessage} Por favor, utilize sua senha para entrar.`,
+                type: 'INFO',
                 onConfirm: () => setAlertState(prev => ({ ...prev, isOpen: false })),
                 onCancel: undefined
             });

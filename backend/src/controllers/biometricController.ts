@@ -12,9 +12,10 @@ import prisma from '../prisma.js';
 import jwt from 'jsonwebtoken';
 
 const JWT_SECRET = process.env.JWT_SECRET || 'fallback_secret_delivery_fast';
-const RP_ID = process.env.RP_ID || 'localhost';
 const RP_NAME = 'Delivery Fast';
-const ORIGIN = process.env.FRONTEND_URL || 'http://localhost:5173';
+
+const getRpId = (req: Request) => process.env.RP_ID || req.hostname;
+const getOrigin = (req: Request) => process.env.FRONTEND_URL || `${req.protocol}://${req.get('host')}`;
 
 // Temporary in-memory store for challenges (In production, use Redis or a DB table)
 const challengeStore = new Map<string, string>();
@@ -33,7 +34,7 @@ export const getRegistrationOptions = async (req: Request, res: Response) => {
 
     const options = await generateRegistrationOptions({
       rpName: RP_NAME,
-      rpID: RP_ID,
+      rpID: getRpId(req),
       userID: Buffer.from(client.id),
       userName: client.phone,
       attestationType: 'none',
@@ -69,8 +70,8 @@ export const verifyRegistration = async (req: Request, res: Response) => {
     const verification = await verifyRegistrationResponse({
       response: credential as RegistrationResponseJSON,
       expectedChallenge,
-      expectedOrigin: ORIGIN,
-      expectedRPID: RP_ID,
+      expectedOrigin: getOrigin(req),
+      expectedRPID: getRpId(req),
     } as any);
 
     if (verification.verified && (verification as any).registrationInfo) {
@@ -109,7 +110,7 @@ export const getLoginOptions = async (req: Request, res: Response) => {
     }
 
     const options = await generateAuthenticationOptions({
-      rpID: RP_ID,
+      rpID: getRpId(req),
       allowCredentials: [{
         id: Buffer.from(client.webauthnId, 'base64'),
         type: 'public-key',
@@ -148,8 +149,8 @@ export const verifyLogin = async (req: Request, res: Response) => {
     const verification = await verifyAuthenticationResponse({
       response: credential as AuthenticationResponseJSON,
       expectedChallenge,
-      expectedOrigin: ORIGIN,
-      expectedRPID: RP_ID,
+      expectedOrigin: getOrigin(req),
+      expectedRPID: getRpId(req),
       credential: {
         id: Buffer.from(client.webauthnId, 'base64'),
         publicKey: Buffer.from(client.webauthnPublicKey, 'base64'),
