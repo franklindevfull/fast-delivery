@@ -7,7 +7,7 @@ const AUTH_KEY = 'delivery_fast_auth';
 
 
 const DEFAULT_SETTINGS: BusinessSettings = {
-  key: 'default',
+  key: 'main',
   name: 'Fast Food Express',
   cnpj: '12.345.678/0001-90',
   address: 'Av. Paulista, 1000 - São Paulo, SP',
@@ -26,7 +26,14 @@ const DEFAULT_SETTINGS: BusinessSettings = {
   enableDigitalMenu: true,
   enableWaiterApp: true,
   enableDriverApp: true,
-  qrCodeBaseUrl: ''
+  qrCodeBaseUrl: '',
+  facebook: '',
+  instagram: '',
+  website: '',
+  campaignLogoUrl: '',
+  appBannerUrl: '',
+  appBannerUrl2: '',
+  appBannerUrl3: ''
 };
 
 class APIDBService {

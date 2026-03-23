@@ -142,7 +142,7 @@ const App: React.FC = () => {
       case 'receivables': return <Receivables currentUser={currentUser} setActiveTab={setActiveTab} />;
       case 'reports': return <Reports currentUser={currentUser} />;
       case 'qrcodes': return <QRCodes />;
-      case 'engagement': return <EngagementManager currentUser={currentUser} />;
+      case 'engagement': return <EngagementManager currentUser={currentUser} settings={settings || {}} setSettings={setSettings} />;
       case 'settings':
         return (
           <Settings

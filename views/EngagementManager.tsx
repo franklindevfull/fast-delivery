@@ -7,13 +7,14 @@ import { Plus, Ticket, Megaphone, Trash2, Send, Check, X, Calendar, Info, Percen
 
 interface EngagementManagerProps {
   currentUser: User;
+  settings: BusinessSettings | Partial<BusinessSettings>;
+  setSettings: (s: any) => void;
 }
 
-const EngagementManager: React.FC<EngagementManagerProps> = ({ currentUser }) => {
+const EngagementManager: React.FC<EngagementManagerProps> = ({ currentUser, settings, setSettings }) => {
   const [activeTab, setActiveTab] = useState<'coupons' | 'campaigns' | 'profile'>('coupons');
   const [coupons, setCoupons] = useState<Coupon[]>([]);
   const [campaigns, setCampaigns] = useState<Campaign[]>([]);
-  const [settings, setSettings] = useState<Partial<BusinessSettings>>({});
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [editingCoupon, setEditingCoupon] = useState<Partial<Coupon> | null>(null);
   const [editingCampaign, setEditingCampaign] = useState<Partial<Campaign> | null>(null);
@@ -137,9 +138,9 @@ const EngagementManager: React.FC<EngagementManagerProps> = ({ currentUser }) =>
     e.preventDefault();
     setIsSubmitting(true);
     try {
-      await db.saveSettings(settings as any);
+      await db.saveSettings(settings);
       addToast({ title: 'Sucesso', message: 'Configurações do perfil salvas.', type: 'SUCCESS' });
-      loadData();
+      // Parent state is already updated via setSettings during UI interaction
     } catch (error: any) {
       addToast({ title: 'Erro', message: error.message, type: 'DANGER' });
     } finally {
@@ -151,7 +152,7 @@ const EngagementManager: React.FC<EngagementManagerProps> = ({ currentUser }) =>
     const file = e.target.files?.[0];
     if (file) {
       const reader = new FileReader();
-      reader.onloadend = () => setSettings(prev => ({ ...prev, campaignLogoUrl: reader.result as string }));
+      reader.onloadend = () => setSettings((prev: any) => ({ ...prev, campaignLogoUrl: reader.result as string }));
       reader.readAsDataURL(file);
     }
   };
@@ -160,7 +161,7 @@ const EngagementManager: React.FC<EngagementManagerProps> = ({ currentUser }) =>
     const file = e.target.files?.[0];
     if (file) {
       const reader = new FileReader();
-      reader.onloadend = () => setSettings(prev => ({ ...prev, appBannerUrl: reader.result as string }));
+      reader.onloadend = () => setSettings((prev: any) => ({ ...prev, appBannerUrl: reader.result as string }));
       reader.readAsDataURL(file);
     }
   };
@@ -169,7 +170,7 @@ const EngagementManager: React.FC<EngagementManagerProps> = ({ currentUser }) =>
     const file = e.target.files?.[0];
     if (file) {
       const reader = new FileReader();
-      reader.onloadend = () => setSettings(prev => ({ ...prev, appBannerUrl2: reader.result as string }));
+      reader.onloadend = () => setSettings((prev: any) => ({ ...prev, appBannerUrl2: reader.result as string }));
       reader.readAsDataURL(file);
     }
   };
@@ -178,7 +179,7 @@ const EngagementManager: React.FC<EngagementManagerProps> = ({ currentUser }) =>
     const file = e.target.files?.[0];
     if (file) {
       const reader = new FileReader();
-      reader.onloadend = () => setSettings(prev => ({ ...prev, appBannerUrl3: reader.result as string }));
+      reader.onloadend = () => setSettings((prev: any) => ({ ...prev, appBannerUrl3: reader.result as string }));
       reader.readAsDataURL(file);
     }
   };
