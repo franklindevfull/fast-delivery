@@ -47,8 +47,6 @@ const Home: React.FC = () => {
     // Biometric States
     const [isBiometricLoading, setIsBiometricLoading] = useState(false);
     const [isValidatingBiometric, setIsValidatingBiometric] = useState(false);
-    const [detailsError, setDetailsError] = useState('');
-    const [detailsSuccess, setDetailsSuccess] = useState('');
 
     const isProfileIncomplete = !!(client && (client.phone === '00000000000' || !client.street || !client.cep));
 
@@ -118,8 +116,6 @@ const Home: React.FC = () => {
     const handleToggleBiometric = async () => {
         if (!client) return;
         try {
-            setDetailsError('');
-            setDetailsSuccess('');
             setIsBiometricLoading(true);
             setIsValidatingBiometric(true);
 

@@ -169,6 +169,7 @@ export interface Client {
   totalOrders: number;
   lastOrderDate?: string;
   avatarUrl?: string;
+  webauthnId?: string;
 }
 
 export interface Product {
