@@ -114,16 +114,12 @@ const ProfileQuickModal: React.FC<ProfileQuickModalProps> = ({
                                 <button
                                     type="button"
                                     onClick={() => onToggleBiometric(!!client?.webauthnId)}
-                                    className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:ring-offset-2 focus:ring-offset-white dark:focus:ring-offset-slate-900 ${
-                                        client?.webauthnId ? 'bg-emerald-500' : 'bg-slate-300 dark:bg-slate-600'
+                                    className={`relative inline-flex h-6 w-11 p-1 items-center rounded-full transition-colors focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:ring-offset-2 focus:ring-offset-white dark:focus:ring-offset-slate-900 ${
+                                        client?.webauthnId ? 'bg-emerald-500 justify-end' : 'bg-slate-300 dark:bg-slate-600 justify-start'
                                     }`}
                                 >
                                     <span className="sr-only">Ativar biometria</span>
-                                    <span
-                                        className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${
-                                            client?.webauthnId ? 'translate-x-6' : 'translate-x-1'
-                                        }`}
-                                    />
+                                    <span className="inline-block h-4 w-4 rounded-full bg-white transition-transform" />
                                 </button>
                             )}
                         </div>

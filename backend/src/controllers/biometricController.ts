@@ -226,19 +226,37 @@ export const verifyLogin = async (req: Request, res: Response) => {
       return res.status(400).json({ message: 'Desafio expirado ou não encontrado.' });
     }
 
-    const verification = await verifyAuthenticationResponse({
-      response: credential as AuthenticationResponseJSON,
-      expectedChallenge,
-      expectedOrigin: getOrigin(req),
-      expectedRPID: getRpId(req),
-      credential: {
-        id: Buffer.from(client.webauthnId, 'base64'),
-        publicKey: Buffer.from(client.webauthnPublicKey, 'base64'),
-        counter: client.webauthnCounter,
-      },
-    } as any);
+    const expectedOrigin = getOrigin(req);
+    const expectedRPID = getRpId(req);
 
-    if (verification.verified) {
+    console.log('[BIOMETRIC] Verifying Login:', {
+      phone,
+      expectedChallenge,
+      expectedOrigin,
+      expectedRPID,
+      clientWebauthnId: client.webauthnId ? client.webauthnId.substring(0, 10) + '...' : null
+    });
+
+    let verification;
+    try {
+        verification = await verifyAuthenticationResponse({
+        response: credential as AuthenticationResponseJSON,
+        expectedChallenge,
+        expectedOrigin,
+        expectedRPID,
+        credential: {
+            id: Buffer.from(client.webauthnId, 'base64'),
+            publicKey: Buffer.from(client.webauthnPublicKey, 'base64'),
+            counter: client.webauthnCounter,
+        },
+        } as any);
+        console.log('[BIOMETRIC] Login Verification Result:', JSON.stringify(verification, null, 2));
+    } catch (verifError: any) {
+        console.error('[BIOMETRIC] verifyAuthenticationResponse threw error:', verifError.message, verifError);
+        return res.status(401).json({ verified: false, message: 'Erro na validação criptográfica da biometria: ' + verifError.message });
+    }
+
+    if (verification && verification.verified) {
       // Update counter
       await (prisma.client as any).update({
         where: { id: client.id },
