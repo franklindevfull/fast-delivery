@@ -30,7 +30,11 @@ const getRpId = (req: Request) => {
     return req.hostname;
 };
 const getOrigin = (req: Request) => {
-    return process.env.FRONTEND_URL || req.get('origin') || `${req.protocol}://${req.get('host')}`;
+    let origin = process.env.FRONTEND_URL || req.get('origin') || `${req.protocol}://${req.get('host')}`;
+    if (origin.endsWith('/')) {
+        origin = origin.slice(0, -1);
+    }
+    return origin;
 };
 
 // Temporary in-memory store for challenges (In production, use Redis or a DB table)
@@ -83,12 +87,24 @@ export const verifyRegistration = async (req: Request, res: Response) => {
       return res.status(400).json({ message: 'Desafio expirado ou não encontrado.' });
     }
 
+    const expectedOrigin = getOrigin(req);
+    const expectedRPID = getRpId(req);
+
+    console.log('[BIOMETRIC] Verifying Registration:', {
+      clientId,
+      expectedChallenge,
+      expectedOrigin,
+      expectedRPID
+    });
+
     const verification = await verifyRegistrationResponse({
       response: credential as RegistrationResponseJSON,
       expectedChallenge,
-      expectedOrigin: getOrigin(req),
-      expectedRPID: getRpId(req),
+      expectedOrigin,
+      expectedRPID,
     } as any);
+
+    console.log('[BIOMETRIC] Verification Result:', JSON.stringify(verification, null, 2));
 
     if (verification.verified && (verification as any).registrationInfo) {
       const { credentialPublicKey, credentialID, counter } = (verification as any).registrationInfo;
@@ -105,11 +121,12 @@ export const verifyRegistration = async (req: Request, res: Response) => {
       challengeStore.delete(`reg_${clientId}`);
       res.json({ verified: true });
     } else {
-      res.status(400).json({ verified: false, message: 'Falha na verificação.' });
+      console.warn('[BIOMETRIC] Verification failed or missing registrationInfo');
+      res.status(400).json({ verified: false, message: 'Falha na verificação da biometria.' });
     }
-  } catch (error) {
+  } catch (error: any) {
     console.error('Verify Registration Error:', error);
-    res.status(500).json({ message: 'Erro ao verificar registro.' });
+    res.status(500).json({ message: `Erro interno na verificação: ${error.message}` });
   }
 };
 
