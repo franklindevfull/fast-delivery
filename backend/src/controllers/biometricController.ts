@@ -111,8 +111,9 @@ export const verifyRegistration = async (req: Request, res: Response) => {
       
       // Defensive extraction for different library versions or authenticator behaviors
       // No SimpleWebAuthn v12/13, os nomes preferenciais são credentialPublicKey e credentialID (Uint8Array)
-      const credentialPublicKey = regInfo.credentialPublicKey || (regInfo as any).publicKey;
-      const credentialID = regInfo.credentialID || (regInfo as any).id || (regInfo as any).credentialId;
+      // No entanto, conforme visto nos logs do usuário, os dados podem estar dentro de um objeto 'credential'
+      const credentialPublicKey = regInfo.credentialPublicKey || (regInfo as any).publicKey || (regInfo.credential ? (regInfo.credential as any).publicKey : undefined);
+      const credentialID = regInfo.credentialID || (regInfo as any).id || (regInfo as any).credentialId || (regInfo.credential ? (regInfo.credential as any).id : undefined);
       const counter = regInfo.counter !== undefined ? regInfo.counter : (regInfo as any).signCount || 0;
 
       if (!credentialID || !credentialPublicKey) {
@@ -123,8 +124,8 @@ export const verifyRegistration = async (req: Request, res: Response) => {
         });
         
         // Se ainda assim as propriedades diretas falharem, tentamos extrair do objeto retornado pela verificação caso esteja em outro lugar
-        const alternativeID = (verification as any).credentialID || (verification as any).credentialId;
-        const alternativeKey = (verification as any).credentialPublicKey || (verification as any).publicKey;
+        const alternativeID = (verification as any).credentialID || (verification as any).credentialId || (verification as any).credential?.id;
+        const alternativeKey = (verification as any).credentialPublicKey || (verification as any).publicKey || (verification as any).credential?.publicKey;
         
         if (alternativeID && alternativeKey) {
             console.log('[BIOMETRIC] Using alternative extraction path');
@@ -134,14 +135,32 @@ export const verifyRegistration = async (req: Request, res: Response) => {
         }
       }
 
-      const finalCredentialID = credentialID || (verification as any).credentialID || (verification as any).credentialId;
-      const finalPublicKey = credentialPublicKey || (verification as any).credentialPublicKey || (verification as any).publicKey;
+      const finalCredentialID = credentialID || (verification as any).credentialID || (verification as any).credentialId || (verification as any).credential?.id;
+      const finalPublicKey = credentialPublicKey || (verification as any).credentialPublicKey || (verification as any).publicKey || (verification as any).credential?.publicKey;
+
+      // Utility to ensure we have a Buffer for DB storage
+      const ensureBuffer = (val: any): Buffer => {
+        if (Buffer.isBuffer(val)) return val;
+        if (val instanceof Uint8Array) return Buffer.from(val);
+        if (typeof val === 'string') {
+            // WebAuthn uses base64url for IDs/Keys in JSON format
+            return Buffer.from(val, 'base64url');
+        }
+        if (val && typeof val === 'object' && !Array.isArray(val)) {
+            // Handle JSON stringified Uint8Array { "0": 1, "1": 2 ... }
+            const vals = Object.values(val);
+            if (vals.every(v => typeof v === 'number')) {
+                return Buffer.from(vals as number[]);
+            }
+        }
+        return Buffer.from(val);
+      };
 
       await (prisma.client as any).update({
         where: { id: clientId },
         data: {
-          webauthnId: Buffer.from(finalCredentialID).toString('base64'),
-          webauthnPublicKey: Buffer.from(finalPublicKey).toString('base64'),
+          webauthnId: ensureBuffer(finalCredentialID).toString('base64'),
+          webauthnPublicKey: ensureBuffer(finalPublicKey).toString('base64'),
           webauthnCounter: counter,
         },
       });
