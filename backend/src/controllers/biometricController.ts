@@ -59,8 +59,8 @@ export const getRegistrationOptions = async (req: Request, res: Response) => {
       userName: client.phone,
       attestationType: 'none',
       authenticatorSelection: {
-        residentKey: 'preferred',
-        userVerification: 'preferred',
+        residentKey: 'required', // Melhor suporte para Passkeys no Android
+        userVerification: 'required',
         authenticatorAttachment: 'platform', // Force biometrics (Fingerprint/FaceID)
       },
     });
@@ -110,22 +110,38 @@ export const verifyRegistration = async (req: Request, res: Response) => {
       const regInfo = (verification as any).registrationInfo;
       
       // Defensive extraction for different library versions or authenticator behaviors
+      // No SimpleWebAuthn v12/13, os nomes preferenciais são credentialPublicKey e credentialID (Uint8Array)
       const credentialPublicKey = regInfo.credentialPublicKey || (regInfo as any).publicKey;
       const credentialID = regInfo.credentialID || (regInfo as any).id || (regInfo as any).credentialId;
       const counter = regInfo.counter !== undefined ? regInfo.counter : (regInfo as any).signCount || 0;
 
       if (!credentialID || !credentialPublicKey) {
-        console.error('[BIOMETRIC] INCOMPLETE REGISTRATION INFO:', JSON.stringify(regInfo, (key, value) => 
-          value instanceof Uint8Array ? Buffer.from(value).toString('base64') : value
-        , 2));
-        return res.status(400).json({ verified: false, message: 'Dados de credencial incompletos do autenticador.' });
+        console.error('[BIOMETRIC] INCOMPLETE REGISTRATION INFO DETECTED:', {
+            hasRegInfo: !!regInfo,
+            keys: regInfo ? Object.keys(regInfo) : [],
+            clientId
+        });
+        
+        // Se ainda assim as propriedades diretas falharem, tentamos extrair do objeto retornado pela verificação caso esteja em outro lugar
+        const alternativeID = (verification as any).credentialID || (verification as any).credentialId;
+        const alternativeKey = (verification as any).credentialPublicKey || (verification as any).publicKey;
+        
+        if (alternativeID && alternativeKey) {
+            console.log('[BIOMETRIC] Using alternative extraction path');
+            // Continuar com as alternativas... (será atribuído abaixo se necessário)
+        } else {
+            return res.status(400).json({ verified: false, message: 'Dados de credencial incompletos do autenticador.' });
+        }
       }
+
+      const finalCredentialID = credentialID || (verification as any).credentialID || (verification as any).credentialId;
+      const finalPublicKey = credentialPublicKey || (verification as any).credentialPublicKey || (verification as any).publicKey;
 
       await (prisma.client as any).update({
         where: { id: clientId },
         data: {
-          webauthnId: Buffer.from(credentialID).toString('base64'),
-          webauthnPublicKey: Buffer.from(credentialPublicKey).toString('base64'),
+          webauthnId: Buffer.from(finalCredentialID).toString('base64'),
+          webauthnPublicKey: Buffer.from(finalPublicKey).toString('base64'),
           webauthnCounter: counter,
         },
       });

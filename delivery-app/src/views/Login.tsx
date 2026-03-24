@@ -4,6 +4,7 @@ import { api } from '../services/api';
 import { Icons } from '../constants';
 import CustomAlert from '../components/CustomAlert';
 import { GoogleLogin } from '@react-oauth/google';
+import { isMobile } from '../utils/device';
 
 const Login: React.FC = () => {
     const [phone, setPhone] = useState('');
@@ -39,9 +40,9 @@ const Login: React.FC = () => {
         if (lastPhone) {
             setPhone(maskPhone(lastPhone));
             
-            // Check if this phone has biometrics enabled
+            // Check if this phone has biometrics enabled AND it's a mobile device
             const biometricEnabled = localStorage.getItem(`biometric_enabled_${lastPhone}`);
-            if (biometricEnabled === 'true') {
+            if (biometricEnabled === 'true' && isMobile()) {
                 setCanUseBiometrics(true);
             }
         }

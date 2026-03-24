@@ -1,6 +1,7 @@
 import React from 'react';
 import { X, MapPin, Lock, User, Camera, ArrowRight, Fingerprint } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
+import { isMobile } from '../utils/device';
 
 interface ProfileQuickModalProps {
     isOpen: boolean;
@@ -98,28 +99,29 @@ const ProfileQuickModal: React.FC<ProfileQuickModalProps> = ({
                         </div>
                         <ArrowRight className="w-4 h-4 opacity-0 group-hover:opacity-100 transition-all translate-x-[-10px] group-hover:translate-x-0" />
                     </button>
-
-                    <button
-                        onClick={onToggleBiometric}
-                        disabled={isBiometricLoading}
-                        className={`w-full p-4 rounded-2xl flex items-center justify-between group transition-all active:scale-[0.98] ${
-                            client?.webauthnId 
-                            ? 'bg-emerald-50 dark:bg-emerald-900/20 text-emerald-600 dark:text-emerald-400 hover:bg-emerald-600 hover:text-white' 
-                            : 'bg-indigo-50 dark:bg-indigo-900/20 text-indigo-600 dark:text-indigo-400 hover:bg-indigo-600 hover:text-white'
-                        }`}
-                    >
-                        <div className="flex items-center gap-3">
-                            <Fingerprint className="w-5 h-5" />
-                            <span className="text-xs font-black uppercase tracking-widest">
-                                {client?.webauthnId ? 'Biometria Ativa' : 'Ativar Biometria'}
-                            </span>
-                        </div>
-                        {isBiometricLoading ? (
-                            <div className="w-4 h-4 border-2 border-current border-t-transparent rounded-full animate-spin"></div>
-                        ) : (
-                            <ArrowRight className="w-4 h-4 opacity-0 group-hover:opacity-100 transition-all translate-x-[-10px] group-hover:translate-x-0" />
-                        )}
-                    </button>
+                    {isMobile() && (
+                        <button
+                            onClick={onToggleBiometric}
+                            disabled={isBiometricLoading}
+                            className={`w-full p-4 rounded-2xl flex items-center justify-between group transition-all active:scale-[0.98] ${
+                                client?.webauthnId 
+                                ? 'bg-emerald-50 dark:bg-emerald-900/20 text-emerald-600 dark:text-emerald-400 hover:bg-emerald-600 hover:text-white' 
+                                : 'bg-indigo-50 dark:bg-indigo-900/20 text-indigo-600 dark:text-indigo-400 hover:bg-indigo-600 hover:text-white'
+                            }`}
+                        >
+                            <div className="flex items-center gap-3">
+                                <Fingerprint className="w-5 h-5" />
+                                <span className="text-xs font-black uppercase tracking-widest">
+                                    {client?.webauthnId ? 'Biometria Ativa' : 'Ativar Biometria'}
+                                </span>
+                            </div>
+                            {isBiometricLoading ? (
+                                <div className="w-4 h-4 border-2 border-current border-t-transparent rounded-full animate-spin"></div>
+                            ) : (
+                                <ArrowRight className="w-4 h-4 opacity-0 group-hover:opacity-100 transition-all translate-x-[-10px] group-hover:translate-x-0" />
+                            )}
+                        </button>
+                    )}
                 </div>
             </div>
         </div>
