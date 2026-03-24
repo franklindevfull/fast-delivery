@@ -44,6 +44,11 @@ const Login: React.FC = () => {
             const biometricEnabled = localStorage.getItem(`biometric_enabled_${lastPhone}`);
             if (biometricEnabled === 'true' && isMobile()) {
                 setCanUseBiometrics(true);
+                // Trigger auto login on mount
+                // We use a slight delay so the UI renders first
+                setTimeout(() => {
+                    handleBiometricLogin(lastPhone);
+                }, 500);
             }
         }
     }, [navigate]);
@@ -128,8 +133,9 @@ const Login: React.FC = () => {
         }
     };
 
-    const handleBiometricLogin = async () => {
-        const cleanPhone = phone.replace(/\D/g, '');
+    const handleBiometricLogin = async (phoneToUse?: string) => {
+        const p = phoneToUse || phone;
+        const cleanPhone = p.replace(/\D/g, '');
         if (cleanPhone.length !== 11) {
             setAlertState({
                 isOpen: true,
@@ -163,6 +169,9 @@ const Login: React.FC = () => {
             if (err.name === 'NotAllowedError') {
                 errorMessage = 'Autenticação cancelada.';
             }
+
+            // Se falhou, permite que o usuário use a senha normalmente
+            setCanUseBiometrics(false);
 
             setAlertState({
                 isOpen: true,
@@ -311,7 +320,7 @@ const Login: React.FC = () => {
                             {canUseBiometrics ? (
                                 <button
                                     type="button"
-                                    onClick={handleBiometricLogin}
+                                    onClick={() => handleBiometricLogin()}
                                     disabled={isLoading}
                                     className="w-full bg-indigo-600 hover:bg-indigo-500 text-white py-4 md:py-5 rounded-2xl font-black uppercase text-xs tracking-widest transition-all shadow-xl shadow-indigo-200 dark:shadow-none active:scale-95 flex items-center justify-center gap-3"
                                 >

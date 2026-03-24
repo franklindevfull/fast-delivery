@@ -258,3 +258,26 @@ export const verifyLogin = async (req: Request, res: Response) => {
     res.status(500).json({ message: 'Erro ao processar login.' });
   }
 };
+
+/**
+ * Deactivate Biometrics
+ */
+export const deactivateBiometrics = async (req: Request, res: Response) => {
+  try {
+    const { clientId } = req.body;
+    
+    await (prisma.client as any).update({
+        where: { id: clientId },
+        data: {
+          webauthnId: null,
+          webauthnPublicKey: null,
+          webauthnCounter: 0,
+        },
+    });
+
+    res.json({ success: true, message: 'Biometria desativada com sucesso.' });
+  } catch (error) {
+    console.error('Deactivate Biometrics Error:', error);
+    res.status(500).json({ message: 'Erro ao desativar biometria.' });
+  }
+};

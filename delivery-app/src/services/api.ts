@@ -188,6 +188,13 @@ class DeliveryApiService {
         });
     }
 
+    async deactivateBiometrics(clientId: string) {
+        return this.request<any>('/client-auth/biometric/deactivate', {
+            method: 'POST',
+            body: JSON.stringify({ clientId }),
+        });
+    }
+
     logout() {
         localStorage.removeItem('delivery_app_token');
         localStorage.removeItem('delivery_app_client');

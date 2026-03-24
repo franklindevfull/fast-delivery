@@ -9,7 +9,7 @@ interface ProfileQuickModalProps {
     client: any;
     onEditPhoto: () => void;
     onChangePassword: () => void;
-    onToggleBiometric?: () => void;
+    onToggleBiometric: (isActive: boolean) => void;
     isBiometricLoading?: boolean;
 }
 
@@ -101,18 +101,18 @@ const ProfileQuickModal: React.FC<ProfileQuickModalProps> = ({
                     </button>
                     {isMobile() && (
                         <button
-                            onClick={onToggleBiometric}
+                            onClick={() => onToggleBiometric(!!client?.webauthnId)}
                             disabled={isBiometricLoading}
                             className={`w-full p-4 rounded-2xl flex items-center justify-between group transition-all active:scale-[0.98] ${
                                 client?.webauthnId 
-                                ? 'bg-emerald-50 dark:bg-emerald-900/20 text-emerald-600 dark:text-emerald-400 hover:bg-emerald-600 hover:text-white' 
+                                ? 'bg-rose-50 dark:bg-rose-900/20 text-rose-600 dark:text-rose-400 hover:bg-rose-600 hover:text-white' 
                                 : 'bg-indigo-50 dark:bg-indigo-900/20 text-indigo-600 dark:text-indigo-400 hover:bg-indigo-600 hover:text-white'
                             }`}
                         >
                             <div className="flex items-center gap-3">
                                 <Fingerprint className="w-5 h-5" />
                                 <span className="text-xs font-black uppercase tracking-widest">
-                                    {client?.webauthnId ? 'Biometria Ativa' : 'Ativar Biometria'}
+                                    {client?.webauthnId ? 'Desativar Biometria' : 'Ativar Biometria'}
                                 </span>
                             </div>
                             {isBiometricLoading ? (

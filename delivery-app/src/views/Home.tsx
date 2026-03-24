@@ -114,34 +114,53 @@ const Home: React.FC = () => {
         }
     }, [location]);
 
-    const handleToggleBiometric = async () => {
+    const handleToggleBiometric = async (isActive: boolean) => {
         if (!client) return;
-        try {
-            setIsBiometricLoading(true);
-            setIsValidatingBiometric(true);
+        
+        if (isActive) {
+            // Desativar biometria
+            try {
+                setIsBiometricLoading(true);
+                await api.deactivateBiometrics(client.id);
+                const updatedClient = { ...client, webauthnId: undefined };
+                localStorage.setItem('delivery_app_client', JSON.stringify(updatedClient));
+                localStorage.removeItem(`biometric_enabled_${client.phone}`);
+                setClient(updatedClient);
+            } catch (err: any) {
+                console.error('Biometric Deactivation Error:', err);
+                setBiometricError(err.message || 'Erro ao desativar biometria.');
+            } finally {
+                setIsBiometricLoading(false);
+            }
+        } else {
+            // Ativar biometria (código existente)
+            try {
+                setIsBiometricLoading(true);
+                setIsValidatingBiometric(true);
 
-            const options = await api.getBiometricRegisterOptions(client.id);
-            
-            const { startRegistration } = await import('@simplewebauthn/browser');
-            const credential = await startRegistration({ optionsJSON: options });
-            
-            await api.verifyBiometricRegister(client.id, credential);
-            
-            // Update local client data
-            const updatedClient = { ...client, webauthnId: 'configured' };
-            localStorage.setItem('delivery_app_client', JSON.stringify(updatedClient));
-            localStorage.setItem(`biometric_enabled_${client.phone}`, 'true');
-            setClient(updatedClient);
-        } catch (err: any) {
-            console.error('Biometric Error:', err);
-            const message = err.name === 'NotAllowedError' 
-                ? 'Operação cancelada ou tempo esgotado.' 
-                : (err.message || 'Erro ao configurar biometria.');
-            
-            setBiometricError(message);
-        } finally {
-            setIsBiometricLoading(false);
-            setIsValidatingBiometric(false);
+                const options = await api.getBiometricRegisterOptions(client.id);
+                
+                const { startRegistration } = await import('@simplewebauthn/browser');
+                const credential = await startRegistration({ optionsJSON: options });
+                
+                await api.verifyBiometricRegister(client.id, credential);
+                
+                // Update local client data
+                const updatedClient = { ...client, webauthnId: 'configured' };
+                localStorage.setItem('delivery_app_client', JSON.stringify(updatedClient));
+                localStorage.setItem(`biometric_enabled_${client.phone}`, 'true');
+                setClient(updatedClient);
+            } catch (err: any) {
+                console.error('Biometric Error:', err);
+                const message = err.name === 'NotAllowedError' 
+                    ? 'Operação cancelada ou tempo esgotado.' 
+                    : (err.message || 'Erro ao configurar biometria.');
+                
+                setBiometricError(message);
+            } finally {
+                setIsBiometricLoading(false);
+                setIsValidatingBiometric(false);
+            }
         }
     };
 
