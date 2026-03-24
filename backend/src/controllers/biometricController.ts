@@ -269,7 +269,7 @@ export const verifyLogin = async (req: Request, res: Response) => {
 
       res.json({ token, client });
     } else {
-      res.status(401).json({ verified: false, message: 'Falha na autenticação biométrica.' });
+      res.status(401).json({ verified: false, message: `Falha na autenticação biométrica. Detalhes: ${verification ? JSON.stringify(verification) : 'Nenhum'}` });
     }
   } catch (error) {
     console.error('Verify Login Error:', error);

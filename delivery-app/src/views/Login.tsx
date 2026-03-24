@@ -167,6 +167,8 @@ const Login: React.FC = () => {
             let errorMessage = 'Não foi possível autenticar via biometria.';
             if (err.name === 'NotAllowedError') {
                 errorMessage = 'Autenticação cancelada.';
+            } else if (err.message) {
+                errorMessage = `Erro: ${err.message}`;
             }
 
             // Se falhou, permite que o usuário use a senha normalmente
