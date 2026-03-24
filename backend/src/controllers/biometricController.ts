@@ -108,12 +108,16 @@ export const verifyRegistration = async (req: Request, res: Response) => {
 
     if (verification.verified && (verification as any).registrationInfo) {
       const regInfo = (verification as any).registrationInfo;
-      const credentialPublicKey = regInfo.credentialPublicKey;
-      const credentialID = regInfo.credentialID;
-      const counter = regInfo.counter;
+      
+      // Defensive extraction for different library versions or authenticator behaviors
+      const credentialPublicKey = regInfo.credentialPublicKey || (regInfo as any).publicKey;
+      const credentialID = regInfo.credentialID || (regInfo as any).id || (regInfo as any).credentialId;
+      const counter = regInfo.counter !== undefined ? regInfo.counter : (regInfo as any).signCount || 0;
 
       if (!credentialID || !credentialPublicKey) {
-        console.error('[BIOMETRIC] Missing credential data in registrationInfo:', regInfo);
+        console.error('[BIOMETRIC] INCOMPLETE REGISTRATION INFO:', JSON.stringify(regInfo, (key, value) => 
+          value instanceof Uint8Array ? Buffer.from(value).toString('base64') : value
+        , 2));
         return res.status(400).json({ verified: false, message: 'Dados de credencial incompletos do autenticador.' });
       }
 

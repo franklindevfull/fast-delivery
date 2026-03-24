@@ -47,6 +47,7 @@ const Home: React.FC = () => {
     // Biometric States
     const [isBiometricLoading, setIsBiometricLoading] = useState(false);
     const [isValidatingBiometric, setIsValidatingBiometric] = useState(false);
+    const [biometricError, setBiometricError] = useState('');
 
     const isProfileIncomplete = !!(client && (client.phone === '00000000000' || !client.street || !client.cep));
 
@@ -133,12 +134,11 @@ const Home: React.FC = () => {
             setClient(updatedClient);
         } catch (err: any) {
             console.error('Biometric Error:', err);
-            // Use standard alert since it's a critical error
             const message = err.name === 'NotAllowedError' 
                 ? 'Operação cancelada ou tempo esgotado.' 
                 : (err.message || 'Erro ao configurar biometria.');
             
-            alert(message);
+            setBiometricError(message);
         } finally {
             setIsBiometricLoading(false);
             setIsValidatingBiometric(false);
@@ -206,23 +206,6 @@ const Home: React.FC = () => {
                                 <span className="text-[11px] font-bold text-slate-700 dark:text-slate-200 truncate max-w-[80px]">{client?.name?.split(' ')[0] || ''}</span>
                             </div>
                             
-                            <button
-                                onClick={handleToggleBiometric}
-                                disabled={isBiometricLoading}
-                                className={`w-10 h-10 rounded-xl flex items-center justify-center transition-all shadow-sm border active:scale-95 ${
-                                    client?.webauthnId 
-                                    ? 'bg-emerald-500 text-white border-emerald-400 shadow-emerald-200' 
-                                    : 'bg-white dark:bg-slate-800 text-slate-500 dark:text-slate-400 border-slate-100 dark:border-slate-700'
-                                }`}
-                                title={client?.webauthnId ? "Biometria Ativa" : "Ativar Biometria"}
-                            >
-                                {isBiometricLoading ? (
-                                    <div className="w-4 h-4 border-2 border-indigo-500/20 border-t-indigo-500 rounded-full animate-spin"></div>
-                                ) : (
-                                    <Icons.Fingerprint className="w-4 h-4" />
-                                )}
-                            </button>
-
                             <button
                                 onClick={() => setShowNotificationCenter(true)}
                                 className="w-10 h-10 bg-white dark:bg-slate-800 rounded-xl flex items-center justify-center text-slate-500 dark:text-slate-400 hover:text-indigo-600 dark:hover:text-indigo-400 transition-all shadow-sm border border-slate-100 dark:border-slate-700 active:scale-95"
@@ -485,6 +468,8 @@ const Home: React.FC = () => {
                         setShowProfileQuickModal(false);
                         setShowChangePasswordModal(true);
                     }}
+                    onToggleBiometric={handleToggleBiometric}
+                    isBiometricLoading={isBiometricLoading}
                 />
             )}
 
@@ -524,6 +509,14 @@ const Home: React.FC = () => {
                     </div>
                 </div>
             )}
+
+            <CustomAlert 
+                isOpen={!!biometricError}
+                title="ERRO NA BIOMETRIA"
+                message={biometricError}
+                onConfirm={() => setBiometricError('')}
+                type="DANGER"
+            />
         </div>
     );
 };
