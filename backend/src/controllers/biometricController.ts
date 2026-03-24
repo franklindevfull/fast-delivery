@@ -107,7 +107,15 @@ export const verifyRegistration = async (req: Request, res: Response) => {
     console.log('[BIOMETRIC] Verification Result:', JSON.stringify(verification, null, 2));
 
     if (verification.verified && (verification as any).registrationInfo) {
-      const { credentialPublicKey, credentialID, counter } = (verification as any).registrationInfo;
+      const regInfo = (verification as any).registrationInfo;
+      const credentialPublicKey = regInfo.credentialPublicKey;
+      const credentialID = regInfo.credentialID;
+      const counter = regInfo.counter;
+
+      if (!credentialID || !credentialPublicKey) {
+        console.error('[BIOMETRIC] Missing credential data in registrationInfo:', regInfo);
+        return res.status(400).json({ verified: false, message: 'Dados de credencial incompletos do autenticador.' });
+      }
 
       await (prisma.client as any).update({
         where: { id: clientId },

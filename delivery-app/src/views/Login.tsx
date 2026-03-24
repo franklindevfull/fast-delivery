@@ -24,6 +24,7 @@ const Login: React.FC = () => {
         onConfirm: () => { },
         onCancel: undefined as (() => void) | undefined
     });
+    const [canUseBiometrics, setCanUseBiometrics] = useState(false);
     const navigate = useNavigate();
 
     React.useEffect(() => {
@@ -37,6 +38,12 @@ const Login: React.FC = () => {
         const lastPhone = localStorage.getItem('delivery_app_last_phone');
         if (lastPhone) {
             setPhone(maskPhone(lastPhone));
+            
+            // Check if this phone has biometrics enabled
+            const biometricEnabled = localStorage.getItem(`biometric_enabled_${lastPhone}`);
+            if (biometricEnabled === 'true') {
+                setCanUseBiometrics(true);
+            }
         }
     }, [navigate]);
 
@@ -78,6 +85,9 @@ const Login: React.FC = () => {
                 localStorage.setItem('delivery_app_token', data.token);
                 localStorage.setItem('delivery_app_client', JSON.stringify(data.client));
                 localStorage.setItem('delivery_app_last_phone', cleanPhone);
+                if (data.client?.webauthnId) {
+                    localStorage.setItem(`biometric_enabled_${cleanPhone}`, 'true');
+                }
                 navigate('/');
             }
         } catch (err: any) {
@@ -143,6 +153,7 @@ const Login: React.FC = () => {
             localStorage.setItem('delivery_app_token', data.token);
             localStorage.setItem('delivery_app_client', JSON.stringify(data.client));
             localStorage.setItem('delivery_app_last_phone', cleanPhone);
+            localStorage.setItem(`biometric_enabled_${cleanPhone}`, 'true');
             navigate('/');
         } catch (err: any) {
             console.error('Biometric Login Error:', err);
@@ -296,24 +307,41 @@ const Login: React.FC = () => {
                                 </div>
                             </div>
 
-                            <div className="flex gap-3 mt-2 md:mt-4">
-                                <button
-                                    disabled={isLoading}
-                                    type="submit"
-                                    className="flex-1 bg-slate-900 dark:bg-indigo-600 hover:bg-black dark:hover:bg-indigo-500 text-white py-3 md:py-4 rounded-2xl font-black uppercase text-xs tracking-widest transition-all shadow-xl shadow-slate-900/20 dark:shadow-black/20 active:scale-[0.98]"
-                                >
-                                    {isLoading ? 'Entrando...' : 'Entrar no Sistema'}
-                                </button>
+                            {canUseBiometrics ? (
                                 <button
                                     type="button"
                                     onClick={handleBiometricLogin}
                                     disabled={isLoading}
-                                    className="w-14 bg-indigo-50 dark:bg-slate-700 text-indigo-600 dark:text-indigo-400 rounded-2xl flex items-center justify-center hover:bg-indigo-100 dark:hover:bg-slate-600 transition-all active:scale-90 border border-indigo-100 dark:border-slate-600 shadow-sm"
-                                    title="Entrar com biometria"
+                                    className="w-full bg-indigo-600 hover:bg-indigo-500 text-white py-4 md:py-5 rounded-2xl font-black uppercase text-xs tracking-widest transition-all shadow-xl shadow-indigo-200 dark:shadow-none active:scale-95 flex items-center justify-center gap-3"
                                 >
-                                    <Icons.Fingerprint className="w-6 h-6" />
+                                    {isLoading ? (
+                                        <div className="w-5 h-5 border-2 border-white/20 border-t-white rounded-full animate-spin"></div>
+                                    ) : (
+                                        <>
+                                            <Icons.Fingerprint className="w-6 h-6" />
+                                            Entrar com Biometria
+                                        </>
+                                    )}
                                 </button>
-                            </div>
+                            ) : (
+                                <button
+                                    disabled={isLoading}
+                                    type="submit"
+                                    className="w-full bg-slate-900 dark:bg-indigo-600 hover:bg-black dark:hover:bg-indigo-500 text-white py-3 md:py-4 rounded-2xl font-black uppercase text-xs tracking-widest transition-all shadow-xl shadow-slate-900/20 dark:shadow-black/20 active:scale-[0.98]"
+                                >
+                                    {isLoading ? 'Entrando...' : 'Entrar no Sistema'}
+                                </button>
+                            )}
+
+                            {canUseBiometrics && (
+                                <button
+                                    type="button"
+                                    onClick={() => setCanUseBiometrics(false)}
+                                    className="w-full py-2 text-[10px] font-black text-slate-400 dark:text-slate-500 uppercase tracking-widest hover:text-indigo-600 transition-colors"
+                                >
+                                    Entrar com senha tradicional
+                                </button>
+                            )}
                         </form>
 
                         <div className="mt-5 md:mt-8 flex flex-col items-center gap-3 md:gap-6">

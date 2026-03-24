@@ -14,10 +14,6 @@ const Profile: React.FC = () => {
     const [detailsError, setDetailsError] = useState('');
     const [detailsSuccess, setDetailsSuccess] = useState('');
     const [isFetchingCep, setIsFetchingCep] = useState(false);
-    
-    // Biometric States
-    const [isBiometricLoading, setIsBiometricLoading] = useState(false);
-    const [isValidatingBiometric, setIsValidatingBiometric] = useState(false);
 
     const [formData, setFormData] = useState({
         name: '',
@@ -114,38 +110,6 @@ const Profile: React.FC = () => {
         }
     };
 
-    const handleToggleBiometric = async () => {
-        try {
-            setDetailsError('');
-            setDetailsSuccess('');
-            setIsBiometricLoading(true);
-            setIsValidatingBiometric(true);
-
-            const options = await api.getBiometricRegisterOptions(client.id);
-            
-            const { startRegistration } = await import('@simplewebauthn/browser');
-            const credential = await startRegistration({ optionsJSON: options });
-            
-            await api.verifyBiometricRegister(client.id, credential);
-            
-            // Update local client data
-            const updatedClient = { ...client, webauthnId: 'configured' };
-            localStorage.setItem('delivery_app_client', JSON.stringify(updatedClient));
-            setClient(updatedClient);
-            setDetailsSuccess('Biometria configurada com sucesso!');
-        } catch (err: any) {
-            console.error('Biometric Error:', err);
-            if (err.name === 'NotAllowedError') {
-                setDetailsError('Operação cancelada ou tempo esgotado.');
-            } else {
-                setDetailsError(err.message || 'Erro ao configurar biometria.');
-            }
-        } finally {
-            setIsBiometricLoading(false);
-            setIsValidatingBiometric(false);
-        }
-    };
-
     if (isLoading) return (
         <div className="h-screen bg-slate-50 dark:bg-slate-950 flex flex-col items-center justify-center transition-colors duration-500">
             <div className="w-16 h-16 border-4 border-indigo-500/20 border-t-indigo-500 rounded-full animate-spin mb-4"></div>
@@ -171,42 +135,9 @@ const Profile: React.FC = () => {
                 <div className="flex-1 z-10">
                     <h1 className="text-xl font-black text-slate-800 dark:text-white uppercase tracking-tighter italic">Meu Perfil</h1>
                 </div>
-
-                {/* Biometric Header Button */}
-                <button
-                    onClick={handleToggleBiometric}
-                    disabled={isBiometricLoading}
-                    className={`w-12 h-12 rounded-2xl flex items-center justify-center transition-all shadow-md active:scale-95 z-10 border ${
-                        client?.webauthnId 
-                        ? 'bg-emerald-500 text-white border-emerald-400' 
-                        : 'bg-slate-800 dark:bg-indigo-600 text-white border-slate-700 dark:border-indigo-500'
-                    }`}
-                >
-                    {isBiometricLoading ? (
-                        <div className="w-5 h-5 border-2 border-white/20 border-t-white rounded-full animate-spin"></div>
-                    ) : (
-                        <Icons.Fingerprint className="w-6 h-6" />
-                    )}
-                </button>
             </div>
 
-            {/* Biometric Validation Overlay */}
-            {isValidatingBiometric && (
-                <div className="fixed inset-0 z-[200] flex flex-col items-center justify-center bg-slate-900/90 backdrop-blur-md animate-in fade-in duration-300">
-                    <div className="w-24 h-24 bg-indigo-500 rounded-full flex items-center justify-center mb-6 shadow-2xl shadow-indigo-500/20 animate-pulse">
-                        <Icons.Fingerprint className="w-12 h-12 text-white" />
-                    </div>
-                    <h2 className="text-xl font-black text-white uppercase tracking-tighter italic mb-2">Aguardando Validação</h2>
-                    <p className="text-indigo-200 text-xs font-bold uppercase tracking-widest text-center px-12 leading-relaxed">
-                        Por favor, use sua biometria conforme solicitado pelo seu dispositivo.
-                    </p>
-                    <div className="mt-8 flex gap-1">
-                        <div className="w-2 h-2 bg-indigo-400 rounded-full animate-bounce"></div>
-                        <div className="w-2 h-2 bg-indigo-400 rounded-full animate-bounce [animation-delay:0.2s]"></div>
-                        <div className="w-2 h-2 bg-indigo-400 rounded-full animate-bounce [animation-delay:0.4s]"></div>
-                    </div>
-                </div>
-            )}
+
 
             <div className="p-6 space-y-6 max-w-lg mx-auto">
                 <div className="space-y-6">

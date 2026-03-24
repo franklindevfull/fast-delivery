@@ -44,6 +44,12 @@ const Home: React.FC = () => {
     const [showChangePasswordModal, setShowChangePasswordModal] = useState(false);
     const [showNotificationCenter, setShowNotificationCenter] = useState(false);
 
+    // Biometric States
+    const [isBiometricLoading, setIsBiometricLoading] = useState(false);
+    const [isValidatingBiometric, setIsValidatingBiometric] = useState(false);
+    const [detailsError, setDetailsError] = useState('');
+    const [detailsSuccess, setDetailsSuccess] = useState('');
+
     const isProfileIncomplete = !!(client && (client.phone === '00000000000' || !client.street || !client.cep));
 
 
@@ -109,6 +115,40 @@ const Home: React.FC = () => {
         }
     }, [location]);
 
+    const handleToggleBiometric = async () => {
+        if (!client) return;
+        try {
+            setDetailsError('');
+            setDetailsSuccess('');
+            setIsBiometricLoading(true);
+            setIsValidatingBiometric(true);
+
+            const options = await api.getBiometricRegisterOptions(client.id);
+            
+            const { startRegistration } = await import('@simplewebauthn/browser');
+            const credential = await startRegistration({ optionsJSON: options });
+            
+            await api.verifyBiometricRegister(client.id, credential);
+            
+            // Update local client data
+            const updatedClient = { ...client, webauthnId: 'configured' };
+            localStorage.setItem('delivery_app_client', JSON.stringify(updatedClient));
+            localStorage.setItem(`biometric_enabled_${client.phone}`, 'true');
+            setClient(updatedClient);
+        } catch (err: any) {
+            console.error('Biometric Error:', err);
+            // Use standard alert since it's a critical error
+            const message = err.name === 'NotAllowedError' 
+                ? 'Operação cancelada ou tempo esgotado.' 
+                : (err.message || 'Erro ao configurar biometria.');
+            
+            alert(message);
+        } finally {
+            setIsBiometricLoading(false);
+            setIsValidatingBiometric(false);
+        }
+    };
+
     const filteredProducts = products.filter(p => {
         const matchesCategory = selectedCategory === 'Todos' || p.category === selectedCategory;
         const query = searchQuery.toLowerCase().trim();
@@ -170,6 +210,23 @@ const Home: React.FC = () => {
                                 <span className="text-[11px] font-bold text-slate-700 dark:text-slate-200 truncate max-w-[80px]">{client?.name?.split(' ')[0] || ''}</span>
                             </div>
                             
+                            <button
+                                onClick={handleToggleBiometric}
+                                disabled={isBiometricLoading}
+                                className={`w-10 h-10 rounded-xl flex items-center justify-center transition-all shadow-sm border active:scale-95 ${
+                                    client?.webauthnId 
+                                    ? 'bg-emerald-500 text-white border-emerald-400 shadow-emerald-200' 
+                                    : 'bg-white dark:bg-slate-800 text-slate-500 dark:text-slate-400 border-slate-100 dark:border-slate-700'
+                                }`}
+                                title={client?.webauthnId ? "Biometria Ativa" : "Ativar Biometria"}
+                            >
+                                {isBiometricLoading ? (
+                                    <div className="w-4 h-4 border-2 border-indigo-500/20 border-t-indigo-500 rounded-full animate-spin"></div>
+                                ) : (
+                                    <Icons.Fingerprint className="w-4 h-4" />
+                                )}
+                            </button>
+
                             <button
                                 onClick={() => setShowNotificationCenter(true)}
                                 className="w-10 h-10 bg-white dark:bg-slate-800 rounded-xl flex items-center justify-center text-slate-500 dark:text-slate-400 hover:text-indigo-600 dark:hover:text-indigo-400 transition-all shadow-sm border border-slate-100 dark:border-slate-700 active:scale-95"
@@ -452,6 +509,24 @@ const Home: React.FC = () => {
                     onClose={() => setShowNotificationCenter(false)}
                     clientId={client.id}
                 />
+            )}
+
+            {/* Biometric Validation Overlay */}
+            {isValidatingBiometric && (
+                <div className="fixed inset-0 z-[200] flex flex-col items-center justify-center bg-slate-900/90 backdrop-blur-md animate-in fade-in duration-300">
+                    <div className="w-24 h-24 bg-indigo-500 rounded-full flex items-center justify-center mb-6 shadow-2xl shadow-indigo-500/20 animate-pulse">
+                        <Icons.Fingerprint className="w-12 h-12 text-white" />
+                    </div>
+                    <h2 className="text-xl font-black text-white uppercase tracking-tighter italic mb-2">Aguardando Validação</h2>
+                    <p className="text-indigo-200 text-xs font-bold uppercase tracking-widest text-center px-12 leading-relaxed">
+                        Por favor, use sua biometria conforme solicitado pelo seu dispositivo.
+                    </p>
+                    <div className="mt-8 flex gap-1">
+                        <div className="w-2 h-2 bg-indigo-400 rounded-full animate-bounce"></div>
+                        <div className="w-2 h-2 bg-indigo-400 rounded-full animate-bounce [animation-delay:0.2s]"></div>
+                        <div className="w-2 h-2 bg-indigo-400 rounded-full animate-bounce [animation-delay:0.4s]"></div>
+                    </div>
+                </div>
             )}
         </div>
     );
