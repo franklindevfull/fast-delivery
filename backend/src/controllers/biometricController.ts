@@ -189,16 +189,15 @@ export const getLoginOptions = async (req: Request, res: Response) => {
       return res.status(404).json({ message: 'Biometria não configurada para este número.' });
     }
 
-    // Utility to ensure we have a pure Uint8Array, not a Buffer, for SimpleWebAuthn v13+
-    const toUint8Array = (base64Str: string) => {
-        const b = Buffer.from(base64Str, 'base64');
-        return new Uint8Array(b.buffer, b.byteOffset, b.byteLength);
+    // Utility to ensure we have a base64url string for SimpleWebAuthn v13+ Option Generation
+    const toBase64Url = (base64Str: string) => {
+        return base64Str.replace(/\+/g, '-').replace(/\//g, '_').replace(/=/g, '');
     };
 
     const options = await generateAuthenticationOptions({
       rpID: getRpId(req),
       allowCredentials: [{
-        id: toUint8Array(client.webauthnId),
+        id: toBase64Url(client.webauthnId),
         type: 'public-key',
         transports: ['internal'],
       } as any],
@@ -243,6 +242,10 @@ export const verifyLogin = async (req: Request, res: Response) => {
       clientWebauthnId: client.webauthnId ? client.webauthnId.substring(0, 10) + '...' : null
     });
 
+    const toBase64Url = (base64Str: string) => {
+        return base64Str.replace(/\+/g, '-').replace(/\//g, '_').replace(/=/g, '');
+    };
+    
     const toUint8Array = (base64Str: string) => {
         const b = Buffer.from(base64Str, 'base64');
         return new Uint8Array(b.buffer, b.byteOffset, b.byteLength);
@@ -250,13 +253,14 @@ export const verifyLogin = async (req: Request, res: Response) => {
 
     let verification;
     try {
+        // In v13, credential.id is a base64url string, and publicKey is a Uint8Array
         verification = await verifyAuthenticationResponse({
         response: credential as AuthenticationResponseJSON,
         expectedChallenge,
         expectedOrigin,
         expectedRPID,
         credential: {
-            id: toUint8Array(client.webauthnId),
+            id: toBase64Url(client.webauthnId),
             publicKey: toUint8Array(client.webauthnPublicKey),
             counter: client.webauthnCounter,
         },
