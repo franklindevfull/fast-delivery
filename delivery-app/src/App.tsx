@@ -139,18 +139,28 @@ function App() {
                 </div>
                 <h2 className="text-2xl font-black text-slate-800 dark:text-white uppercase tracking-tighter mb-2">Bem-vindo de volta</h2>
                 <p className="text-sm font-bold text-slate-500 dark:text-slate-400 mb-8 max-w-xs">
-                    Toque abaixo para confirmar sua identidade e acessar o aplicativo.
+                    Clique no botão abaixo para o seu celular abrir o leitor de biometria nativo.
                 </p>
                 <button
                     onClick={handleBiometricFocusValidation}
                     disabled={isValidatingFocus}
-                    className="w-full max-w-sm bg-indigo-600 hover:bg-indigo-500 text-white py-4 rounded-2xl font-black uppercase tracking-widest transition-all shadow-xl shadow-indigo-200 dark:shadow-none active:scale-95 flex items-center justify-center gap-3"
+                    className="w-full max-w-sm bg-indigo-600 hover:bg-indigo-500 text-white py-4 rounded-2xl font-black uppercase tracking-widest transition-all shadow-xl shadow-indigo-200 dark:shadow-none active:scale-95 flex items-center justify-center gap-3 mb-4"
                 >
                     {isValidatingFocus ? (
                         <div className="w-5 h-5 border-2 border-white/20 border-t-white rounded-full animate-spin"></div>
                     ) : (
-                        'Validar Biometria'
+                        'CHAMAR LEITOR DO CELULAR'
                     )}
+                </button>
+                <button
+                    onClick={() => {
+                        api.logout();
+                        window.location.href = '/login';
+                    }}
+                    disabled={isValidatingFocus}
+                    className="w-full max-w-sm bg-transparent hover:bg-slate-200 dark:hover:bg-slate-800 text-slate-600 dark:text-slate-400 py-4 rounded-2xl font-black uppercase tracking-widest transition-all active:scale-95"
+                >
+                    Entrar com Senha
                 </button>
             </div>
         );
