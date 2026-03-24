@@ -189,10 +189,16 @@ export const getLoginOptions = async (req: Request, res: Response) => {
       return res.status(404).json({ message: 'Biometria não configurada para este número.' });
     }
 
+    // Utility to ensure we have a pure Uint8Array, not a Buffer, for SimpleWebAuthn v13+
+    const toUint8Array = (base64Str: string) => {
+        const b = Buffer.from(base64Str, 'base64');
+        return new Uint8Array(b.buffer, b.byteOffset, b.byteLength);
+    };
+
     const options = await generateAuthenticationOptions({
       rpID: getRpId(req),
       allowCredentials: [{
-        id: Buffer.from(client.webauthnId, 'base64'),
+        id: toUint8Array(client.webauthnId),
         type: 'public-key',
         transports: ['internal'],
       } as any],
@@ -237,6 +243,11 @@ export const verifyLogin = async (req: Request, res: Response) => {
       clientWebauthnId: client.webauthnId ? client.webauthnId.substring(0, 10) + '...' : null
     });
 
+    const toUint8Array = (base64Str: string) => {
+        const b = Buffer.from(base64Str, 'base64');
+        return new Uint8Array(b.buffer, b.byteOffset, b.byteLength);
+    };
+
     let verification;
     try {
         verification = await verifyAuthenticationResponse({
@@ -245,8 +256,8 @@ export const verifyLogin = async (req: Request, res: Response) => {
         expectedOrigin,
         expectedRPID,
         credential: {
-            id: Buffer.from(client.webauthnId, 'base64'),
-            publicKey: Buffer.from(client.webauthnPublicKey, 'base64'),
+            id: toUint8Array(client.webauthnId),
+            publicKey: toUint8Array(client.webauthnPublicKey),
             counter: client.webauthnCounter,
         },
         } as any);
