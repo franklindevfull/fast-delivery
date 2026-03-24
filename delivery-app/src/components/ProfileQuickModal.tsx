@@ -100,27 +100,33 @@ const ProfileQuickModal: React.FC<ProfileQuickModalProps> = ({
                         <ArrowRight className="w-4 h-4 opacity-0 group-hover:opacity-100 transition-all translate-x-[-10px] group-hover:translate-x-0" />
                     </button>
                     {isMobile() && (
-                        <button
-                            onClick={() => onToggleBiometric(!!client?.webauthnId)}
-                            disabled={isBiometricLoading}
-                            className={`w-full p-4 rounded-2xl flex items-center justify-between group transition-all active:scale-[0.98] ${
-                                client?.webauthnId 
-                                ? 'bg-rose-50 dark:bg-rose-900/20 text-rose-600 dark:text-rose-400 hover:bg-rose-600 hover:text-white' 
-                                : 'bg-indigo-50 dark:bg-indigo-900/20 text-indigo-600 dark:text-indigo-400 hover:bg-indigo-600 hover:text-white'
-                            }`}
-                        >
+                        <div className="w-full p-4 rounded-2xl flex items-center justify-between transition-all bg-slate-50 dark:bg-slate-900/40">
                             <div className="flex items-center gap-3">
-                                <Fingerprint className="w-5 h-5" />
-                                <span className="text-xs font-black uppercase tracking-widest">
-                                    {client?.webauthnId ? 'Desativar Biometria' : 'Ativar Biometria'}
+                                <Fingerprint className={`w-5 h-5 ${client?.webauthnId ? 'text-emerald-500' : 'text-slate-400'}`} />
+                                <span className={`text-xs font-black uppercase tracking-widest ${client?.webauthnId ? 'text-emerald-600 dark:text-emerald-400' : 'text-slate-500 dark:text-slate-400'}`}>
+                                    Autenticação por Biometria
                                 </span>
                             </div>
+                            
                             {isBiometricLoading ? (
-                                <div className="w-4 h-4 border-2 border-current border-t-transparent rounded-full animate-spin"></div>
+                                <div className="w-5 h-5 border-2 border-slate-300 border-t-indigo-600 rounded-full animate-spin"></div>
                             ) : (
-                                <ArrowRight className="w-4 h-4 opacity-0 group-hover:opacity-100 transition-all translate-x-[-10px] group-hover:translate-x-0" />
+                                <button
+                                    type="button"
+                                    onClick={() => onToggleBiometric(!!client?.webauthnId)}
+                                    className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:ring-offset-2 focus:ring-offset-white dark:focus:ring-offset-slate-900 ${
+                                        client?.webauthnId ? 'bg-emerald-500' : 'bg-slate-300 dark:bg-slate-600'
+                                    }`}
+                                >
+                                    <span className="sr-only">Ativar biometria</span>
+                                    <span
+                                        className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${
+                                            client?.webauthnId ? 'translate-x-6' : 'translate-x-1'
+                                        }`}
+                                    />
+                                </button>
                             )}
-                        </button>
+                        </div>
                     )}
                 </div>
             </div>

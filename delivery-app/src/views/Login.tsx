@@ -44,11 +44,6 @@ const Login: React.FC = () => {
             const biometricEnabled = localStorage.getItem(`biometric_enabled_${lastPhone}`);
             if (biometricEnabled === 'true' && isMobile()) {
                 setCanUseBiometrics(true);
-                // Trigger auto login on mount
-                // We use a slight delay so the UI renders first
-                setTimeout(() => {
-                    handleBiometricLogin(lastPhone);
-                }, 500);
             }
         }
     }, [navigate]);
@@ -91,6 +86,8 @@ const Login: React.FC = () => {
                 localStorage.setItem('delivery_app_token', data.token);
                 localStorage.setItem('delivery_app_client', JSON.stringify(data.client));
                 localStorage.setItem('delivery_app_last_phone', cleanPhone);
+                localStorage.setItem('delivery_app_login_time', Date.now().toString());
+                
                 if (data.client?.webauthnId) {
                     localStorage.setItem(`biometric_enabled_${cleanPhone}`, 'true');
                 }
@@ -161,6 +158,8 @@ const Login: React.FC = () => {
             localStorage.setItem('delivery_app_client', JSON.stringify(data.client));
             localStorage.setItem('delivery_app_last_phone', cleanPhone);
             localStorage.setItem(`biometric_enabled_${cleanPhone}`, 'true');
+            localStorage.setItem('delivery_app_login_time', Date.now().toString());
+            
             navigate('/');
         } catch (err: any) {
             console.error('Biometric Login Error:', err);

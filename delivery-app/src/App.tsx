@@ -19,6 +19,7 @@ import CustomAlert from './components/CustomAlert';
 
 function App() {
     const [isSplashVisible, setIsSplashVisible] = useState(true);
+    const [needsBiometricValidation, setNeedsBiometricValidation] = useState(false);
     const [isValidatingFocus, setIsValidatingFocus] = useState(false);
     const [alertState, setAlertState] = useState({
         isOpen: false,
@@ -28,51 +29,90 @@ function App() {
         onConfirm: () => { },
     });
 
+    const checkAutoLogout = () => {
+        const loginTimeStr = localStorage.getItem('delivery_app_login_time');
+        if (loginTimeStr) {
+            const loginTime = parseInt(loginTimeStr, 10);
+            const now = Date.now();
+            const sevenDaysInMs = 7 * 24 * 60 * 60 * 1000;
+            
+            if (now - loginTime > sevenDaysInMs) {
+                api.logout();
+                window.location.href = '/login';
+                return true;
+            }
+        }
+        return false;
+    };
+
+    const handleBiometricFocusValidation = async () => {
+        const lastPhone = localStorage.getItem('delivery_app_last_phone');
+        if (!lastPhone) return;
+
+        try {
+            setIsValidatingFocus(true);
+            const cleanPhone = lastPhone.replace(/\D/g, '');
+            const options = await api.getBiometricLoginOptions(cleanPhone);
+            
+            const { startAuthentication } = await import('@simplewebauthn/browser');
+            const credential = await startAuthentication({ optionsJSON: options });
+            
+            await api.verifyBiometricLogin(cleanPhone, credential);
+            setNeedsBiometricValidation(false);
+        } catch (err: any) {
+            console.error('Focus Biometric Error:', err);
+            
+            let errorMessage = 'Não foi possível validar biometria ao retornar ao app.';
+            if (err.name === 'NotAllowedError') {
+                errorMessage = 'Validação biométrica cancelada. Por segurança, você foi desconectado.';
+            } else {
+                errorMessage = `${errorMessage} Por segurança, você foi desconectado.`;
+            }
+
+            setAlertState({
+                isOpen: true,
+                title: 'Sessão Expirada',
+                message: errorMessage,
+                type: 'INFO',
+                onConfirm: () => {
+                    api.logout();
+                    window.location.href = '/login';
+                }
+            });
+        } finally {
+            setIsValidatingFocus(false);
+        }
+    };
+
     useEffect(() => {
+        // Run auto-logout check on initial load
+        if (checkAutoLogout()) return;
+
         const timer = setTimeout(() => {
             setIsSplashVisible(false);
+            
+            // Check if we need biometric validation on initial startup if they are already logged in
+            const token = localStorage.getItem('delivery_app_token');
+            const lastPhone = localStorage.getItem('delivery_app_last_phone');
+            if (token && lastPhone && isMobile()) {
+                const biometricEnabled = localStorage.getItem(`biometric_enabled_${lastPhone}`);
+                if (biometricEnabled === 'true') {
+                    setNeedsBiometricValidation(true);
+                }
+            }
         }, 3000);
 
         const handleVisibilityChange = async () => {
             if (document.visibilityState === 'visible') {
+                if (checkAutoLogout()) return;
+
                 const token = localStorage.getItem('delivery_app_token');
                 const lastPhone = localStorage.getItem('delivery_app_last_phone');
-                if (!token || !lastPhone || !isMobile()) return;
+                if (!token || !lastPhone || !isMobile() || isSplashVisible) return;
 
                 const biometricEnabled = localStorage.getItem(`biometric_enabled_${lastPhone}`);
                 if (biometricEnabled === 'true') {
-                    try {
-                        setIsValidatingFocus(true);
-                        const cleanPhone = lastPhone.replace(/\D/g, '');
-                        const options = await api.getBiometricLoginOptions(cleanPhone);
-                        
-                        const { startAuthentication } = await import('@simplewebauthn/browser');
-                        const credential = await startAuthentication({ optionsJSON: options });
-                        
-                        await api.verifyBiometricLogin(cleanPhone, credential);
-                    } catch (err: any) {
-                        console.error('Focus Biometric Error:', err);
-                        
-                        let errorMessage = 'Não foi possível validar biometria ao retornar ao app.';
-                        if (err.name === 'NotAllowedError') {
-                            errorMessage = 'Validação biométrica cancelada. Por segurança, você foi desconectado.';
-                        } else {
-                            errorMessage = `${errorMessage} Por segurança, você foi desconectado.`;
-                        }
-
-                        setAlertState({
-                            isOpen: true,
-                            title: 'Sessão Expirada',
-                            message: errorMessage,
-                            type: 'INFO',
-                            onConfirm: () => {
-                                api.logout();
-                                window.location.href = '/login';
-                            }
-                        });
-                    } finally {
-                        setIsValidatingFocus(false);
-                    }
+                    setNeedsBiometricValidation(true);
                 }
             }
         };
@@ -89,15 +129,29 @@ function App() {
         return <SplashScreen />;
     }
 
-    if (isValidatingFocus) {
+    if (needsBiometricValidation) {
         return (
-            <div className="fixed inset-0 z-50 bg-slate-900/50 backdrop-blur-md flex items-center justify-center">
-                <div className="bg-white dark:bg-slate-800 p-8 rounded-3xl shadow-2xl flex flex-col items-center">
-                    <div className="w-16 h-16 border-4 border-indigo-600 border-t-transparent rounded-full animate-spin mb-4"></div>
-                    <p className="font-black text-slate-800 dark:text-white uppercase tracking-widest text-sm">
-                        Validando Biometria...
-                    </p>
+            <div className="fixed inset-0 z-50 bg-slate-50 dark:bg-slate-950 flex flex-col items-center justify-center p-6 text-center animate-in fade-in duration-500">
+                <div className="w-20 h-20 bg-indigo-100 dark:bg-indigo-900/30 rounded-3xl flex items-center justify-center mb-6 text-indigo-600 dark:text-indigo-400">
+                    <svg className="w-10 h-10" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 11c0 3.517-1.009 6.799-2.753 9.571m-3.44-2.04l.054-.09A13.916 13.916 0 008 11a4 4 0 118 0c0 1.017-.07 2.019-.203 3m-2.118 6.844A21.88 21.88 0 0015.171 17m3.839 1.132c.645-2.266.99-4.659.99-7.132A8 8 0 008 4.07M3 15.364c.64-1.319 1-2.8 1-4.364 0-1.457.39-2.823 1.07-4" />
+                    </svg>
                 </div>
+                <h2 className="text-2xl font-black text-slate-800 dark:text-white uppercase tracking-tighter mb-2">Bem-vindo de volta</h2>
+                <p className="text-sm font-bold text-slate-500 dark:text-slate-400 mb-8 max-w-xs">
+                    Toque abaixo para confirmar sua identidade e acessar o aplicativo.
+                </p>
+                <button
+                    onClick={handleBiometricFocusValidation}
+                    disabled={isValidatingFocus}
+                    className="w-full max-w-sm bg-indigo-600 hover:bg-indigo-500 text-white py-4 rounded-2xl font-black uppercase tracking-widest transition-all shadow-xl shadow-indigo-200 dark:shadow-none active:scale-95 flex items-center justify-center gap-3"
+                >
+                    {isValidatingFocus ? (
+                        <div className="w-5 h-5 border-2 border-white/20 border-t-white rounded-full animate-spin"></div>
+                    ) : (
+                        'Validar Biometria'
+                    )}
+                </button>
             </div>
         );
     }
