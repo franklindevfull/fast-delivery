@@ -302,11 +302,10 @@ const Login: React.FC = () => {
                                     </div>
                                     <input
                                         type={showPassword ? "text" : "password"}
-                                        className="w-full pl-14 pr-14 py-3 md:py-4 bg-slate-50 dark:bg-slate-900 border-none rounded-2xl focus:ring-4 focus:ring-indigo-100 dark:focus:ring-indigo-900/20 transition-all font-bold text-sm text-slate-800 dark:text-slate-100"
-                                        placeholder="••••••••"
+                                        className="w-full pl-14 pr-14 py-3 md:py-4 bg-slate-50 dark:bg-slate-900 border-none rounded-2xl focus:ring-4 focus:ring-indigo-100 dark:focus:ring-indigo-900/20 transition-all font-bold text-sm text-slate-800 dark:text-slate-100 placeholder-slate-400 dark:placeholder-slate-500"
+                                        placeholder="Use SENHA ou BIOMETRIA"
                                         value={password}
                                         onChange={e => setPassword(e.target.value)}
-                                        required
                                     />
                                     <button
                                         type="button"
@@ -319,21 +318,31 @@ const Login: React.FC = () => {
                             </div>
 
                             {canUseBiometrics ? (
-                                <button
-                                    type="button"
-                                    onClick={() => handleBiometricLogin()}
-                                    disabled={isLoading}
-                                    className="w-full bg-indigo-600 hover:bg-indigo-500 text-white py-4 md:py-5 rounded-2xl font-black uppercase text-xs tracking-widest transition-all shadow-xl shadow-indigo-200 dark:shadow-none active:scale-95 flex items-center justify-center gap-3"
-                                >
-                                    {isLoading ? (
-                                        <div className="w-5 h-5 border-2 border-white/20 border-t-white rounded-full animate-spin"></div>
-                                    ) : (
-                                        <>
-                                            <Icons.Fingerprint className="w-6 h-6" />
-                                            Entrar com Biometria
-                                        </>
-                                    )}
-                                </button>
+                                password.length > 0 ? (
+                                    <button
+                                        disabled={isLoading}
+                                        type="submit"
+                                        className="w-full bg-slate-900 dark:bg-indigo-600 hover:bg-black dark:hover:bg-indigo-500 text-white py-3 md:py-4 rounded-2xl font-black uppercase text-xs tracking-widest transition-all shadow-xl shadow-slate-900/20 dark:shadow-black/20 active:scale-[0.98]"
+                                    >
+                                        {isLoading ? 'Entrando...' : 'Entrar com Senha'}
+                                    </button>
+                                ) : (
+                                    <button
+                                        type="button"
+                                        onClick={() => handleBiometricLogin()}
+                                        disabled={isLoading}
+                                        className="w-full bg-indigo-600 hover:bg-indigo-500 text-white py-4 md:py-5 rounded-2xl font-black uppercase text-xs tracking-widest transition-all shadow-xl shadow-indigo-200 dark:shadow-none active:scale-95 flex items-center justify-center gap-3"
+                                    >
+                                        {isLoading ? (
+                                            <div className="w-5 h-5 border-2 border-white/20 border-t-white rounded-full animate-spin"></div>
+                                        ) : (
+                                            <>
+                                                <Icons.Fingerprint className="w-6 h-6" />
+                                                Entrar com Biometria
+                                            </>
+                                        )}
+                                    </button>
+                                )
                             ) : (
                                 <button
                                     disabled={isLoading}
@@ -344,7 +353,7 @@ const Login: React.FC = () => {
                                 </button>
                             )}
 
-                            {canUseBiometrics && (
+                            {canUseBiometrics && password.length === 0 && (
                                 <button
                                     type="button"
                                     onClick={() => setCanUseBiometrics(false)}
