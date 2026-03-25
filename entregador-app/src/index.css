@@ -13,6 +13,12 @@
     @apply bg-slate-50 text-slate-800 antialiased font-sans overflow-x-hidden;
     -webkit-tap-highlight-color: transparent;
   }
+
+  /* Hide native browser password toggle (Edge/Chrome/Safari) */
+  input::-ms-reveal,
+  input::-ms-clear {
+    display: none;
+  }
 }
 
 .custom-scrollbar::-webkit-scrollbar {

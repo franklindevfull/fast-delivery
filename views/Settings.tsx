@@ -372,7 +372,7 @@ const UserManagementInternal: React.FC = () => {
                     <p className="text-[10px] text-slate-400 dark:text-slate-500 font-bold uppercase tracking-widest leading-relaxed">Gerencie níveis de acesso e permissões</p>
                 </div>
                 <button
-                    onClick={() => { setEditingUser(null); setFormData({ name: '', email: '', password: '', phone: '', permissions: ['dashboard'] }); setIsModalOpen(true); }}
+                    onClick={() => { setEditingUser(null); setFormData({ name: '', email: '', password: '123', phone: '', permissions: ['dashboard'] }); setIsModalOpen(true); }}
                     className="bg-blue-600 hover:bg-blue-700 text-white px-5 py-2.5 rounded-xl font-bold text-sm transition-all flex items-center justify-center gap-2 shadow-lg shadow-blue-500/20 active:scale-95 shrink-0"
                 >
                     <Icons.Plus size={18} strokeWidth={3} />
@@ -454,14 +454,11 @@ const UserManagementInternal: React.FC = () => {
                                     <label className="text-[10px] font-black text-slate-400 dark:text-slate-500 uppercase tracking-widest ml-2">Celular / Whats</label>
                                     <input type="text" placeholder="(00) 0 0000-0000" value={formData.phone} required onChange={e => setFormData({ ...formData, phone: applyPhoneMask(e.target.value) })} className="w-full p-4 sm:p-5 bg-slate-50 dark:bg-slate-800 border-none rounded-2xl sm:rounded-[1.5rem] outline-none font-bold text-sm text-slate-800 dark:text-white shadow-inner focus:ring-4 focus:ring-blue-100 dark:focus:ring-blue-900/20 transition-all" />
                                 </div>
-                                {!editingUser && (
-                                    <div className="space-y-2">
-                                        <label className="text-[10px] font-black text-slate-400 dark:text-slate-500 uppercase tracking-widest ml-2">Senha de Acesso</label>
-                                        <input type="password" placeholder="••••••••" value={formData.password} required onChange={e => setFormData({ ...formData, password: e.target.value })} className="w-full p-4 sm:p-5 bg-slate-50 dark:bg-slate-800 border-none rounded-2xl sm:rounded-[1.5rem] outline-none font-bold text-sm text-slate-800 dark:text-white shadow-inner focus:ring-4 focus:ring-blue-100 dark:focus:ring-blue-900/20 transition-all" />
-                                    </div>
-                                )}
                             </div>
 
+                            {!editingUser && (
+                                <p className="text-[10px] text-slate-400 dark:text-slate-500 font-bold uppercase tracking-widest ml-2 mb-4">A senha padrão para novos usuários é: <span className="text-blue-600 dark:text-blue-400">123</span></p>
+                            )}
                             <div className="pt-6 border-t border-slate-100 dark:border-slate-800">
                                 <p className="text-[10px] font-black text-slate-400 dark:text-slate-500 uppercase tracking-widest mb-4">Módulos Permitidos:</p>
                                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 max-h-48 overflow-y-auto pr-2 custom-scrollbar">

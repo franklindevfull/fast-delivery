@@ -388,6 +388,11 @@ const App: React.FC = () => {
           Sua conta (<span className="font-bold text-slate-700">{currentUser.email}</span>) não está vinculada a um entregador.
         </p>
         <button onClick={() => setIsLogoutModalOpen(true)} className="px-8 py-4 bg-slate-900 text-white rounded-2xl font-black uppercase text-xs tracking-widest shadow-xl active:scale-95 transition-all">Sair</button>
+        <LogoutModal 
+          isOpen={isLogoutModalOpen} 
+          onConfirm={handleLogout} 
+          onCancel={() => setIsLogoutModalOpen(false)} 
+        />
       </div>
     );
   }
