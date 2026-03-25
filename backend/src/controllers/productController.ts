@@ -22,7 +22,7 @@ export const getAllProducts = async (req: Request, res: Response) => {
 
 export const saveProduct = async (req: Request, res: Response) => {
     const data = req.body;
-    const { recipe, comboItems, user, ...productData } = data;
+    const { recipe, comboItems, user, isCombo, ...productData } = data;
 
     const product = await prisma.product.upsert({
         where: { id: data.id || '' },

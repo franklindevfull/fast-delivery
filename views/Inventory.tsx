@@ -12,9 +12,10 @@ const Inventory: React.FC = () => {
   const [products, setProducts] = useState<Product[]>([]);
   const [viewMode, setViewMode] = useState<'ESTOQUE' | 'CARDAPIO'>('ESTOQUE');
   const fileInputRef = useRef<HTMLInputElement>(null);
-
   const [isInvModalOpen, setIsInvModalOpen] = useState(false);
   const [isProdModalOpen, setIsProdModalOpen] = useState(false);
+  const [isStockSelectModalOpen, setIsStockSelectModalOpen] = useState(false);
+  const [selectedStockIds, setSelectedStockIds] = useState<string[]>([]);
 
   const [editingItem, setEditingItem] = useState<InventoryItem | null>(null);
   const [editingProduct, setEditingProduct] = useState<Product | null>(null);
@@ -246,8 +247,8 @@ const Inventory: React.FC = () => {
       {/* MODAL INSUMO */}
       {isInvModalOpen && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-sm">
-          <div className="bg-white dark:bg-slate-900 rounded-[2.5rem] shadow-2xl w-full max-w-sm overflow-hidden animate-in zoom-in duration-200 border border-transparent dark:border-slate-800">
-            <div className="p-8 border-b border-slate-50 dark:border-slate-800 bg-slate-50 dark:bg-slate-900 flex justify-between items-center">
+          <div className="bg-white dark:bg-slate-900 rounded-[2.5rem] shadow-2xl w-full max-w-sm flex flex-col max-h-[90vh] overflow-hidden animate-in zoom-in duration-200 border border-transparent dark:border-slate-800">
+            <div className="p-8 border-b border-slate-50 dark:border-slate-800 bg-slate-50 dark:bg-slate-900 flex justify-between items-center shrink-0">
               <h3 className="text-xl font-black text-slate-800 dark:text-white uppercase tracking-tighter">{editingItem ? 'Editar Insumo' : 'Novo Insumo'}</h3>
               <div className="flex items-center gap-4">
                 <button
@@ -262,7 +263,7 @@ const Inventory: React.FC = () => {
                 </button>
               </div>
             </div>
-            <form id="inv-item-form" onSubmit={saveInvItem} className="p-8 space-y-5">
+            <form id="inv-item-form" onSubmit={saveInvItem} className="p-8 space-y-5 overflow-y-auto custom-scrollbar">
               <div className="space-y-1">
                 <label className="text-[10px] font-black text-slate-400 dark:text-slate-500 uppercase tracking-widest ml-1">Nome do Insumo</label>
                 <input type="text" required value={invFormData.name} onChange={e => setInvFormData({ ...invFormData, name: e.target.value })} className="w-full p-4 bg-slate-100 dark:bg-slate-800 border-none rounded-2xl focus:ring-2 focus:ring-blue-500 font-bold text-sm text-slate-800 dark:text-white placeholder:text-slate-400 dark:placeholder:text-slate-600" placeholder="Ex: Pão Brioche" />
@@ -301,8 +302,8 @@ const Inventory: React.FC = () => {
       {/* MODAL PRODUTO */}
       {isProdModalOpen && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-sm">
-          <div className="bg-white dark:bg-slate-900 rounded-[2.5rem] shadow-2xl w-full max-w-md overflow-hidden animate-in zoom-in duration-200 border border-transparent dark:border-slate-800">
-            <div className="p-8 border-b border-slate-50 dark:border-slate-800 bg-slate-50 dark:bg-slate-900 flex justify-between items-center">
+          <div className="bg-white dark:bg-slate-900 rounded-[2.5rem] shadow-2xl w-full max-w-md flex flex-col max-h-[90vh] overflow-hidden animate-in zoom-in duration-200 border border-transparent dark:border-slate-800">
+            <div className="p-8 border-b border-slate-50 dark:border-slate-800 bg-slate-50 dark:bg-slate-900 flex justify-between items-center shrink-0">
               <h3 className="text-xl font-black text-slate-800 dark:text-white uppercase tracking-tighter">{editingProduct ? 'Editar' : 'Novo'} Produto</h3>
               <div className="flex items-center gap-4">
                 <button
@@ -317,7 +318,7 @@ const Inventory: React.FC = () => {
                 </button>
               </div>
             </div>
-            <form id="product-form" onSubmit={saveProduct} className="p-10 space-y-5">
+            <form id="product-form" onSubmit={saveProduct} className="p-10 space-y-5 overflow-y-auto custom-scrollbar">
               <div className="space-y-1">
                 <label className="text-[10px] font-black text-slate-400 dark:text-slate-500 uppercase tracking-widest ml-1">Nome do Produto</label>
                 <input type="text" placeholder="Ex: Burger Bacon" required value={prodFormData.name} onChange={e => setProdFormData({ ...prodFormData, name: e.target.value })} className="w-full p-4 bg-slate-100 dark:bg-slate-800 border-none rounded-2xl focus:ring-2 focus:ring-blue-500 font-bold text-sm text-slate-800 dark:text-white placeholder:text-slate-400 dark:placeholder:text-slate-600" />
@@ -337,57 +338,60 @@ const Inventory: React.FC = () => {
                 <div className="flex gap-2">
                   <input type="text" value={prodFormData.imageUrl} onChange={e => setProdFormData({ ...prodFormData, imageUrl: e.target.value })} className="flex-1 p-4 bg-slate-100 dark:bg-slate-800 border-none rounded-2xl text-[10px] font-bold text-slate-800 dark:text-white" placeholder="URL da imagem..." />
                   <button type="button" onClick={() => fileInputRef.current?.click()} className="p-4 bg-blue-600 text-white rounded-2xl text-[10px] font-black shadow-lg shadow-blue-100 dark:shadow-blue-900/20">UP</button>
+                  <input type="file" accept="image/*" ref={fileInputRef} onChange={handleFileUpload} className="hidden" />
                 </div>
               </div>
 
-              <div className="space-y-4">
-                <label className="text-[10px] font-black text-slate-400 dark:text-slate-500 uppercase tracking-widest ml-1">Modo de Preparo / Ficha Técnica</label>
-                <textarea
-                  placeholder="Instruções para a cozinha..."
-                  value={prodFormData.preparation}
-                  onChange={e => setProdFormData({ ...prodFormData, preparation: e.target.value })}
-                  className="w-full p-4 bg-slate-100 dark:bg-slate-800 border-none rounded-2xl focus:ring-2 focus:ring-blue-500 font-bold text-sm text-slate-800 dark:text-white placeholder:text-slate-400 dark:placeholder:text-slate-600 min-h-[80px] resize-none"
-                />
-
-                {!prodFormData.isCombo && (
+              <div className="space-y-4">                {!prodFormData.isCombo && (
                   <div className="bg-slate-50 dark:bg-slate-800/50 rounded-2xl p-4 border border-slate-100 dark:border-slate-800 space-y-3">
                     <p className="text-[10px] font-black text-slate-400 dark:text-slate-500 uppercase tracking-widest">
                       Insumos do Estoque (Composição)
                     </p>
-                    {tempRecipe.length > 0 ? tempRecipe.map((item, index) => (
-                      <div key={index} className="flex gap-2 items-end">
-                        <div className="flex-1">
-                          <select value={item.inventoryItemId} onChange={e => { const updated = [...tempRecipe]; updated[index].inventoryItemId = e.target.value; setTempRecipe(updated); }} className="w-full p-3 bg-white dark:bg-slate-900 border-none rounded-xl text-xs font-bold text-slate-800 dark:text-white">
-                            <option value="">Selecione Insumo...</option>
-                            {inventory.map(inv => <option key={inv.id} value={inv.id}>{inv.name} ({inv.unit})</option>)}
-                          </select>
+                    {tempRecipe.length > 0 ? (
+                      <div className="space-y-3 overflow-y-auto max-h-[140px] pr-2 pb-2 custom-scrollbar">
+                        <div className="flex gap-2 px-1 mb-1">
+                          <div className="flex-1 text-[9px] font-black text-slate-400 dark:text-slate-500 uppercase tracking-widest">Insumo</div>
+                          <div className="w-20 text-[9px] font-black text-slate-400 dark:text-slate-500 uppercase tracking-widest text-center">Qtd</div>
+                          <div className="w-20 text-[9px] font-black text-slate-400 dark:text-slate-500 uppercase tracking-widest text-center">Perda %</div>
+                          <div className="w-10"></div>
                         </div>
-                        <div className="w-20">
-                          <input type="number" step="0.01" placeholder="Qtd" value={item.quantity} onChange={e => { const updated = [...tempRecipe]; updated[index].quantity = parseFloat(e.target.value) || 0; setTempRecipe(updated); }} className="w-full p-3 bg-white dark:bg-slate-900 border-none rounded-xl text-xs font-bold text-slate-800 dark:text-white" />
-                        </div>
-                        <div className="w-20">
-                          <input
-                            type="number"
-                            step="1"
-                            placeholder="Desp %"
-                            value={Math.round((item.wasteFactor - 1) * 100)}
-                            onChange={e => {
-                              const percentage = parseFloat(e.target.value) || 0;
-                              const updated = [...tempRecipe];
-                              updated[index].wasteFactor = 1 + (percentage / 100);
-                              setTempRecipe(updated);
-                            }}
-                            className="w-full p-3 bg-white dark:bg-slate-900 border-none rounded-xl text-xs font-bold text-slate-800 dark:text-white"
-                          />
-                        </div>
-                        <button type="button" onClick={() => setTempRecipe(tempRecipe.filter((_, i) => i !== index))} className="p-3 text-red-500 hover:bg-red-50 dark:hover:bg-red-900/20 rounded-xl transition-all shrink-0"><Icons.Delete className="h-4 w-4" /></button>
+                        {tempRecipe.map((item, index) => (
+                          <div key={index} className="flex gap-2 items-center">
+                            <div className="flex-1">
+                              <div className="w-full p-3 bg-slate-100 dark:bg-slate-800 border-none rounded-xl text-xs font-bold text-slate-500 dark:text-slate-400 truncate cursor-not-allowed select-none flex items-center h-[40px]">
+                                {inventory.find(inv => inv.id === item.inventoryItemId)?.name || 'Insumo Selecionado'}
+                              </div>
+                            </div>
+                            <div className="w-20">
+                              <input type="number" step="0.01" placeholder="0" value={item.quantity === 0 ? '' : item.quantity} onChange={e => { const updated = [...tempRecipe]; updated[index].quantity = e.target.value === '' ? 0 : parseFloat(e.target.value); setTempRecipe(updated); }} className="w-full p-3 bg-white dark:bg-slate-900 border-none rounded-xl text-xs font-bold text-slate-800 dark:text-white text-center focus:ring-2 focus:ring-blue-500 [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none" />
+                            </div>
+                            <div className="w-20">
+                              <input
+                                type="number"
+                                step="1"
+                                placeholder="0"
+                                value={item.wasteFactor === 1 ? '' : Math.round((item.wasteFactor - 1) * 100)}
+                                onChange={e => {
+                                  const percentage = e.target.value === '' ? 0 : parseFloat(e.target.value);
+                                  const updated = [...tempRecipe];
+                                  updated[index].wasteFactor = 1 + (percentage / 100);
+                                  setTempRecipe(updated);
+                                }}
+                                className="w-full p-3 bg-white dark:bg-slate-900 border-none rounded-xl text-xs font-bold text-slate-800 dark:text-white text-center focus:ring-2 focus:ring-blue-500 [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
+                              />
+                            </div>
+                            <button type="button" onClick={() => setTempRecipe(tempRecipe.filter((_, i) => i !== index))} className="p-3 text-red-500 hover:bg-red-50 dark:hover:bg-red-900/20 rounded-xl transition-all shrink-0"><Icons.Delete className="h-4 w-4" /></button>
+                          </div>
+                        ))}
                       </div>
-                    )) : (
+                    ) : (
                       <p className="text-center text-slate-400 dark:text-slate-500 text-[10px] italic py-3">Sem insumos vinculados para baixa de estoque.</p>
                     )}
-                    <button type="button" onClick={() => setTempRecipe([...tempRecipe, { inventoryItemId: inventory[0]?.id || '', quantity: 0, wasteFactor: 1 }])} className="w-full py-3 border-2 border-dashed border-slate-200 dark:border-slate-700 rounded-xl text-[10px] font-black uppercase text-slate-400 hover:text-blue-500 hover:border-blue-200 transition-colors">
-                      + Adicionar Insumo
-                    </button>
+                    <div className="pt-2">
+                      <button type="button" onClick={() => { setSelectedStockIds(tempRecipe.map(r => r.inventoryItemId).filter(id => id !== '')); setIsStockSelectModalOpen(true); }} className="w-full py-3 border-2 border-dashed border-slate-200 dark:border-slate-700 rounded-xl text-[10px] font-black uppercase text-slate-400 hover:text-blue-500 hover:border-blue-200 transition-colors">
+                        + Adicionar Insumo
+                      </button>
+                    </div>
                   </div>
                 )}
               </div>
@@ -429,54 +433,105 @@ const Inventory: React.FC = () => {
                     <p className="text-[10px] font-black text-slate-400 dark:text-slate-500 uppercase tracking-widest">
                       Produtos do Combo
                     </p>
-                    {tempComboItems.map((item, idx) => (
-                      <div key={idx} className="flex gap-2">
-                        <select
-                          value={item.productId}
-                          onChange={(e) => {
-                            const newComboItems = [...tempComboItems];
-                            newComboItems[idx].productId = e.target.value;
-                            setTempComboItems(newComboItems);
-                          }}
-                          className="flex-1 p-3 bg-white dark:bg-slate-900 border-none rounded-xl font-bold text-xs text-slate-800 dark:text-white"
-                        >
-                          <option value="">Selecione um Produto...</option>
-                          {products.filter(p => p.id !== editingProduct?.id).map((p) => (
-                            <option key={p.id} value={p.id}>{p.name}</option>
-                          ))}
-                        </select>
-                        <input
-                          type="number"
-                          placeholder="Qtd"
-                          value={item.quantity}
-                          min={1}
-                          onChange={(e) => {
-                            const newComboItems = [...tempComboItems];
-                            newComboItems[idx].quantity = parseInt(e.target.value) || 1;
-                            setTempComboItems(newComboItems);
-                          }}
-                          className="w-16 p-3 bg-white dark:bg-slate-900 border-none rounded-xl font-bold text-xs text-center text-slate-800 dark:text-white"
-                        />
-                        <button
-                          type="button"
-                          onClick={() => setTempComboItems(tempComboItems.filter((_, i) => i !== idx))}
-                          className="w-10 flex items-center justify-center text-red-500 hover:bg-red-50 dark:hover:bg-red-900/20 rounded-xl"
-                        >
-                          <Icons.Delete size={16} />
-                        </button>
-                      </div>
-                    ))}
-                    <button
-                      type="button"
-                      onClick={() => setTempComboItems([...tempComboItems, { productId: '', quantity: 1 }])}
-                      className="w-full py-3 border-2 border-dashed border-slate-200 dark:border-slate-700 rounded-xl text-[10px] font-black uppercase text-slate-400 hover:text-blue-500 hover:border-blue-200 transition-colors"
-                    >
-                      + Adicionar Produto
-                    </button>
+                    <div className="space-y-3 overflow-y-auto max-h-[140px] pr-2 pb-2 custom-scrollbar">
+                      {tempComboItems.map((item, idx) => (
+                        <div key={idx} className="flex gap-2 items-center">
+                          <select
+                            value={item.productId}
+                            onChange={(e) => {
+                              const newComboItems = [...tempComboItems];
+                              newComboItems[idx].productId = e.target.value;
+                              setTempComboItems(newComboItems);
+                            }}
+                            className="flex-1 p-3 bg-white dark:bg-slate-900 border-none rounded-xl font-bold text-xs text-slate-800 dark:text-white focus:ring-2 focus:ring-blue-500"
+                          >
+                            <option value="">Selecione um Produto...</option>
+                            {products.filter(p => p.id !== editingProduct?.id).map((p) => (
+                              <option key={p.id} value={p.id}>{p.name}</option>
+                            ))}
+                          </select>
+                          <input
+                            type="number"
+                            placeholder="Qtd"
+                            value={item.quantity === 0 ? '' : item.quantity}
+                            min={1}
+                            onChange={(e) => {
+                              const newComboItems = [...tempComboItems];
+                              newComboItems[idx].quantity = e.target.value === '' ? 0 : parseInt(e.target.value);
+                              setTempComboItems(newComboItems);
+                            }}
+                            className="w-16 p-3 bg-white dark:bg-slate-900 border-none rounded-xl font-bold text-xs text-center text-slate-800 dark:text-white focus:ring-2 focus:ring-blue-500 [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
+                          />
+                          <button
+                            type="button"
+                            onClick={() => setTempComboItems(tempComboItems.filter((_, i) => i !== idx))}
+                            className="w-10 flex items-center justify-center text-red-500 hover:bg-red-50 dark:hover:bg-red-900/20 rounded-xl"
+                          >
+                            <Icons.Delete size={16} />
+                          </button>
+                        </div>
+                      ))}
+                    </div>
+                    <div className="pt-2">
+                      <button
+                        type="button"
+                        onClick={() => setTempComboItems([...tempComboItems, { productId: '', quantity: 1 }])}
+                        className="w-full py-3 border-2 border-dashed border-slate-200 dark:border-slate-700 rounded-xl text-[10px] font-black uppercase text-slate-400 hover:text-blue-500 hover:border-blue-200 transition-colors"
+                      >
+                        + Adicionar Produto
+                      </button>
+                    </div>
                   </div>
                 )}
               </div>
             </form>
+          </div>
+        </div>
+      )}
+
+      {/* MODAL SELEÇÃO DE INSUMOS */}
+      {isStockSelectModalOpen && (
+        <div className="fixed inset-0 z-[60] flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-sm">
+          <div className="bg-white dark:bg-slate-900 rounded-[2.5rem] shadow-2xl w-full max-w-sm flex flex-col max-h-[80vh] overflow-hidden animate-in zoom-in duration-200 border border-transparent dark:border-slate-800">
+            <div className="p-8 border-b border-slate-50 dark:border-slate-800 bg-slate-50 dark:bg-slate-900 flex justify-between items-center shrink-0">
+              <h3 className="text-lg font-black text-slate-800 dark:text-white uppercase tracking-tighter">Selecionar Insumos</h3>
+              <button type="button" onClick={() => setIsStockSelectModalOpen(false)} className="p-2 text-slate-400 dark:text-slate-500 hover:text-slate-600 dark:hover:text-slate-300 transition-colors">
+                <Icons.X className="h-6 w-6" />
+              </button>
+            </div>
+            <div className="p-6 overflow-y-auto custom-scrollbar flex-1 space-y-2">
+              {inventory.length > 0 ? inventory.map(inv => (
+                <div key={inv.id} className="flex items-center gap-3 p-3 bg-slate-50 dark:bg-slate-800/50 rounded-xl border border-slate-100 dark:border-slate-800 cursor-pointer hover:border-blue-200 dark:hover:border-blue-900/50 transition-colors" onClick={() => {
+                  setSelectedStockIds(prev => prev.includes(inv.id) ? prev.filter(id => id !== inv.id) : [...prev, inv.id]);
+                }}>
+                  <input type="checkbox" checked={selectedStockIds.includes(inv.id)} readOnly className="w-5 h-5 rounded-md border-slate-300 text-blue-600 focus:ring-blue-500 cursor-pointer" />
+                  <div className="flex-1">
+                    <p className="font-bold text-sm text-slate-800 dark:text-slate-200 uppercase">{inv.name}</p>
+                    <p className="text-[10px] text-slate-400 font-mono">Unidade: {inv.unit}</p>
+                  </div>
+                </div>
+              )) : (
+                <p className="text-center text-slate-400 dark:text-slate-500 text-[10px] italic py-3">Sem insumos cadastrados no estoque.</p>
+              )}
+            </div>
+            <div className="p-6 border-t border-slate-50 dark:border-slate-800 shrink-0">
+              <button
+                type="button"
+                onClick={() => {
+                  const newRecipe = tempRecipe.filter(r => selectedStockIds.includes(r.inventoryItemId));
+                  selectedStockIds.forEach(id => {
+                    if (!newRecipe.find(r => r.inventoryItemId === id)) {
+                      newRecipe.push({ inventoryItemId: id, quantity: 0, wasteFactor: 1 });
+                    }
+                  });
+                  setTempRecipe(newRecipe);
+                  setIsStockSelectModalOpen(false);
+                }}
+                className="w-full bg-blue-600 hover:bg-blue-700 text-white py-4 rounded-2xl font-black uppercase text-sm shadow-xl shadow-blue-500/20 active:scale-95 transition-all"
+              >
+                Confirmar Seleção ({selectedStockIds.length})
+              </button>
+            </div>
           </div>
         </div>
       )}
