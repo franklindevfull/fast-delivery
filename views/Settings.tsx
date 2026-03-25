@@ -296,15 +296,22 @@ const EntregadoresManagement: React.FC = () => {
 
     const saveDriver = async (e: React.FormEvent) => {
         e.preventDefault();
-        const driver: DeliveryDriver = {
+        const payload = {
             id: editingDriver?.id || `DRV-${Date.now()}`,
-            name: toTitleCase(formData.name), phone: formData.phone, email: formData.email, address: formData.address,
-            vehiclePlate: formData.type === 'Bicicleta' ? 'N/A' : (formData.plate || '---'),
-            vehicleModel: toTitleCase(formData.model), vehicleBrand: toTitleCase(formData.brand), vehicleType: formData.type,
+            name: toTitleCase(formData.name),
+            phone: formData.phone,
+            email: formData.email,
+            address: formData.address,
+            vehicle: {
+                plate: formData.type === 'Bicicleta' ? 'N/A' : (formData.plate || '---'),
+                model: toTitleCase(formData.model),
+                brand: toTitleCase(formData.brand),
+                type: formData.type
+            },
             status: editingDriver?.status || 'AVAILABLE',
             active: editingDriver?.active ?? true
         };
-        await db.saveDriver(driver);
+        await db.saveDriver(payload as any);
         refresh();
         setIsModalOpen(false);
     };
