@@ -228,6 +228,9 @@ class APIDBService {
     await this.logAction(this.getCurrentSession()?.user || null, 'SYSTEM_DELETE', `Item de estoque deletado: ${id}`);
     return resp;
   }
+  public async getLowStockItems(): Promise<InventoryItem[]> {
+    return this.request<InventoryItem[]>('/inventory/low-stock');
+  }
 
   // Products
   public async getProducts(): Promise<Product[]> { return this.request<Product[]>('/products'); }

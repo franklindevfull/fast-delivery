@@ -114,7 +114,11 @@ const Home: React.FC<HomeProps> = ({ cart, addToCart, updateQuantity }) => {
                                             </span>
 
                                             {/* Controles de Quantidade */}
-                                            {quantity > 0 ? (
+                                            {product.maxAvailability !== undefined && product.maxAvailability <= 0 ? (
+                                                <span className="px-3 sm:px-4 py-1.5 sm:py-2 bg-red-100 text-red-600 rounded-xl text-[9px] sm:text-[10px] font-black uppercase tracking-widest shrink-0">
+                                                    Esgotado
+                                                </span>
+                                            ) : quantity > 0 ? (
                                                 <div className="flex items-center bg-slate-100 rounded-xl p-0.5 sm:p-1 gap-1.5 sm:gap-2 shadow-inner shrink-0">
                                                     <button
                                                         onClick={() => updateQuantity(product.id, quantity - 1)}

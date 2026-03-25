@@ -172,7 +172,11 @@ const DirectOrderModal: React.FC<DirectOrderModalProps> = ({ user, onClose, onRe
                                         </div>
                                     </div>
                                     <div className="flex items-center gap-3 shrink-0">
-                                        {quantity > 0 ? (
+                                        {product.maxAvailability !== undefined && product.maxAvailability <= 0 ? (
+                                            <span className="px-2 py-1 bg-red-100 text-red-600 rounded-lg text-[9px] font-black uppercase tracking-widest">
+                                                Esgotado
+                                            </span>
+                                        ) : quantity > 0 ? (
                                             <div className="flex items-center bg-slate-50 rounded-lg p-0.5 gap-1 border border-slate-100">
                                                 <button
                                                     onClick={() => updateCartQuantity(product.id, -1)}

@@ -481,7 +481,11 @@ const TableDetails: React.FC<TableDetailsProps> = ({ table, user, onClose, onRef
                                             <div className="flex items-center gap-1.5 sm:gap-3 shrink-0">
                                                 <p className="text-[10px] sm:text-[11px] font-black text-blue-600 tracking-tighter shrink-0">R$ {product.price.toFixed(2)}</p>
 
-                                                {quantity > 0 ? (
+                                                {product.maxAvailability !== undefined && product.maxAvailability <= 0 ? (
+                                                    <span className="px-2 py-1 bg-red-100 text-red-600 rounded-lg text-[9px] font-black uppercase tracking-widest shrink-0">
+                                                        Esgotado
+                                                    </span>
+                                                ) : quantity > 0 ? (
                                                     <div className="flex items-center bg-slate-50 rounded-lg p-0.5 gap-1 border border-slate-100 shrink-0">
                                                         <button
                                                             onClick={() => updateCartQuantity(product.id, -1)}

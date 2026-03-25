@@ -178,6 +178,7 @@ export interface Product {
   price: number;
   category: string;
   stock: number;
+  maxAvailability?: number;
   imageUrl: string;
   recipe?: RecipeItem[];
   // Tax Fields

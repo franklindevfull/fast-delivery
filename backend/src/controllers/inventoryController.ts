@@ -64,3 +64,14 @@ export const deleteInventoryItem = async (req: Request, res: Response) => {
     await prisma.inventoryItem.delete({ where: { id: id as string } });
     res.json({ message: 'Item de estoque removido' });
 };
+
+export const getLowStockItems = async (req: Request, res: Response) => {
+    try {
+        const items = await prisma.inventoryItem.findMany({
+            where: { quantity: { lte: 0 } }
+        });
+        res.json(items);
+    } catch (error: any) {
+        res.status(500).json({ error: error.message });
+    }
+};

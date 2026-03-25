@@ -1,5 +1,6 @@
 import { Request, Response } from 'express';
 import prisma from '../prisma.js';
+import { calculateMaxAvailability } from '../utils/inventoryUtils.js';
 import { getIO } from '../socket.js';
 
 const mapOrderResponse = (order: any) => {
@@ -107,47 +108,82 @@ const syncClientStats = async (tx: any, order: any, oldStatus?: string) => {
     return finalClientId;
 };
 
+const processProductInventory = async (tx: any, product: any, productQtyMultiplier: number, type: 'DECREMENT' | 'INCREMENT', orderId?: string, productNamePrefix: string = '') => {
+    const productName = productNamePrefix ? `${productNamePrefix} > ${product.name}` : product.name || 'Produto';
+
+    // 1. Resale Item (No recipe, no combos)
+    if ((!product.recipe || product.recipe.length === 0) && (!product.comboItems || product.comboItems.length === 0)) {
+        await tx.product.update({
+            where: { id: product.id },
+            data: {
+                stock: type === 'DECREMENT' ? { decrement: productQtyMultiplier } : { increment: productQtyMultiplier }
+            }
+        });
+        return;
+    }
+
+    // 2. Produced Item (Has recipe)
+    if (product.recipe && product.recipe.length > 0) {
+        for (const r of product.recipe) {
+            if (!r.inventoryItemId || !r.inventoryItem) continue;
+            let q = parseFloat(r.quantity?.toString() || '0');
+            const wf = parseFloat(r.wasteFactor?.toString() || '1');
+            
+            // Ficha tecnica usually assumes smaller base units for Kg/L to avoid fractional UX.
+            // If Stock is in KG or L, we assume the Recipe was entered in G or ML.
+            const unitType = r.inventoryItem.unit;
+            if (unitType === 'KG' || unitType === 'L') {
+                q = q / 1000;
+            }
+
+            const quantityToChange = isNaN(q * productQtyMultiplier * wf) ? 0 : (q * productQtyMultiplier * wf);
+            if (quantityToChange === 0) continue;
+
+            await tx.inventoryItem.update({
+                where: { id: r.inventoryItemId },
+                data: {
+                    quantity: type === 'DECREMENT'
+                        ? { decrement: quantityToChange }
+                        : { increment: quantityToChange }
+                }
+            });
+
+            await tx.inventoryMovement.create({
+                data: {
+                    inventoryItemId: r.inventoryItemId,
+                    type: type === 'DECREMENT' ? 'OUTPUT' : 'INPUT',
+                    quantity: quantityToChange,
+                    reason: type === 'DECREMENT' ? `Venda: ${productName}` : `Estorno: ${productName}`,
+                    orderId: orderId
+                }
+            });
+        }
+    }
+
+    // 3. Combo Item (Recursion)
+    if (product.comboItems && product.comboItems.length > 0) {
+        for (const cItem of product.comboItems) {
+            if (!cItem.product) continue;
+            const subQty = cItem.quantity * productQtyMultiplier;
+            await processProductInventory(tx, cItem.product, subQty, type, orderId, productName);
+        }
+    }
+};
+
 const handleInventoryImpact = async (tx: any, items: any[], type: 'DECREMENT' | 'INCREMENT', orderId?: string) => {
     for (const item of items) {
         if (!item.productId) continue;
         const product = await tx.product.findUnique({
             where: { id: item.productId },
-            include: { recipe: { include: { inventoryItem: true } } }
+            include: { 
+                recipe: { include: { inventoryItem: true } },
+                comboItems: { include: { product: { include: { recipe: { include: { inventoryItem: true } } } } } }
+            }
         });
 
-        if (product && product.recipe && Array.isArray(product.recipe)) {
-            for (const r of product.recipe) {
-                if (!r.inventoryItemId) continue;
-                const q = parseFloat(r.quantity?.toString() || '0');
-                const iq = parseFloat(item.quantity?.toString() || '0');
-                const wf = parseFloat(r.wasteFactor?.toString() || '1');
-                const quantityToChange = isNaN(q * iq * wf) ? 0 : (q * iq * wf);
-
-                if (quantityToChange === 0) continue;
-
-                await tx.inventoryItem.update({
-                    where: { id: r.inventoryItemId },
-                    data: {
-                        quantity: type === 'DECREMENT'
-                            ? { decrement: quantityToChange }
-                            : { increment: quantityToChange }
-                    }
-                });
-
-                // Get product name for cleaner reason
-                const productName = product.name || 'Produto';
-
-                // Log movement
-                await tx.inventoryMovement.create({
-                    data: {
-                        inventoryItemId: r.inventoryItemId,
-                        type: type === 'DECREMENT' ? 'OUTPUT' : 'INPUT',
-                        quantity: quantityToChange,
-                        reason: type === 'DECREMENT' ? `Venda: ${productName}` : `Estorno: ${productName}`,
-                        orderId: orderId
-                    }
-                });
-            }
+        if (product) {
+            const iq = parseFloat(item.quantity?.toString() || '0');
+            await processProductInventory(tx, product, iq, type, orderId);
         }
     }
 };
@@ -250,6 +286,31 @@ export const saveOrder = async (req: Request, res: Response) => {
 
     try {
         let isNewItemsAdded = false;
+
+        // Block Zero Stock Items
+        if (!order.id || order.id.startsWith('new-') || order.status === 'PENDING') {
+            const productIds = (order.items || []).map((i: any) => i.productId).filter(Boolean);
+            if (productIds.length > 0) {
+                const productsRequired = await prisma.product.findMany({
+                    where: { id: { in: productIds } },
+                    include: { 
+                        recipe: { include: { inventoryItem: true } }, 
+                        comboItems: { include: { product: { include: { recipe: { include: { inventoryItem: true } }, comboItems: { include: { product: { include: { recipe: { include: { inventoryItem: true } } } } } } } } } } 
+                    }
+                });
+
+                for (const item of (order.items || [])) {
+                    const p = productsRequired.find(pr => pr.id === item.productId);
+                    if (!p) continue;
+                    const maxAvail = calculateMaxAvailability(p);
+                    const reqQty = Number(item.quantity) || 1;
+                    
+                    if (reqQty > maxAvail) {
+                        return res.status(400).json({ error: `Estoque insuficiente para o produto: ${p.name}. (Disponível: ${maxAvail})` });
+                    }
+                }
+            }
+        }
 
         const result = await prisma.$transaction(async (tx: any) => {
             const existingOrder = await tx.order.findUnique({

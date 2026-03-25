@@ -15,7 +15,6 @@ const Inventory: React.FC = () => {
 
   const [isInvModalOpen, setIsInvModalOpen] = useState(false);
   const [isProdModalOpen, setIsProdModalOpen] = useState(false);
-  const [isRecipeModalOpen, setIsRecipeModalOpen] = useState(false);
 
   const [editingItem, setEditingItem] = useState<InventoryItem | null>(null);
   const [editingProduct, setEditingProduct] = useState<Product | null>(null);
@@ -26,10 +25,11 @@ const Inventory: React.FC = () => {
 
   const [prodFormData, setProdFormData] = useState({
     name: '', price: 0, category: '', imageUrl: '', stock: 0,
-    ncm: '', cfop: '', cest: '', preparation: ''
+    ncm: '', cfop: '', cest: '', preparation: '', isCombo: false
   });
 
   const [tempRecipe, setTempRecipe] = useState<RecipeItem[]>([]);
+  const [tempComboItems, setTempComboItems] = useState<{ productId: string, quantity: number }[]>([]);
 
   const [alertConfig, setAlertConfig] = useState<{ isOpen: boolean, title: string, message: string, onConfirm: () => void, onCancel?: () => void, type: 'INFO' | 'DANGER' | 'SUCCESS' }>({
     isOpen: false, title: '', message: '', onConfirm: () => { }, type: 'INFO'
@@ -102,11 +102,16 @@ const Inventory: React.FC = () => {
         ncm: product.ncm || '',
         cfop: product.cfop || '',
         cest: product.cest || '',
-        preparation: product.preparation || ''
+        preparation: product.preparation || '',
+        isCombo: (product.comboItems?.length ?? 0) > 0
       });
+      setTempRecipe(product.recipe || []);
+      setTempComboItems(product.comboItems?.map(ci => ({ productId: ci.productId, quantity: ci.quantity })) || []);
     } else {
       setEditingProduct(null);
-      setProdFormData({ name: '', price: 0, category: 'Geral', imageUrl: '', stock: 0, ncm: '', cfop: '', cest: '', preparation: '' });
+      setProdFormData({ name: '', price: 0, category: 'Geral', imageUrl: '', stock: 0, ncm: '', cfop: '', cest: '', preparation: '', isCombo: false });
+      setTempRecipe([]);
+      setTempComboItems([]);
     }
     setIsProdModalOpen(true);
   };
@@ -123,7 +128,12 @@ const Inventory: React.FC = () => {
   const saveProduct = async (e: React.FormEvent) => {
     e.preventDefault();
     try {
-      await db.saveProduct({ id: editingProduct?.id || `prod-${Date.now()}`, ...prodFormData, recipe: editingProduct?.recipe || [] });
+      await db.saveProduct({ 
+        id: editingProduct?.id || `prod-${Date.now()}`, 
+        ...prodFormData,
+        recipe: tempRecipe,
+        comboItems: prodFormData.isCombo ? tempComboItems : []
+      });
       await refreshData();
       setIsProdModalOpen(false);
     } catch (error) {
@@ -131,13 +141,7 @@ const Inventory: React.FC = () => {
     }
   };
 
-  const saveRecipe = async () => {
-    if (editingProduct) {
-      await db.updateProductRecipe(editingProduct.id, tempRecipe);
-      await refreshData();
-      setIsRecipeModalOpen(false);
-    }
-  };
+
 
   const deleteProd = async (id: string) => {
     showAlert(
@@ -224,11 +228,7 @@ const Inventory: React.FC = () => {
               <div className="flex gap-1.5">
                 <button onClick={() => openProdModal(product)} className="flex-1 py-3 bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-600 dark:text-slate-300 rounded-2xl text-[9px] font-black uppercase transition-all flex items-center justify-center gap-1.5" title="Editar">
                   <Icons.Edit className="w-3.5 h-3.5 flex-shrink-0" />
-                  <span className="truncate">Editar</span>
-                </button>
-                <button onClick={() => { setEditingProduct(product); setTempRecipe(product.recipe || []); setIsRecipeModalOpen(true); }} className="flex-1 py-3 bg-blue-50 dark:bg-blue-900/20 hover:bg-blue-100 dark:hover:bg-blue-900/40 text-blue-600 dark:text-blue-400 rounded-2xl text-[9px] font-black uppercase transition-all flex items-center justify-center gap-1.5" title="Ficha Técnica">
-                  <Icons.View className="w-3.5 h-3.5 flex-shrink-0" />
-                  <span className="truncate">Ficha</span>
+                  <span className="truncate">Editar / Ficha</span>
                 </button>
                 <button onClick={() => deleteProd(product.id)} className="w-12 py-3 bg-red-50 dark:bg-red-900/20 hover:bg-red-100 dark:hover:bg-red-900/40 text-red-600 dark:text-red-400 rounded-2xl transition-all flex items-center justify-center flex-shrink-0" title="Excluir">
                   <Icons.Delete className="w-4 h-4" />
@@ -340,14 +340,56 @@ const Inventory: React.FC = () => {
                 </div>
               </div>
 
-              <div className="space-y-1">
+              <div className="space-y-4">
                 <label className="text-[10px] font-black text-slate-400 dark:text-slate-500 uppercase tracking-widest ml-1">Modo de Preparo / Ficha Técnica</label>
                 <textarea
                   placeholder="Instruções para a cozinha..."
                   value={prodFormData.preparation}
                   onChange={e => setProdFormData({ ...prodFormData, preparation: e.target.value })}
-                  className="w-full p-4 bg-slate-100 dark:bg-slate-800 border-none rounded-2xl focus:ring-2 focus:ring-blue-500 font-bold text-sm text-slate-800 dark:text-white placeholder:text-slate-400 dark:placeholder:text-slate-600 min-h-[120px] resize-none"
+                  className="w-full p-4 bg-slate-100 dark:bg-slate-800 border-none rounded-2xl focus:ring-2 focus:ring-blue-500 font-bold text-sm text-slate-800 dark:text-white placeholder:text-slate-400 dark:placeholder:text-slate-600 min-h-[80px] resize-none"
                 />
+
+                {!prodFormData.isCombo && (
+                  <div className="bg-slate-50 dark:bg-slate-800/50 rounded-2xl p-4 border border-slate-100 dark:border-slate-800 space-y-3">
+                    <p className="text-[10px] font-black text-slate-400 dark:text-slate-500 uppercase tracking-widest">
+                      Insumos do Estoque (Composição)
+                    </p>
+                    {tempRecipe.length > 0 ? tempRecipe.map((item, index) => (
+                      <div key={index} className="flex gap-2 items-end">
+                        <div className="flex-1">
+                          <select value={item.inventoryItemId} onChange={e => { const updated = [...tempRecipe]; updated[index].inventoryItemId = e.target.value; setTempRecipe(updated); }} className="w-full p-3 bg-white dark:bg-slate-900 border-none rounded-xl text-xs font-bold text-slate-800 dark:text-white">
+                            <option value="">Selecione Insumo...</option>
+                            {inventory.map(inv => <option key={inv.id} value={inv.id}>{inv.name} ({inv.unit})</option>)}
+                          </select>
+                        </div>
+                        <div className="w-20">
+                          <input type="number" step="0.01" placeholder="Qtd" value={item.quantity} onChange={e => { const updated = [...tempRecipe]; updated[index].quantity = parseFloat(e.target.value) || 0; setTempRecipe(updated); }} className="w-full p-3 bg-white dark:bg-slate-900 border-none rounded-xl text-xs font-bold text-slate-800 dark:text-white" />
+                        </div>
+                        <div className="w-20">
+                          <input
+                            type="number"
+                            step="1"
+                            placeholder="Desp %"
+                            value={Math.round((item.wasteFactor - 1) * 100)}
+                            onChange={e => {
+                              const percentage = parseFloat(e.target.value) || 0;
+                              const updated = [...tempRecipe];
+                              updated[index].wasteFactor = 1 + (percentage / 100);
+                              setTempRecipe(updated);
+                            }}
+                            className="w-full p-3 bg-white dark:bg-slate-900 border-none rounded-xl text-xs font-bold text-slate-800 dark:text-white"
+                          />
+                        </div>
+                        <button type="button" onClick={() => setTempRecipe(tempRecipe.filter((_, i) => i !== index))} className="p-3 text-red-500 hover:bg-red-50 dark:hover:bg-red-900/20 rounded-xl transition-all shrink-0"><Icons.Delete className="h-4 w-4" /></button>
+                      </div>
+                    )) : (
+                      <p className="text-center text-slate-400 dark:text-slate-500 text-[10px] italic py-3">Sem insumos vinculados para baixa de estoque.</p>
+                    )}
+                    <button type="button" onClick={() => setTempRecipe([...tempRecipe, { inventoryItemId: inventory[0]?.id || '', quantity: 0, wasteFactor: 1 }])} className="w-full py-3 border-2 border-dashed border-slate-200 dark:border-slate-700 rounded-xl text-[10px] font-black uppercase text-slate-400 hover:text-blue-500 hover:border-blue-200 transition-colors">
+                      + Adicionar Insumo
+                    </button>
+                  </div>
+                )}
               </div>
 
               <div className="pt-4 border-t border-slate-50 dark:border-slate-800 space-y-4">
@@ -367,67 +409,74 @@ const Inventory: React.FC = () => {
                   </div>
                 </div>
               </div>
-            </form>
-          </div>
-        </div>
-      )}
 
-      {/* MODAL FICHA TÉCNICA - ATUALIZADO COM DESPERDÍCIO */}
-      {isRecipeModalOpen && editingProduct && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-sm">
-          <div className="bg-white dark:bg-slate-900 rounded-[2.5rem] shadow-2xl w-full max-w-xl overflow-hidden animate-in zoom-in duration-200 border border-transparent dark:border-slate-800">
-            <div className="p-8 border-b border-slate-50 dark:border-slate-800 bg-slate-50 dark:bg-slate-900 flex justify-between items-center">
-              <h3 className="text-xl font-black text-slate-800 dark:text-white uppercase tracking-tighter">Ficha Técnica: {editingProduct.name}</h3>
-              <div className="flex items-center gap-4">
-                <button
-                  onClick={saveRecipe}
-                  className="w-12 h-12 bg-emerald-500 hover:bg-emerald-600 text-white rounded-full flex items-center justify-center shadow-lg shadow-emerald-200 dark:shadow-emerald-900/40 transition-all active:scale-95"
-                  title="Atualizar Ficha Técnica"
-                >
-                  <Icons.Check className="h-6 w-6" />
-                </button>
-                <button onClick={() => setIsRecipeModalOpen(false)} className="p-2 text-slate-400 dark:text-slate-500 hover:text-slate-600 dark:hover:text-slate-300 transition-colors">
-                  <Icons.X className="h-6 w-6" />
-                </button>
-              </div>
-            </div>
-            <div className="p-8 space-y-6 max-h-[60vh] overflow-y-auto">
-              {tempRecipe.length > 0 ? tempRecipe.map((item, index) => (
-                <div key={index} className="flex gap-3 items-end bg-slate-50 dark:bg-slate-800/40 p-5 rounded-3xl border border-slate-100 dark:border-slate-800">
-                  <div className="flex-1 space-y-1">
-                    <label className="text-[9px] font-black text-slate-400 dark:text-slate-500 uppercase tracking-widest ml-1">Insumo</label>
-                    <select value={item.inventoryItemId} onChange={e => { const updated = [...tempRecipe]; updated[index].inventoryItemId = e.target.value; setTempRecipe(updated); }} className="w-full p-3 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl text-xs font-bold outline-none text-slate-800 dark:text-white">
-                      <option value="">Selecione...</option>
-                      {inventory.map(inv => <option key={inv.id} value={inv.id}>{inv.name} ({inv.unit})</option>)}
-                    </select>
-                  </div>
-                  <div className="w-20 space-y-1">
-                    <label className="text-[9px] font-black text-slate-400 dark:text-slate-500 uppercase tracking-widest ml-1">Qtd</label>
-                    <input type="number" step="0.01" value={item.quantity} onChange={e => { const updated = [...tempRecipe]; updated[index].quantity = parseFloat(e.target.value) || 0; setTempRecipe(updated); }} className="w-full p-3 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl text-xs font-bold outline-none text-slate-800 dark:text-white" />
-                  </div>
-                  <div className="w-24 space-y-1">
-                    <label className="text-[9px] font-black text-slate-400 dark:text-slate-500 uppercase tracking-widest ml-1">Desp. (%)</label>
-                    <input
-                      type="number"
-                      step="1"
-                      placeholder="0"
-                      value={Math.round((item.wasteFactor - 1) * 100)}
-                      onChange={e => {
-                        const percentage = parseFloat(e.target.value) || 0;
-                        const updated = [...tempRecipe];
-                        updated[index].wasteFactor = 1 + (percentage / 100);
-                        setTempRecipe(updated);
-                      }}
-                      className="w-full p-3 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl text-xs font-bold outline-none text-slate-800 dark:text-white"
-                    />
-                  </div>
-                  <button onClick={() => setTempRecipe(tempRecipe.filter((_, i) => i !== index))} className="p-3 text-red-400 hover:bg-red-50 dark:hover:bg-red-900/20 rounded-xl transition-all"><Icons.Delete className="h-5 w-5" /></button>
+              <div className="pt-4 border-t border-slate-50 dark:border-slate-800 space-y-4">
+                <div className="flex items-center gap-3">
+                  <input
+                    type="checkbox"
+                    id="isCombo"
+                    checked={prodFormData.isCombo}
+                    onChange={(e) => setProdFormData({ ...prodFormData, isCombo: e.target.checked })}
+                    className="w-5 h-5 rounded-lg border-slate-300 text-blue-600 focus:ring-blue-500"
+                  />
+                  <label htmlFor="isCombo" className="text-sm font-black text-slate-800 dark:text-white cursor-pointer">
+                    Este produto é um Combo?
+                  </label>
                 </div>
-              )) : (
-                <p className="text-center text-slate-400 dark:text-slate-500 text-xs italic py-10">Nenhum insumo vinculado a esta receita.</p>
-              )}
-              <button onClick={() => setTempRecipe([...tempRecipe, { inventoryItemId: inventory[0]?.id || '', quantity: 0, wasteFactor: 1 }])} className="w-full py-6 border-2 border-dashed border-slate-200 dark:border-slate-800 rounded-3xl text-slate-400 dark:text-slate-500 text-[10px] font-black uppercase tracking-[0.2em] hover:text-blue-600 dark:hover:text-blue-400 hover:border-blue-200 dark:hover:border-blue-900 transition-all font-bold">+ Adicionar Insumo à Receita</button>
-            </div>
+
+                {prodFormData.isCombo && (
+                  <div className="bg-slate-50 dark:bg-slate-800/50 rounded-2xl p-4 border border-slate-100 dark:border-slate-800 space-y-3">
+                    <p className="text-[10px] font-black text-slate-400 dark:text-slate-500 uppercase tracking-widest">
+                      Produtos do Combo
+                    </p>
+                    {tempComboItems.map((item, idx) => (
+                      <div key={idx} className="flex gap-2">
+                        <select
+                          value={item.productId}
+                          onChange={(e) => {
+                            const newComboItems = [...tempComboItems];
+                            newComboItems[idx].productId = e.target.value;
+                            setTempComboItems(newComboItems);
+                          }}
+                          className="flex-1 p-3 bg-white dark:bg-slate-900 border-none rounded-xl font-bold text-xs text-slate-800 dark:text-white"
+                        >
+                          <option value="">Selecione um Produto...</option>
+                          {products.filter(p => p.id !== editingProduct?.id).map((p) => (
+                            <option key={p.id} value={p.id}>{p.name}</option>
+                          ))}
+                        </select>
+                        <input
+                          type="number"
+                          placeholder="Qtd"
+                          value={item.quantity}
+                          min={1}
+                          onChange={(e) => {
+                            const newComboItems = [...tempComboItems];
+                            newComboItems[idx].quantity = parseInt(e.target.value) || 1;
+                            setTempComboItems(newComboItems);
+                          }}
+                          className="w-16 p-3 bg-white dark:bg-slate-900 border-none rounded-xl font-bold text-xs text-center text-slate-800 dark:text-white"
+                        />
+                        <button
+                          type="button"
+                          onClick={() => setTempComboItems(tempComboItems.filter((_, i) => i !== idx))}
+                          className="w-10 flex items-center justify-center text-red-500 hover:bg-red-50 dark:hover:bg-red-900/20 rounded-xl"
+                        >
+                          <Icons.Delete size={16} />
+                        </button>
+                      </div>
+                    ))}
+                    <button
+                      type="button"
+                      onClick={() => setTempComboItems([...tempComboItems, { productId: '', quantity: 1 }])}
+                      className="w-full py-3 border-2 border-dashed border-slate-200 dark:border-slate-700 rounded-xl text-[10px] font-black uppercase text-slate-400 hover:text-blue-500 hover:border-blue-200 transition-colors"
+                    >
+                      + Adicionar Produto
+                    </button>
+                  </div>
+                )}
+              </div>
+            </form>
           </div>
         </div>
       )}

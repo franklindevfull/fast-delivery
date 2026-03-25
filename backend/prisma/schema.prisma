@@ -126,6 +126,8 @@ model Product {
   preparation String?
   recipe     RecipeItem[]
   orderItems OrderItem[]
+  comboItems   ComboItem[] @relation("ComboParent")
+  partOfCombos ComboItem[] @relation("ComboChild")
 }
 
 model InventoryItem {
@@ -158,6 +160,15 @@ model RecipeItem {
   inventoryItem   InventoryItem @relation(fields: [inventoryItemId], references: [id])
   quantity        Float
   wasteFactor     Float
+}
+
+model ComboItem {
+  id              String      @id @default(uuid())
+  comboId         String
+  combo           Product     @relation("ComboParent", fields: [comboId], references: [id])
+  productId       String
+  product         Product     @relation("ComboChild", fields: [productId], references: [id])
+  quantity        Int
 }
 
 model SupportMessage {

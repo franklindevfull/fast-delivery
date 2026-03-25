@@ -175,6 +175,13 @@ export interface Notification {
   createdAt: string;
 }
 
+export interface ComboItem {
+  id?: string;
+  productId: string;
+  comboId?: string;
+  quantity: number;
+}
+
 export interface Product {
   id: string;
   name: string;
@@ -184,6 +191,7 @@ export interface Product {
   imageUrl: string;
   preparation?: string;
   recipe?: RecipeItem[];
+  comboItems?: ComboItem[];
   // Tax Fields
   ncm?: string;
   cfop?: string;

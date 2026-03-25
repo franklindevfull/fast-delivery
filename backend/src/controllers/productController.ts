@@ -1,17 +1,28 @@
 import { Request, Response } from 'express';
 import prisma from '../prisma.js';
 
+import { calculateMaxAvailability } from '../utils/inventoryUtils.js';
+
 export const getAllProducts = async (req: Request, res: Response) => {
     const products = await prisma.product.findMany({
         where: { active: true },
-        include: { recipe: true }
+        include: { 
+            recipe: { include: { inventoryItem: true } }, 
+            comboItems: { include: { product: { include: { recipe: { include: { inventoryItem: true } }, comboItems: { include: { product: { include: { recipe: { include: { inventoryItem: true } } } } } } } } } } 
+        }
     });
-    res.json(products);
+
+    const productsWithAvailability = products.map((p: any) => ({
+        ...p,
+        maxAvailability: calculateMaxAvailability(p)
+    }));
+
+    res.json(productsWithAvailability);
 };
 
 export const saveProduct = async (req: Request, res: Response) => {
     const data = req.body;
-    const { recipe, user, ...productData } = data;
+    const { recipe, comboItems, user, ...productData } = data;
 
     const product = await prisma.product.upsert({
         where: { id: data.id || '' },
@@ -24,6 +35,13 @@ export const saveProduct = async (req: Request, res: Response) => {
                     quantity: r.quantity,
                     wasteFactor: r.wasteFactor
                 }))
+            } : undefined,
+            comboItems: comboItems ? {
+                deleteMany: {},
+                create: comboItems.map((c: any) => ({
+                    productId: c.productId,
+                    quantity: c.quantity
+                }))
             } : undefined
         },
         create: {
@@ -34,9 +52,15 @@ export const saveProduct = async (req: Request, res: Response) => {
                     quantity: r.quantity,
                     wasteFactor: r.wasteFactor
                 }))
+            } : undefined,
+            comboItems: comboItems ? {
+                create: comboItems.map((c: any) => ({
+                    productId: c.productId,
+                    quantity: c.quantity
+                }))
             } : undefined
         },
-        include: { recipe: true }
+        include: { recipe: true, comboItems: { include: { product: true } } }
     });
     res.json(product);
 
@@ -75,6 +99,14 @@ export const deleteProduct = async (req: Request, res: Response) => {
         // Permanent delete for items without history
         // Delete recipe first
         await prisma.recipeItem.deleteMany({
+            where: { productId: id }
+        });
+
+        // Delete combo mappings
+        await prisma.comboItem.deleteMany({
+            where: { comboId: id }
+        });
+        await prisma.comboItem.deleteMany({
             where: { productId: id }
         });
 

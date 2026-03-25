@@ -27,6 +27,7 @@ const Layout: React.FC<LayoutProps> = ({ children, activeTab, setActiveTab, curr
   const [shouldBlinkPOSFeedback, setShouldBlinkPOSFeedback] = useState(false);
   const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(true);
   const [settings, setSettings] = useState<BusinessSettings | null>(null);
+  const [lowStockCount, setLowStockCount] = useState(0);
   const { theme, toggleTheme } = useTheme();
   const { isAlerting } = useDigitalAlert();
   const lastOrdersMap = useRef<Record<string, { status: OrderStatus, itemCount: number }>>({});
@@ -138,6 +139,14 @@ const Layout: React.FC<LayoutProps> = ({ children, activeTab, setActiveTab, curr
         if (hasPendingDigital && !alertState.tables) audioAlert.play();
         if (hasReadyDelivery && !alertState.logistics) audioAlert.play();
         if (hasDeliveryAppOrders && !alertState.deliveryApp) audioAlert.play();
+      }
+
+      // 6. Checagem de Estoque Baixo (Background polling)
+      try {
+        const lowStock = await db.getLowStockItems();
+        setLowStockCount(lowStock.length);
+      } catch (e) {
+        // Ignora erro de pool silently
       }
 
       // Sincroniza estados anteriores para o próximo loop
@@ -324,6 +333,17 @@ const Layout: React.FC<LayoutProps> = ({ children, activeTab, setActiveTab, curr
             <h2 className="text-xs md:text-xl font-black text-slate-900 dark:text-white uppercase tracking-tighter transition-colors truncate">
               {navItems.find(i => i.id === activeTab)?.label || 'Acesso Negado'}
             </h2>
+
+            {lowStockCount > 0 && (
+              <div 
+                onClick={() => setActiveTab('inventory')}
+                className="hidden md:flex items-center gap-2 px-3 py-1.5 bg-rose-50 border border-rose-200 text-rose-600 rounded-xl cursor-pointer hover:bg-rose-100 transition-colors animate-in fade-in zoom-in"
+                title="Itens de estoque esgotados"
+              >
+                <Icons.Alert className="w-4 h-4" />
+                <span className="text-[10px] font-black uppercase tracking-widest">{lowStockCount} Esgotados</span>
+              </div>
+            )}
 
             <div className="h-8 w-[1px] bg-slate-200 hidden md:block"></div>
 
