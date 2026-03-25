@@ -59,214 +59,6 @@ const CheckoutTimer: React.FC<{ assignedAt: string, timeoutMinutes: number }> = 
   );
 };
 
-const FleetManagement: React.FC<{ refreshLogistics: () => void }> = ({ refreshLogistics }) => {
-  const [drivers, setDrivers] = useState<DeliveryDriver[]>([]);
-  const [isModalOpen, setIsModalOpen] = useState(false);
-  const [editingDriver, setEditingDriver] = useState<DeliveryDriver | null>(null);
-  const [formData, setFormData] = useState({
-    name: '', phone: '', email: '', address: '', plate: '', model: '', brand: '', type: 'Moto' as any
-  });
-  const [alertConfig, setAlertConfig] = useState<{ isOpen: boolean, title: string, message: string, type: 'SUCCESS' | 'ERROR' | 'DANGER', onConfirm?: () => void }>({
-    isOpen: false, title: '', message: '', type: 'SUCCESS'
-  });
-
-  const refresh = async () => setDrivers(await db.getDrivers());
-  useEffect(() => { refresh(); }, []);
-
-  const openModal = (driver?: DeliveryDriver) => {
-    if (driver) {
-      setEditingDriver(driver);
-      setFormData({
-        name: driver.name, phone: driver.phone, email: driver.email || '', address: driver.address || '',
-        plate: driver.vehiclePlate === 'N/A' ? '' : driver.vehiclePlate,
-        model: driver.vehicleModel, brand: driver.vehicleBrand, type: driver.vehicleType
-      });
-    } else {
-      setEditingDriver(null);
-      setFormData({ name: '', phone: '', email: '', address: '', plate: '', model: '', brand: '', type: 'Moto' });
-    }
-    setIsModalOpen(true);
-  };
-
-  const saveDriver = async (e: React.FormEvent) => {
-    e.preventDefault();
-    const driver: DeliveryDriver = {
-      id: editingDriver?.id || `DRV-${Date.now()}`,
-      name: formData.name, phone: formData.phone, email: formData.email, address: formData.address,
-      vehiclePlate: formData.type === 'Bicicleta' ? 'N/A' : (formData.plate || '---'),
-      vehicleModel: formData.model, vehicleBrand: formData.brand, vehicleType: formData.type,
-      status: editingDriver?.status || 'AVAILABLE',
-      active: editingDriver?.active ?? true
-    };
-    await db.saveDriver(driver);
-    refresh();
-    refreshLogistics();
-    setIsModalOpen(false);
-  };
-
-  const handleToggleStatus = async (driver: DeliveryDriver) => {
-    const action = driver.active ? 'inativar' : 'ativar';
-    setAlertConfig({
-      isOpen: true,
-      title: `${action.toUpperCase()} ENTREGADOR`,
-      message: `Tem certeza que deseja ${action} o acesso de ${driver.name}?`,
-      type: driver.active ? 'DANGER' : 'INFO',
-      onConfirm: async () => {
-        await db.toggleDriverStatus(driver.id, !driver.active);
-        refresh();
-        refreshLogistics();
-        setAlertConfig(prev => ({ ...prev, isOpen: false }));
-      }
-    });
-  };
-
-  const handleResetDriver = async (driver: DeliveryDriver) => {
-    setAlertConfig({
-      isOpen: true,
-      title: 'RESET DE SEGURANÇA',
-      message: `A senha de ${driver.name} será resetada para '123' e um novo código de recuperação será gerado. Prosseguir?`,
-      type: 'DANGER',
-      onConfirm: async () => {
-        await db.resetDriver(driver.id);
-        setAlertConfig(prev => ({ ...prev, isOpen: false }));
-      }
-    });
-  };
-
-  return (
-    <div className="space-y-6 animate-in fade-in duration-500">
-      <CustomAlert
-        isOpen={alertConfig.isOpen}
-        title={alertConfig.title}
-        message={alertConfig.message}
-        type={alertConfig.type}
-        onConfirm={alertConfig.onConfirm || (() => setAlertConfig(prev => ({ ...prev, isOpen: false })))}
-        onCancel={() => setAlertConfig(prev => ({ ...prev, isOpen: false }))}
-      />
-      <div className="flex justify-between items-center">
-        <div>
-          <h3 className="text-xl font-black text-slate-800 dark:text-white uppercase tracking-tighter">Frota de Entregadores</h3>
-          <p className="text-[10px] text-slate-400 font-bold uppercase tracking-widest">Base de entregadores cadastrados no sistema</p>
-        </div>
-        <button onClick={() => openModal()} className="bg-blue-600 hover:bg-blue-700 text-white px-6 py-3 rounded-2xl text-[10px] font-black uppercase tracking-widest shadow-lg shadow-blue-100 dark:shadow-blue-900/20 transition-all">+ Novo Entregador</button>
-      </div>
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-        {drivers.map(driver => (
-          <div key={driver.id} className={`bg-white dark:bg-slate-900 p-6 rounded-[2.5rem] border border-slate-100 dark:border-slate-800 flex flex-col group hover:shadow-xl transition-all relative overflow-hidden ${!driver.active ? 'opacity-50 grayscale' : ''}`}>
-            <div className="flex items-center gap-4 mb-4">
-              <div className="w-12 h-12 bg-slate-900 dark:bg-slate-800 text-white dark:text-slate-200 rounded-2xl flex items-center justify-center font-black uppercase tracking-widest text-sm relative">
-                {driver.name.substring(0, 2)}
-                {!driver.active && <div className="absolute -top-1 -right-1 w-4 h-4 bg-red-500 rounded-full border-2 border-white dark:border-slate-900"></div>}
-              </div>
-              <div className="flex-1 min-w-0">
-                <div className="flex items-center gap-2">
-                  <p className="font-black text-slate-800 dark:text-white uppercase text-xs truncate">{driver.name} {driver.vehicleType === 'Bicicleta' && '🚲'}</p>
-                  {!driver.active && <span className="text-[7px] bg-red-100 dark:bg-red-900/40 text-red-600 dark:text-red-400 font-black px-1.5 py-0.5 rounded-full uppercase tracking-widest shrink-0">Inativo</span>}
-                </div>
-                <p className="text-[10px] text-slate-400 dark:text-slate-500 font-bold uppercase tracking-widest">{driver.vehicleBrand} {driver.vehicleModel}</p>
-              </div>
-            </div>
-            <div className="flex justify-between items-center pt-4 border-t border-slate-50 dark:border-slate-800">
-              <div className="flex flex-col">
-                <span className="text-[8px] font-black text-slate-300 dark:text-slate-600 uppercase tracking-[0.2em] mb-1">Placa / Whats</span>
-                <span className="font-mono text-[10px] font-black text-slate-600 dark:text-slate-400 uppercase">{driver.vehiclePlate === 'N/A' ? driver.phone : driver.vehiclePlate}</span>
-              </div>
-              <div className="flex gap-2">
-                <button
-                  onClick={() => handleResetDriver(driver)}
-                  title="Resetar Segurança"
-                  className="p-3 bg-amber-50 dark:bg-amber-900/20 text-amber-600 dark:text-amber-400 rounded-xl hover:bg-amber-600 dark:hover:bg-amber-500 hover:text-white transition-all outline-none"
-                >
-                  <Icons.Clock size={16} />
-                </button>
-                <button
-                  onClick={() => openModal(driver)}
-                  title="Editar Dados"
-                  className="p-3 bg-slate-50 dark:bg-slate-800 text-blue-600 dark:text-blue-400 rounded-xl hover:bg-blue-600 dark:hover:bg-blue-500 hover:text-white transition-all outline-none"
-                >
-                  <Icons.Edit size={16} />
-                </button>
-                <button
-                  onClick={() => handleToggleStatus(driver)}
-                  title={driver.active ? 'Inativar Entregador' : 'Ativar Entregador'}
-                  className={`p-3 rounded-xl transition-all outline-none ${driver.active ? 'bg-red-50 dark:bg-red-900/40 text-red-600 dark:text-red-400 hover:bg-red-600 hover:text-white' : 'bg-emerald-50 dark:bg-emerald-900/40 text-emerald-600 dark:text-emerald-400 hover:bg-emerald-600 hover:text-white'}`}
-                >
-                  {driver.active ? <Icons.Delete size={16} /> : <Icons.User size={16} />}
-                </button>
-              </div>
-            </div>
-          </div>
-        ))}
-        {drivers.length === 0 && (
-          <div className="col-span-full py-20 text-center bg-white dark:bg-slate-900 rounded-3xl border-2 border-dashed border-slate-50 dark:border-slate-800 italic text-slate-300 dark:text-slate-700 text-xs font-black uppercase tracking-widest">
-            Nenhum entregador cadastrado
-          </div>
-        )}
-      </div>
-
-      {isModalOpen && (
-        <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-sm">
-          <div className="bg-white dark:bg-slate-900 rounded-[3rem] shadow-2xl w-full max-w-2xl overflow-hidden animate-in zoom-in duration-200 border border-transparent dark:border-slate-800">
-            <div className="p-10 pb-0 flex justify-between items-start">
-              <div>
-                <h3 className="text-2xl font-black text-slate-800 dark:text-white uppercase tracking-tighter mb-1">{editingDriver ? 'Editar Entregador' : 'Novo Entregador'}</h3>
-                <p className="text-[10px] text-slate-400 dark:text-slate-500 font-bold uppercase tracking-widest">Base de entregadores cadastrados no sistema</p>
-              </div>
-              <button onClick={() => setIsModalOpen(false)} className="p-3 bg-slate-50 dark:bg-slate-800 text-slate-400 dark:text-slate-500 rounded-2xl hover:text-red-500 transition-all">
-                <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>
-              </button>
-            </div>
-            <form onSubmit={saveDriver} className="p-10 space-y-8">
-              <div className="grid grid-cols-2 gap-6">
-                <div className="space-y-1">
-                  <label className="text-[10px] font-black text-slate-400 dark:text-slate-500 uppercase tracking-widest ml-1">Nome Completo</label>
-                  <input type="text" required value={formData.name} onChange={e => setFormData({ ...formData, name: e.target.value })} className="w-full p-4 bg-slate-100 dark:bg-slate-800 border-none rounded-2xl outline-none font-bold text-sm text-slate-800 dark:text-white" placeholder="Ex: Roberto Carlos" />
-                </div>
-                <div className="space-y-1">
-                  <label className="text-[10px] font-black text-slate-400 dark:text-slate-500 uppercase tracking-widest ml-1">Celular / Whats</label>
-                  <input type="text" required value={formData.phone} onChange={e => setFormData({ ...formData, phone: e.target.value })} className="w-full p-4 bg-slate-100 dark:bg-slate-800 border-none rounded-2xl outline-none font-bold text-sm text-slate-800 dark:text-white" placeholder="(00) 00000-0000" />
-                </div>
-                <div className="space-y-1 col-span-2">
-                  <label className="text-[10px] font-black text-slate-400 dark:text-slate-500 uppercase tracking-widest ml-1">Email <span className="text-blue-500 dark:text-blue-400 font-bold">(Obrigatório para login no App)</span></label>
-                  <input type="email" value={formData.email} onChange={e => setFormData({ ...formData, email: e.target.value })} className="w-full p-4 bg-slate-100 dark:bg-slate-800 border-none rounded-2xl outline-none font-bold text-sm text-slate-800 dark:text-white" placeholder="moto@exemplo.com" />
-                </div>
-              </div>
-              <div className="pt-6 border-t border-slate-100 dark:border-slate-800">
-                <h4 className="text-[10px] font-black text-slate-400 dark:text-slate-500 uppercase tracking-widest mb-6">Informações do Veículo</h4>
-                <div className="grid grid-cols-3 gap-4">
-                  <div className="space-y-1">
-                    <label className="text-[10px] font-black text-slate-400 dark:text-slate-500 uppercase tracking-widest ml-1">Tipo de Veículo</label>
-                    <select value={formData.type} onChange={e => setFormData({ ...formData, type: e.target.value as any })} className="w-full p-4 bg-slate-100 dark:bg-slate-800 border-none rounded-2xl outline-none font-bold text-sm text-slate-800 dark:text-white">
-                      <option value="Moto">Moto</option>
-                      <option value="Carro">Carro</option>
-                      <option value="Bicicleta">Bicicleta</option>
-                    </select>
-                  </div>
-                  <div className={`space-y-1 ${formData.type === 'Bicicleta' ? 'opacity-30 pointer-events-none' : ''}`}>
-                    <label className="text-[10px] font-black text-slate-400 dark:text-slate-500 uppercase tracking-widest ml-1">Identificação / Placa</label>
-                    <input
-                      type="text"
-                      value={formData.type === 'Bicicleta' ? 'N/A' : formData.plate}
-                      onChange={e => setFormData({ ...formData, plate: e.target.value.toUpperCase() })}
-                      className="w-full p-4 bg-slate-100 dark:bg-slate-800 border-none rounded-2xl outline-none font-bold text-sm font-mono uppercase text-slate-800 dark:text-white"
-                      placeholder={formData.type === 'Bicicleta' ? 'N/A' : 'ABC-1234'}
-                      disabled={formData.type === 'Bicicleta'}
-                    />
-                  </div>
-                  <div className="space-y-1">
-                    <label className="text-[10px] font-black text-slate-400 dark:text-slate-500 uppercase tracking-widest ml-1">Modelo / Cor</label>
-                    <input type="text" value={formData.model} onChange={e => setFormData({ ...formData, model: e.target.value })} className="w-full p-4 bg-slate-100 dark:bg-slate-800 border-none rounded-2xl outline-none font-bold text-sm text-slate-800 dark:text-white" placeholder="Ex: CB 500 / Azul" />
-                  </div>
-                </div>
-              </div>
-              <button type="submit" className="w-full py-5 bg-blue-600 text-white rounded-2xl font-black uppercase text-xs tracking-widest shadow-xl shadow-blue-100 dark:shadow-blue-900/20 hover:bg-blue-700 transition-all">Confirmar Registro</button>
-            </form>
-          </div>
-        </div>
-      )}
-    </div>
-  );
-};
 
 const Logistics: React.FC = () => {
   const { addToast } = useToast();
@@ -278,7 +70,7 @@ const Logistics: React.FC = () => {
   const [printingOrder, setPrintingOrder] = useState<Order | null>(null);
   const [isLoading, setIsLoading] = useState(false);
 
-  const [activeTab, setActiveTab] = useState<'PENDING' | 'HISTORY' | 'FROTA' | 'CHAT'>('PENDING');
+  const [activeTab, setActiveTab] = useState<'PENDING' | 'HISTORY' | 'CHAT'>('PENDING');
   const [historyOrders, setHistoryOrders] = useState<Order[]>([]);
   const [historyStartDate, setHistoryStartDate] = useState(getLocalIsoDate());
   const [historyEndDate, setHistoryEndDate] = useState(getLocalIsoDate());
@@ -445,12 +237,6 @@ const Logistics: React.FC = () => {
           Histórico
         </button>
         <button
-          onClick={() => setActiveTab('FROTA')}
-          className={`px-6 py-3 rounded-2xl text-[11px] font-black uppercase tracking-widest transition-all ${activeTab === 'FROTA' ? 'bg-slate-900 dark:bg-blue-600 text-white shadow-xl' : 'text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-800'}`}
-        >
-          Frota
-        </button>
-        <button
           onClick={() => setActiveTab('CHAT')}
           className={`px-6 py-3 rounded-2xl text-[11px] font-black uppercase tracking-widest transition-all relative ${activeTab === 'CHAT' ? 'bg-slate-900 dark:bg-blue-600 text-white shadow-xl' : 'text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-800'}`}
         >
@@ -554,8 +340,6 @@ const Logistics: React.FC = () => {
             </div>
           )}
         </div>
-      ) : activeTab === 'FROTA' ? (
-        <FleetManagement refreshLogistics={refreshData} />
       ) : activeTab === 'CHAT' ? (
         <div className="flex-1 min-h-0 bg-white dark:bg-slate-900 rounded-[2.5rem] border border-slate-100 dark:border-slate-800 shadow-sm flex overflow-hidden animate-in slide-in-from-right duration-500">
           {/* Sidebar de Chats */}
