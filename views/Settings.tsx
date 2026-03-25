@@ -12,6 +12,7 @@ import AuditLogs from './AuditLogs';
 const WaiterManagement: React.FC = () => {
     const [waiters, setWaiters] = useState<Waiter[]>([]);
     const [isModalOpen, setIsModalOpen] = useState(false);
+    const [showErrors, setShowErrors] = useState(false);
     const [editingWaiter, setEditingWaiter] = useState<Waiter | null>(null);
     const [formData, setFormData] = useState({ name: '', phone: '', email: '' });
     const [loading, setLoading] = useState(false);
@@ -24,13 +25,30 @@ const WaiterManagement: React.FC = () => {
     const refresh = async () => setWaiters(await db.getWaiters());
     useEffect(() => { refresh(); }, []);
 
-    const handleSave = async (e: React.FormEvent) => {
-        e.preventDefault();
+    const toTitleCase = (str: string) => {
+        return str.toLowerCase().replace(/(?:^|\s)\S/g, (a) => a.toUpperCase());
+    };
+
+    const handleSave = async (e?: React.FormEvent) => {
+        if (e) e.preventDefault();
+
+        // Validação manual
+        if (!formData.name.trim() || !formData.phone.trim() || !formData.email.trim()) {
+            setShowErrors(true);
+            addToast({
+                title: "CAMPOS OBRIGATÓRIOS",
+                message: "Por favor, preencha todos os campos do formulário.",
+                type: "DANGER"
+            });
+            return;
+        }
+
         setLoading(true);
         try {
             await db.saveWaiter({
                 id: editingWaiter?.id || `wa-${Date.now()}`,
-                ...formData
+                ...formData,
+                name: toTitleCase(formData.name)
             });
             setIsModalOpen(false);
             refresh();
@@ -169,16 +187,29 @@ const WaiterManagement: React.FC = () => {
             {isModalOpen && (
                 <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-sm animate-in fade-in duration-200">
                     <div className="bg-white dark:bg-slate-900 rounded-[2rem] sm:rounded-[3rem] shadow-2xl w-full max-w-xl border border-white/20 dark:border-slate-800 overflow-hidden animate-in zoom-in duration-300">
-                        <div className="p-6 sm:p-10 pb-0 flex justify-between items-start">
+                        <div className="p-6 sm:p-8 flex justify-between items-center border-b border-slate-100 dark:border-slate-800">
                             <div>
-                                <h4 className="text-xl sm:text-2xl font-black text-slate-800 dark:text-white uppercase tracking-tighter mb-1">
+                                <h4 className="text-xl font-black text-slate-800 dark:text-white uppercase tracking-tighter">
                                     {editingWaiter ? 'Editar Garçom' : 'Cadastrar Garçom'}
                                 </h4>
-                                <p className="text-[10px] text-slate-400 dark:text-slate-500 font-bold uppercase tracking-widest">Preencha os dados para acesso ao sistema</p>
+                                <p className="text-[10px] text-slate-400 dark:text-slate-500 font-bold uppercase tracking-widest">Dados de acesso ao sistema</p>
                             </div>
-                            <button onClick={() => setIsModalOpen(false)} className="p-3 bg-slate-50 dark:bg-slate-800 text-slate-400 dark:text-slate-500 rounded-2xl hover:text-red-500 transition-all">
-                                <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>
-                            </button>
+                            <div className="flex gap-2">
+                                <button
+                                    onClick={() => handleSave()}
+                                    title="Confirmar Alterações"
+                                    className="w-12 h-12 bg-emerald-500 hover:bg-emerald-600 text-white rounded-full flex items-center justify-center shadow-lg shadow-emerald-500/30 transition-all active:scale-90"
+                                >
+                                    <Icons.Check size={24} strokeWidth={3} />
+                                </button>
+                                <button
+                                    onClick={() => setIsModalOpen(false)}
+                                    title="Fechar"
+                                    className="w-12 h-12 bg-slate-100 dark:bg-slate-800 text-slate-500 dark:text-slate-400 rounded-full flex items-center justify-center hover:bg-red-500 hover:text-white transition-all active:scale-90"
+                                >
+                                    <Icons.X size={24} strokeWidth={3} />
+                                </button>
+                            </div>
                         </div>
 
                         <form onSubmit={handleSave} className="p-6 sm:p-10 space-y-6 sm:space-y-8">
@@ -187,10 +218,9 @@ const WaiterManagement: React.FC = () => {
                                     <label className="text-[10px] font-black text-slate-400 dark:text-slate-500 uppercase tracking-widest ml-2">Nome Completo</label>
                                     <input
                                         type="text"
-                                        required
                                         value={formData.name}
-                                        onChange={e => setFormData({ ...formData, name: e.target.value })}
-                                        className="w-full p-4 sm:p-5 bg-slate-50 dark:bg-slate-800 border-none rounded-2xl sm:rounded-[1.5rem] outline-none font-bold text-sm shadow-inner focus:ring-4 focus:ring-blue-100 dark:focus:ring-blue-900/20 transition-all text-slate-800 dark:text-white"
+                                        onChange={e => setFormData({ ...formData, name: toTitleCase(e.target.value) })}
+                                        className={`w-full p-4 sm:p-5 bg-slate-50 dark:bg-slate-800 rounded-2xl sm:rounded-[1.5rem] outline-none font-bold text-sm shadow-inner focus:ring-4 focus:ring-blue-100 dark:focus:ring-blue-900/20 transition-all text-slate-800 dark:text-white border-2 ${showErrors && !formData.name.trim() ? 'border-red-500 bg-red-50/50 dark:bg-red-900/20' : 'border-transparent'}`}
                                         placeholder="Ex: Miguel Falabela"
                                     />
                                 </div>
@@ -198,10 +228,9 @@ const WaiterManagement: React.FC = () => {
                                     <label className="text-[10px] font-black text-slate-400 dark:text-slate-500 uppercase tracking-widest ml-2">Celular / Whats</label>
                                     <input
                                         type="text"
-                                        required
                                         value={formData.phone}
                                         onChange={e => setFormData({ ...formData, phone: applyPhoneMask(e.target.value) })}
-                                        className="w-full p-4 sm:p-5 bg-slate-50 dark:bg-slate-800 border-none rounded-2xl sm:rounded-[1.5rem] outline-none font-bold text-sm shadow-inner focus:ring-4 focus:ring-blue-100 dark:focus:ring-blue-900/20 transition-all text-slate-800 dark:text-white"
+                                        className={`w-full p-4 sm:p-5 bg-slate-50 dark:bg-slate-800 rounded-2xl sm:rounded-[1.5rem] outline-none font-bold text-sm shadow-inner focus:ring-4 focus:ring-blue-100 dark:focus:ring-blue-900/20 transition-all text-slate-800 dark:text-white border-2 ${showErrors && !formData.phone.trim() ? 'border-red-500 bg-red-50/50 dark:bg-red-900/20' : 'border-transparent'}`}
                                         placeholder="(00) 0 0000-0000"
                                     />
                                 </div>
@@ -209,35 +238,18 @@ const WaiterManagement: React.FC = () => {
 
                             <div className="space-y-2">
                                 <label className="text-[10px] font-black text-blue-600 dark:text-blue-400 uppercase tracking-widest ml-2 flex items-center gap-2">
-                                    E-mail <span className="text-[8px] bg-blue-100 dark:bg-blue-900/30 px-2 py-0.5 rounded-full">(Obrigatório para login no app)</span>
+                                    E-mail <span className="text-[8px] bg-blue-100 dark:bg-blue-900/30 px-2 py-0.5 rounded-full">(Login do Garçom)</span>
                                 </label>
                                 <input
                                     type="email"
-                                    required
                                     value={formData.email}
                                     onChange={e => setFormData({ ...formData, email: e.target.value.toLowerCase() })}
-                                    className="w-full p-4 sm:p-5 bg-slate-50 dark:bg-slate-800 border-none rounded-2xl sm:rounded-[1.5rem] outline-none font-bold text-sm shadow-inner focus:ring-4 focus:ring-blue-100 dark:focus:ring-blue-900/20 transition-all text-slate-800 dark:text-white"
+                                    className={`w-full p-4 sm:p-5 bg-slate-50 dark:bg-slate-800 rounded-2xl sm:rounded-[1.5rem] outline-none font-bold text-sm shadow-inner focus:ring-4 focus:ring-blue-100 dark:focus:ring-blue-900/20 transition-all text-slate-800 dark:text-white border-2 ${showErrors && !formData.email.trim() ? 'border-red-500 bg-red-50/50 dark:bg-red-900/20' : 'border-transparent'}`}
                                     placeholder="exemplo@gmail.com"
                                 />
                                 <p className="text-[9px] text-slate-400 dark:text-slate-500 font-medium ml-2 mt-2 leading-relaxed">A senha padrão para novos usuários é: <span className="font-black text-blue-600 dark:text-blue-400">123</span></p>
                             </div>
 
-                            <div className="pt-6 border-t border-slate-100 dark:border-slate-800 flex flex-col sm:flex-row gap-3 sm:gap-4">
-                                <button
-                                    type="button"
-                                    onClick={() => setIsModalOpen(false)}
-                                    className="order-2 sm:order-1 flex-1 py-4 sm:py-5 font-black uppercase text-[11px] tracking-widest text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-800 rounded-2xl sm:rounded-[1.5rem] transition-all"
-                                >
-                                    Cancelar
-                                </button>
-                                <button
-                                    type="submit"
-                                    disabled={loading}
-                                    className="order-1 sm:order-2 flex-1 py-4 sm:py-5 bg-blue-600 text-white rounded-2xl sm:rounded-[1.5rem] font-black uppercase text-[11px] tracking-widest shadow-2xl shadow-blue-500/30 hover:bg-blue-700 active:scale-95 transition-all"
-                                >
-                                    {loading ? 'Salvando...' : 'Confirmar Registro'}
-                                </button>
-                            </div>
                         </form>
                     </div>
                 </div>
@@ -250,10 +262,12 @@ const WaiterManagement: React.FC = () => {
 const EntregadoresManagement: React.FC = () => {
     const [drivers, setDrivers] = useState<DeliveryDriver[]>([]);
     const [isModalOpen, setIsModalOpen] = useState(false);
+    const [showErrors, setShowErrors] = useState(false);
     const [editingDriver, setEditingDriver] = useState<DeliveryDriver | null>(null);
     const [formData, setFormData] = useState({
         name: '', phone: '', email: '', address: '', plate: '', model: '', brand: '', type: 'Moto' as any
     });
+    const { addToast } = useToast();
     const [alertConfig, setAlertConfig] = useState<{ isOpen: boolean, title: string, message: string, type: 'SUCCESS' | 'ERROR' | 'DANGER' | 'INFO', onConfirm?: () => void }>({
         isOpen: false, title: '', message: '', type: 'SUCCESS'
     });
@@ -291,11 +305,30 @@ const EntregadoresManagement: React.FC = () => {
             setEditingDriver(null);
             setFormData({ name: '', phone: '', email: '', address: '', plate: '', model: '', brand: '', type: 'Moto' });
         }
+        setShowErrors(false);
         setIsModalOpen(true);
     };
 
-    const saveDriver = async (e: React.FormEvent) => {
-        e.preventDefault();
+    const saveDriver = async (e?: React.FormEvent) => {
+        if (e) e.preventDefault();
+
+        // Validação manual
+        const isBicycle = formData.type === 'Bicicleta';
+        const hasMissingFields = !formData.name.trim() || 
+                                !formData.phone.trim() || 
+                                !formData.email.trim() || 
+                                (!isBicycle && (!formData.plate.trim() || !formData.model.trim()));
+
+        if (hasMissingFields) {
+            setShowErrors(true);
+            addToast({
+                title: "CAMPOS OBRIGATÓRIOS",
+                message: "Por favor, preencha todos os campos do formulário.",
+                type: "DANGER"
+            });
+            return;
+        }
+
         const payload = {
             id: editingDriver?.id || `DRV-${Date.now()}`,
             name: toTitleCase(formData.name),
@@ -444,17 +477,17 @@ const EntregadoresManagement: React.FC = () => {
                             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 sm:gap-6">
                                 <div className="space-y-1">
                                     <label className="text-[10px] font-black text-slate-400 dark:text-slate-500 uppercase tracking-widest ml-1">Nome Completo</label>
-                                    <input type="text" required value={formData.name} onChange={e => setFormData({ ...formData, name: toTitleCase(e.target.value) })} className="w-full p-4 sm:p-5 bg-slate-50 dark:bg-slate-800 border-none rounded-2xl sm:rounded-[1.5rem] outline-none font-bold text-sm shadow-inner focus:ring-4 focus:ring-blue-100 dark:focus:ring-blue-900/20 transition-all text-slate-800 dark:text-white" placeholder="Ex: Roberto Carlos" />
+                                    <input type="text" value={formData.name} onChange={e => setFormData({ ...formData, name: toTitleCase(e.target.value) })} className={`w-full p-4 sm:p-5 bg-slate-50 dark:bg-slate-800 rounded-2xl sm:rounded-[1.5rem] outline-none font-bold text-sm shadow-inner focus:ring-4 focus:ring-blue-100 dark:focus:ring-blue-900/20 transition-all text-slate-800 dark:text-white border-2 ${showErrors && !formData.name.trim() ? 'border-red-500 bg-red-50/50 dark:bg-red-900/20' : 'border-transparent'}`} placeholder="Ex: Roberto Carlos" />
                                 </div>
                                 <div className="space-y-1">
                                     <label className="text-[10px] font-black text-slate-400 dark:text-slate-500 uppercase tracking-widest ml-1">Celular / Whats</label>
-                                    <input type="text" required value={formData.phone} onChange={e => setFormData({ ...formData, phone: applyPhoneMask(e.target.value) })} className="w-full p-4 sm:p-5 bg-slate-50 dark:bg-slate-800 border-none rounded-2xl sm:rounded-[1.5rem] outline-none font-bold text-sm shadow-inner focus:ring-4 focus:ring-blue-100 dark:focus:ring-blue-900/20 transition-all text-slate-800 dark:text-white" placeholder="(00) 9 0000-0000" />
+                                    <input type="text" value={formData.phone} onChange={e => setFormData({ ...formData, phone: applyPhoneMask(e.target.value) })} className={`w-full p-4 sm:p-5 bg-slate-50 dark:bg-slate-800 rounded-2xl sm:rounded-[1.5rem] outline-none font-bold text-sm shadow-inner focus:ring-4 focus:ring-blue-100 dark:focus:ring-blue-900/20 transition-all text-slate-800 dark:text-white border-2 ${showErrors && !formData.phone.trim() ? 'border-red-500 bg-red-50/50 dark:bg-red-900/20' : 'border-transparent'}`} placeholder="(00) 9 0000-0000" />
                                 </div>
                                 <div className="space-y-2 col-span-1 sm:col-span-2">
                                     <label className="text-[10px] font-black text-blue-600 dark:text-blue-400 uppercase tracking-widest ml-1 flex items-center gap-2">
                                         Email <span className="text-[8px] bg-blue-100 dark:bg-blue-900/30 px-2 py-0.5 rounded-full">(Obrigatório para login no App)</span>
                                     </label>
-                                    <input type="email" required={!editingDriver} value={formData.email} onChange={e => setFormData({ ...formData, email: e.target.value })} className="w-full p-4 sm:p-5 bg-slate-50 dark:bg-slate-800 border-none rounded-2xl sm:rounded-[1.5rem] outline-none font-bold text-sm shadow-inner focus:ring-4 focus:ring-blue-100 dark:focus:ring-blue-900/20 transition-all text-slate-800 dark:text-white" placeholder="moto@exemplo.com" />
+                                    <input type="email" value={formData.email} onChange={e => setFormData({ ...formData, email: e.target.value })} className={`w-full p-4 sm:p-5 bg-slate-50 dark:bg-slate-800 rounded-2xl sm:rounded-[1.5rem] outline-none font-bold text-sm shadow-inner focus:ring-4 focus:ring-blue-100 dark:focus:ring-blue-900/20 transition-all text-slate-800 dark:text-white border-2 ${showErrors && !formData.email.trim() ? 'border-red-500 bg-red-50/50 dark:bg-red-900/20' : 'border-transparent'}`} placeholder="moto@exemplo.com" />
                                     {!editingDriver && (
                                         <p className="text-[9px] text-slate-400 dark:text-slate-500 font-medium ml-2 mt-2 leading-relaxed">A senha padrão para novos usuários é: <span className="font-black text-blue-600 dark:text-blue-400">123</span></p>
                                     )}
@@ -477,14 +510,14 @@ const EntregadoresManagement: React.FC = () => {
                                             type="text"
                                             value={formData.type === 'Bicicleta' ? 'N/A' : formData.plate}
                                             onChange={e => setFormData({ ...formData, plate: applyPlateMask(e.target.value) })}
-                                            className="w-full p-4 bg-slate-50 dark:bg-slate-800 border-none rounded-2xl outline-none font-bold text-sm font-mono uppercase text-slate-800 dark:text-white shadow-sm border border-slate-100 dark:border-slate-800"
+                                            className={`w-full p-4 bg-slate-50 dark:bg-slate-800 rounded-2xl outline-none font-bold text-sm font-mono uppercase text-slate-800 dark:text-white shadow-sm border-2 ${showErrors && formData.type !== 'Bicicleta' && !formData.plate.trim() ? 'border-red-500 bg-red-50/50 dark:bg-red-900/20' : 'border-transparent'}`}
                                             placeholder={formData.type === 'Bicicleta' ? 'N/A' : 'AAA-0000'}
                                             disabled={formData.type === 'Bicicleta'}
                                         />
                                     </div>
                                     <div className="space-y-1">
                                         <label className="text-[10px] font-black text-slate-400 dark:text-slate-500 uppercase tracking-widest ml-1">Modelo / Cor</label>
-                                        <input type="text" value={formData.model} onChange={e => setFormData({ ...formData, model: e.target.value })} className="w-full p-4 bg-slate-50 dark:bg-slate-800 border-none rounded-2xl outline-none font-bold text-sm text-slate-800 dark:text-white shadow-sm border border-slate-100 dark:border-slate-800" placeholder="Ex: CB 500 / Azul" />
+                                        <input type="text" value={formData.model} onChange={e => setFormData({ ...formData, model: e.target.value })} className={`w-full p-4 bg-slate-50 dark:bg-slate-800 rounded-2xl outline-none font-bold text-sm text-slate-800 dark:text-white shadow-sm border-2 ${showErrors && formData.type !== 'Bicicleta' && !formData.model.trim() ? 'border-red-500 bg-red-50/50 dark:bg-red-900/20' : 'border-transparent'}`} placeholder="Ex: CB 500 / Azul" />
                                     </div>
                                 </div>
                             </div>
@@ -500,6 +533,7 @@ const EntregadoresManagement: React.FC = () => {
 const UserManagementInternal: React.FC = () => {
     const [users, setUsers] = useState<User[]>([]);
     const [isModalOpen, setIsModalOpen] = useState(false);
+    const [showErrors, setShowErrors] = useState(false);
     const [editingUser, setEditingUser] = useState<User | null>(null);
     const [formData, setFormData] = useState({ name: '', email: '', password: '', phone: '', permissions: [] as string[] });
     const { addToast } = useToast();
@@ -537,11 +571,28 @@ const UserManagementInternal: React.FC = () => {
     const refresh = async () => setUsers(await db.getUsers());
     useEffect(() => { refresh(); }, []);
 
-    const handleSave = async (e: React.FormEvent) => {
-        e.preventDefault();
+    const toTitleCase = (str: string) => {
+        return str.toLowerCase().replace(/(?:^|\s)\S/g, (a) => a.toUpperCase());
+    };
+
+    const handleSave = async (e?: React.FormEvent) => {
+        if (e) e.preventDefault();
+
+        // Validação manual
+        if (!formData.name.trim() || !formData.email.trim() || formData.permissions.length === 0) {
+            setShowErrors(true);
+            addToast({
+                title: "CAMPOS OBRIGATÓRIOS",
+                message: "Por favor, preencha todos os campos do formulário.",
+                type: "DANGER"
+            });
+            return;
+        }
+
         const userData: User = {
             id: editingUser?.id || `user-${Date.now()}`,
             ...formData,
+            name: toTitleCase(formData.name),
             createdAt: editingUser?.createdAt || new Date().toISOString()
         };
         await db.saveUser(userData);
@@ -684,25 +735,48 @@ const UserManagementInternal: React.FC = () => {
             </div>
 
             {isModalOpen && (
-                <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-sm">
-                    <div className="bg-white dark:bg-slate-900 rounded-[3rem] shadow-2xl p-10 w-full max-w-lg border border-white/20 dark:border-slate-800 animate-in zoom-in duration-200">
-                        <h4 className="text-2xl font-black text-slate-800 dark:text-white uppercase tracking-tighter mb-8">{editingUser ? 'Editar' : 'Novo'} Usuário</h4>
+                <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-sm animate-in fade-in duration-200">
+                    <div className="bg-white dark:bg-slate-900 rounded-[2rem] sm:rounded-[3rem] shadow-2xl w-full max-w-xl border border-white/20 dark:border-slate-800 overflow-hidden animate-in zoom-in duration-300">
+                        <div className="p-6 sm:p-8 flex justify-between items-center border-b border-slate-100 dark:border-slate-800">
+                            <div>
+                                <h4 className="text-xl font-black text-slate-800 dark:text-white uppercase tracking-tighter">
+                                    {editingUser ? 'Editar' : 'Novo'} Usuário
+                                </h4>
+                                <p className="text-[10px] text-slate-400 dark:text-slate-500 font-bold uppercase tracking-widest">Controle de acesso ao sistema</p>
+                            </div>
+                            <div className="flex gap-2">
+                                <button
+                                    onClick={() => handleSave()}
+                                    title="Confirmar Alterações"
+                                    className="w-12 h-12 bg-emerald-500 hover:bg-emerald-600 text-white rounded-full flex items-center justify-center shadow-lg shadow-emerald-500/30 transition-all active:scale-90"
+                                >
+                                    <Icons.Check size={24} strokeWidth={3} />
+                                </button>
+                                <button
+                                    onClick={() => setIsModalOpen(false)}
+                                    title="Fechar"
+                                    className="w-12 h-12 bg-slate-100 dark:bg-slate-800 text-slate-500 dark:text-slate-400 rounded-full flex items-center justify-center hover:bg-red-500 hover:text-white transition-all active:scale-90"
+                                >
+                                    <Icons.X size={24} strokeWidth={3} />
+                                </button>
+                            </div>
+                        </div>
                         <form onSubmit={handleSave} className="p-6 sm:p-10 space-y-6 sm:space-y-8">
                             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 sm:gap-6">
                                 <div className="space-y-2">
                                     <label className="text-[10px] font-black text-slate-400 dark:text-slate-500 uppercase tracking-widest ml-2">Nome Completo</label>
-                                    <input type="text" placeholder="Nome" value={formData.name} required onChange={e => setFormData({ ...formData, name: e.target.value })} className="w-full p-4 sm:p-5 bg-slate-50 dark:bg-slate-800 border-none rounded-2xl sm:rounded-[1.5rem] outline-none font-bold text-sm text-slate-800 dark:text-white shadow-inner focus:ring-4 focus:ring-blue-100 dark:focus:ring-blue-900/20 transition-all" />
+                                    <input type="text" placeholder="Nome" value={formData.name} onChange={e => setFormData({ ...formData, name: toTitleCase(e.target.value) })} className={`w-full p-4 sm:p-5 bg-slate-50 dark:bg-slate-800 rounded-2xl sm:rounded-[1.5rem] outline-none font-bold text-sm text-slate-800 dark:text-white shadow-inner focus:ring-4 focus:ring-blue-100 dark:focus:ring-blue-900/20 transition-all border-2 ${showErrors && !formData.name.trim() ? 'border-red-500 bg-red-50/50 dark:bg-red-900/20' : 'border-transparent'}`} />
                                 </div>
                                 <div className="space-y-2">
                                     <label className="text-[10px] font-black text-slate-400 dark:text-slate-500 uppercase tracking-widest ml-2">E-mail (Login)</label>
-                                    <input type="email" placeholder="E-mail" value={formData.email} required onChange={e => setFormData({ ...formData, email: e.target.value })} className="w-full p-4 sm:p-5 bg-slate-50 dark:bg-slate-800 border-none rounded-2xl sm:rounded-[1.5rem] outline-none font-bold text-sm text-slate-800 dark:text-white shadow-inner focus:ring-4 focus:ring-blue-100 dark:focus:ring-blue-900/20 transition-all" />
+                                    <input type="email" placeholder="E-mail" value={formData.email} onChange={e => setFormData({ ...formData, email: e.target.value })} className={`w-full p-4 sm:p-5 bg-slate-50 dark:bg-slate-800 rounded-2xl sm:rounded-[1.5rem] outline-none font-bold text-sm text-slate-800 dark:text-white shadow-inner focus:ring-4 focus:ring-blue-100 dark:focus:ring-blue-900/20 transition-all border-2 ${showErrors && !formData.email.trim() ? 'border-red-500 bg-red-50/50 dark:bg-red-900/20' : 'border-transparent'}`} />
                                 </div>
                             </div>
 
                             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 sm:gap-6">
                                 <div className="space-y-2">
                                     <label className="text-[10px] font-black text-slate-400 dark:text-slate-500 uppercase tracking-widest ml-2">Celular / Whats</label>
-                                    <input type="text" placeholder="(00) 0 0000-0000" value={formData.phone} required onChange={e => setFormData({ ...formData, phone: applyPhoneMask(e.target.value) })} className="w-full p-4 sm:p-5 bg-slate-50 dark:bg-slate-800 border-none rounded-2xl sm:rounded-[1.5rem] outline-none font-bold text-sm text-slate-800 dark:text-white shadow-inner focus:ring-4 focus:ring-blue-100 dark:focus:ring-blue-900/20 transition-all" />
+                                    <input type="text" placeholder="(00) 0 0000-0000" value={formData.phone} onChange={e => setFormData({ ...formData, phone: applyPhoneMask(e.target.value) })} className={`w-full p-4 sm:p-5 bg-slate-50 dark:bg-slate-800 rounded-2xl sm:rounded-[1.5rem] outline-none font-bold text-sm text-slate-800 dark:text-white shadow-inner focus:ring-4 focus:ring-blue-100 dark:focus:ring-blue-900/20 transition-all border-2 ${showErrors && !formData.phone.trim() ? 'border-red-500 bg-red-50/50 dark:bg-red-900/20' : 'border-transparent'}`} />
                                 </div>
                             </div>
 
@@ -711,7 +785,7 @@ const UserManagementInternal: React.FC = () => {
                             )}
                             <div className="pt-6 border-t border-slate-100 dark:border-slate-800">
                                 <p className="text-[10px] font-black text-slate-400 dark:text-slate-500 uppercase tracking-widest mb-4">Módulos Permitidos:</p>
-                                <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 max-h-48 overflow-y-auto pr-2 custom-scrollbar">
+                                <div className={`grid grid-cols-1 sm:grid-cols-2 gap-2 max-h-48 overflow-y-auto pr-2 custom-scrollbar border-2 rounded-2xl p-2 transition-all ${showErrors && formData.permissions.length === 0 ? 'border-red-500 bg-red-50/50 dark:bg-red-900/10' : 'border-transparent'}`}>
                                     {availableModules.map(m => (
                                         <label key={m.id} className="flex items-center gap-3 p-3 bg-slate-50 dark:bg-slate-800 rounded-xl cursor-pointer hover:bg-slate-100 dark:hover:bg-slate-700 transition-all border border-transparent has-[:checked]:border-blue-100 dark:has-[:checked]:border-blue-900/40 has-[:checked]:bg-blue-50/50 dark:has-[:checked]:bg-blue-900/20">
                                             <input
@@ -731,12 +805,6 @@ const UserManagementInternal: React.FC = () => {
                                 </div>
                             </div>
 
-                            <div className="flex flex-col sm:flex-row gap-3 sm:gap-4 pt-6">
-                                <button type="button" onClick={() => setIsModalOpen(false)} className="order-2 sm:order-1 flex-1 py-4 sm:py-5 font-black uppercase text-[11px] tracking-widest text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-800 rounded-2xl sm:rounded-[1.5rem] transition-all">Cancelar</button>
-                                <button type="submit" className="order-1 sm:order-2 flex-1 py-4 sm:py-5 bg-blue-600 text-white rounded-2xl sm:rounded-[1.5rem] font-black uppercase text-[11px] tracking-widest shadow-2xl shadow-blue-500/30 hover:bg-blue-700 active:scale-95 transition-all">
-                                    {editingUser ? 'Salvar Alterações' : 'Confirmar Registro'}
-                                </button>
-                            </div>
                         </form>
                     </div>
                 </div>
@@ -1240,8 +1308,8 @@ const Settings: React.FC<SettingsProps> = ({ settings, setSettings, onReset }) =
                                     <p className="text-[11px] text-blue-700 dark:text-blue-400 font-bold leading-relaxed">Para emitir NFC-e, sua empresa deve estar credenciada na SEFAZ do seu estado e possuir um Certificado Digital (A1) instalado no servidor de mensageria.</p>
                                 </div>
                             </div>
-                            <button 
-                                type="submit" 
+                            <button
+                                type="submit"
                                 disabled={!settings.enableNfcEmission}
                                 className={`w-full md:w-auto px-12 py-5 rounded-2xl font-black uppercase text-xs tracking-widest transition-all shadow-2xl ${!settings.enableNfcEmission ? 'bg-slate-300 dark:bg-slate-800 text-slate-500 dark:text-slate-600 cursor-not-allowed shadow-none grayscale opacity-60' : 'bg-blue-600 text-white hover:bg-blue-700 shadow-blue-100 dark:shadow-blue-900/20'}`}
                             >
