@@ -43,6 +43,9 @@ const Tables: React.FC<TablesProps> = ({ currentUser }) => {
   const [clientSearch, setClientSearch] = useState('');
   const [showClientList, setShowClientList] = useState(false);
   const [selectedClient, setSelectedClient] = useState<Client | null>(null);
+  const [isUnregisteredClient, setIsUnregisteredClient] = useState(false);
+  const [manualClientName, setManualClientName] = useState('');
+  const [manualClientPhone, setManualClientPhone] = useState('');
   const [errors, setErrors] = useState<Record<string, boolean>>({});
 
   const [alertConfig, setAlertConfig] = useState<{ isOpen: boolean, title: string, message: string, onConfirm: () => void, onCancel?: () => void, type: 'INFO' | 'DANGER' | 'SUCCESS' }>({
@@ -883,7 +886,7 @@ const Tables: React.FC<TablesProps> = ({ currentUser }) => {
         <div className="fixed inset-0 z-[70] flex items-center justify-center p-4 bg-slate-900/60 dark:bg-slate-950/80 backdrop-blur-md animate-in fade-in duration-300">
           <div className="relative w-full max-w-md bg-white dark:bg-slate-900 rounded-[2.5rem] shadow-2xl border border-slate-100 dark:border-slate-800 overflow-hidden animate-in zoom-in-95 duration-300">
             {/* Hidden Receipt for Printing Only */}
-            <div id="table-receipt" className={`hidden print:block fixed top-0 left-0 w-full max-w-[48mm] bg-white p-4 font-receipt text-black is-receipt`}>
+            <div id="table-receipt" className={`hidden print:block is-receipt`}>
               <div className="text-center mb-2">
                 <h2 className="font-bold text-xs uppercase tracking-tighter mb-0">{settings.name}</h2>
                 <p className="text-[8px] font-bold uppercase">CNPJ: {settings.cnpj}</p>

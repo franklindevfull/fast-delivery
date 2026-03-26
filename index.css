@@ -44,7 +44,7 @@
 }
 
 @media print {
-  /* 1. Remove elementos não necessários na impressão */
+  /* 1. Remove elements not needed in printing */
   body * {
     visibility: hidden;
   }
@@ -53,95 +53,71 @@
     visibility: visible;
   }
 
+  /* 2. Standardized Thermal Receipt Container (58mm Paper) */
   .is-receipt {
-    position: fixed !important; /* Changed from absolute to fixed to ensure it stays at the top of the viewport/page */
+    position: fixed !important;
     left: 0 !important;
     right: 0 !important;
     top: 0 !important;
-    width: 100% !important;
-    max-width: 48mm !important; /* Standard 48mm width matching Sales Monitor */
-    margin: 0 auto !important;
-    padding: 0 !important;
+    width: 48mm !important; /* Standardized width for 58mm paper */
+    min-height: 60mm !important; /* Minimum length as requested */
+    margin: 0 auto !important; /* Horizontal centering */
+    padding: 2mm !important; /* Safety margin */
     background: white !important;
     z-index: 9999 !important;
+    color: black !important;
+    font-family: 'Lucida Console', Consolas, monospace !important;
+    font-size: 10px !important;
+    line-height: 1.1 !important;
+    letter-spacing: -0.1px !important;
+    box-sizing: border-box !important;
+    overflow: visible !important;
   }
 
   .no-print {
     display: none !important;
   }
 
-  /* 2. Força o navegador a entender o tamanho exato da bobina e zera margens do S.O. */
+  /* 3. Page Setup for 58mm Paper */
   @page {
     margin: 0;
-    size: 58mm auto; /* Largura da bobina x altura automática */
+    size: 58mm auto; /* Paper width x automatic height */
   }
 
-  /* 3. Reseta o body para não empurrar nada e evitar alinhamento flex centralizado */
+  /* 4. Reset body for printing */
   body, html {
     margin: 0 !important;
     padding: 0 !important;
     width: 100% !important;
     height: auto !important;
     min-height: auto !important;
-    display: block !important; /* Force block to avoid flex centering from parent styles */
+    display: block !important;
     background-color: white !important;
     overflow: visible !important;
   }
 
-  /* Limitador de Corte - REMOVED per user request */
-  .is-receipt::after {
-    display: none;
+  /* Structural Helpers */
+  .is-receipt h2 {
+    font-size: 12px !important;
+    margin: 0 0 4px 0 !important;
+    text-transform: uppercase !important;
+    text-align: center !important;
   }
 
-  /* Utilitários para flexbox separando "Produto" e "Preço" */
+  .is-receipt p, .is-receipt span, .is-receipt div {
+    margin: 0 !important;
+  }
+
+  .is-receipt .section-divider {
+    border-top: 1px dashed black !important;
+    margin: 4px 0 !important;
+    width: 100% !important;
+  }
+
   .is-receipt .linha-produto {
     display: flex;
     justify-content: space-between;
     width: 100%;
+    margin-bottom: 2px !important;
   }
-  
-  .is-receipt .nome-produto {
-    flex: 1;
-    padding-right: 2px;
-  }
-
-  /* Compact Printing Styles (Modelo Laranjinha) */
-  .is-receipt {
-    width: 100% !important;
-    max-width: 42mm !important; /* Reduzido de 44mm p/ evitar cortes */
-    padding: 2mm !important; /* Margem de segurança */
-    color: black !important;
-    background: white !important;
-    font-family: 'Courier New', Courier, monospace !important;
-    font-size: 9px !important; /* Reduzido de 11px p/ metade da percepção visual */
-    line-height: 1.0 !important; /* Espaçamento vertical mínimo */
-    letter-spacing: -0.2px !important;
-    box-sizing: border-box !important;
-  }
-
-  .is-receipt h2 {
-    font-size: 11px !important; /* Título menor */
-    margin: 0 0 2px 0 !important;
-    text-transform: uppercase !important;
-  }
-
-  .is-receipt p, .is-receipt span, .is-receipt div {
-    margin: 0 !important; /* Retira espaços verticais */
-  }
-
-  .is-receipt table {
-    width: 100%;
-    border-collapse: collapse;
-  }
-
-  .is-receipt th, .is-receipt td {
-    padding: 0 !important;
-  }
-
-  /* Simple sections separators */
-  .is-receipt .section-divider {
-    border-top: 1px solid black !important;
-    margin: 2px 0 !important;
-    width: 100% !important;
-  }
-}
+}
