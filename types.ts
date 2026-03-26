@@ -192,6 +192,7 @@ export interface Product {
   preparation?: string;
   recipe?: RecipeItem[];
   comboItems?: ComboItem[];
+  maxAvailability?: number;
   // Tax Fields
   ncm?: string;
   cfop?: string;

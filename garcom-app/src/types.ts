@@ -30,6 +30,7 @@ export interface Product {
     category: string;
     imageUrl: string;
     stock: number;
+    maxAvailability?: number;
 }
 
 export interface OrderItem {

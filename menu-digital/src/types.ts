@@ -4,6 +4,7 @@ export interface Product {
     price: number;
     category: string;
     imageUrl: string;
+    maxAvailability?: number;
 }
 
 export interface CartItem extends Product {
