@@ -1,10 +1,10 @@
-
 import React, { useState, useEffect } from 'react';
-import { Receivable, User, Client, Order, Product, OrderItem, SaleType, BusinessSettings } from '../types';
+import { Receivable, User, Client, Order, Product, BusinessSettings } from '../types';
 import { db } from '../services/db';
 import { Icons } from '../constants';
-import CustomAlert from '../components/CustomAlert';
 import { useToast } from '../hooks/useToast';
+import { usePrinter } from '../hooks/usePrinter';
+import CustomAlert from '../components/CustomAlert';
 
 interface ReceivablesProps {
     currentUser: User;
@@ -13,6 +13,7 @@ interface ReceivablesProps {
 
 const Receivables: React.FC<ReceivablesProps> = ({ currentUser, setActiveTab }) => {
     const { addToast } = useToast();
+    const { printElement } = usePrinter();
     const [receivables, setReceivables] = useState<(Receivable & { client: Client })[]>([]);
     const [searchTerm, setSearchTerm] = useState('');
     const [selectedOrder, setSelectedOrder] = useState<Order | null>(null);
@@ -226,6 +227,14 @@ const Receivables: React.FC<ReceivablesProps> = ({ currentUser, setActiveTab }) 
         r.orderId.toLowerCase().includes(searchTerm.toLowerCase())
     );
 
+    const OrderStatusLabels: Record<string, string> = {
+      'PENDING': 'PENDENTE',
+      'PREPARING': 'PREPARANDO',
+      'READY': 'PRONTO',
+      'DELIVERED': 'ENTREGUE',
+      'CANCELLED': 'CANCELADO'
+    };
+
     return (
         <div className="bg-white dark:bg-slate-950 rounded-[2.5rem] shadow-sm border border-slate-100 dark:border-slate-800 flex flex-col h-full overflow-hidden animate-in fade-in duration-500 relative">
             {isLoading && (
@@ -233,12 +242,6 @@ const Receivables: React.FC<ReceivablesProps> = ({ currentUser, setActiveTab }) 
                     <div className="h-full bg-indigo-600 dark:bg-blue-600 animate-[loading_2s_infinite]"></div>
                 </div>
             )}
-            <style>{`
-                @keyframes loading {
-                    0% { transform: translateX(-100%); }
-                    100% { transform: translateX(100%); }
-                }
-            `}</style>
             <div className="p-8 border-b border-slate-50 dark:border-slate-800 bg-slate-50/50 dark:bg-slate-900/50 flex flex-col md:flex-row justify-between items-center gap-6">
                 <div>
                     <h3 className="text-2xl font-black text-slate-800 dark:text-white uppercase tracking-tighter">Gestão de Recebimentos</h3>
@@ -514,7 +517,7 @@ const Receivables: React.FC<ReceivablesProps> = ({ currentUser, setActiveTab }) 
             {/* Printing Modal (Receipt Layout) */}
             {printingOrder && businessSettings && (
                 <div className="fixed inset-0 z-[120] flex items-center justify-center p-4 bg-slate-900/80 dark:bg-slate-950/90 backdrop-blur-md">
-                    <div className="is-receipt animate-in zoom-in duration-200">
+                    <div id="receivable-receipt" className="is-receipt animate-in zoom-in duration-200">
                         <div className="text-center mb-6 border-b border-dashed pb-4">
                             <h2 className="font-black text-xs uppercase tracking-tighter">{businessSettings.name}</h2>
                             <p className="text-[8px] font-bold mt-1 uppercase">Extrato de Consumo (Fiado)</p>
@@ -528,7 +531,7 @@ const Receivables: React.FC<ReceivablesProps> = ({ currentUser, setActiveTab }) 
                             <p className="text-slate-500 italic mt-1">Este documento NÃO é um cupom fiscal.</p>
                         </div>
                         <div className="border-t border-dashed my-3 py-3">
-                            {printingOrder.items.map((item: any, idx) => {
+                            {printingOrder.items.map((item: any, idx: number) => {
                                 const prod = availableProducts.find(p => p.id === item.productId);
                                 return (
                                     <div key={idx} className="flex justify-between font-black uppercase py-0.5">
@@ -592,20 +595,24 @@ const Receivables: React.FC<ReceivablesProps> = ({ currentUser, setActiveTab }) 
                                                 setPrintingOrder(null);
                                             }
                                         } else {
-                                            window.print();
+                                            await printElement('receivable-receipt');
+                                            setPrintingOrder(null);
                                         }
                                     } catch (error: any) {
                                         addToast({ title: 'Erro na Impressão', message: error.message || 'Falha ao comunicar com a impressora.', type: 'DANGER' });
-                                        window.print();
+                                        await printElement('receivable-receipt');
+                                        setPrintingOrder(null);
                                     }
                                 }}
-                                className="bg-slate-900 text-white py-4 rounded-[22px] font-receipt font-black uppercase text-[11px] shadow-xl hover:bg-black active:scale-95 transition-all flex items-center justify-center"
+                                className="bg-blue-600 text-white py-4 rounded-[22px] font-receipt font-black uppercase text-[11px] shadow-xl hover:bg-blue-700 active:scale-95 transition-all flex items-center justify-center"
                             >
                                 IMPRIMIR
                             </button>
                             <button
-                                onClick={() => setPrintingOrder(null)}
-                                className="bg-slate-50 text-slate-400 py-4 rounded-[22px] font-receipt font-black uppercase text-[11px] hover:bg-slate-100 active:scale-95 transition-all flex items-center justify-center"
+                                onClick={() => {
+                                    setPrintingOrder(null);
+                                }}
+                                className="bg-slate-200 dark:bg-slate-800 text-slate-700 dark:text-slate-200 py-4 rounded-[22px] font-receipt font-black uppercase text-[11px] hover:bg-slate-300 dark:hover:bg-slate-700 active:scale-95 transition-all flex items-center justify-center"
                             >
                                 FECHAR
                             </button>

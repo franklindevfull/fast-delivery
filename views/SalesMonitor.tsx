@@ -327,8 +327,8 @@ const SalesMonitor: React.FC = () => {
           </div>
 
           {printingOrder && businessSettings && (
-            <div className="fixed inset-0 z-[60] flex items-center justify-center p-4 bg-slate-900/80 dark:bg-slate-950/90 backdrop-blur-md">
-            <div id="thermal-receipt" className="is-receipt animate-in zoom-in duration-200">
+            <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-sm">
+            <div id="monitor-receipt" className="is-receipt animate-in zoom-in duration-200">
                 {isNfceVisual ? (
                   <div className="space-y-4 font-mono text-[10px] leading-tight text-black dark:text-white">
                     <div className="text-center space-y-1">
@@ -478,16 +478,17 @@ const SalesMonitor: React.FC = () => {
                   <button
                     onClick={async () => {
                       if (!businessSettings || !printingOrder) return;
-                      await printElement('thermal-receipt');
-                      setPrintingOrder(null);
+                      addToast({ title: 'Impressão', message: 'Enviando cupom...', type: 'INFO' });
+                      await printElement('monitor-receipt');
+                      setPrintingOrder(null); // Assuming this closes the modal, or setIsReceiptModalOpen(false) if it exists
                     }}
-                    className="bg-slate-900 text-white py-4 rounded-[22px] font-receipt font-black uppercase text-[11px] shadow-xl hover:bg-black active:scale-95 transition-all flex items-center justify-center"
+                    className="bg-blue-600 text-white py-4 rounded-[22px] font-receipt font-black uppercase text-[11px] shadow-xl hover:bg-blue-700 active:scale-95 transition-all flex items-center justify-center whitespace-nowrap"
                   >
                     IMPRIMIR
                   </button>
                   <button
                     onClick={() => setPrintingOrder(null)}
-                    className="bg-slate-50 dark:bg-slate-800 text-slate-400 dark:text-slate-500 py-4 rounded-[22px] font-receipt font-black uppercase text-[11px] hover:bg-slate-100 dark:hover:bg-slate-700 active:scale-95 transition-all flex items-center justify-center"
+                    className="bg-slate-200 dark:bg-slate-800 text-slate-700 dark:text-slate-200 py-4 rounded-[22px] font-receipt font-black uppercase text-[11px] hover:bg-slate-300 dark:hover:bg-slate-700 active:scale-95 transition-all flex items-center justify-center"
                   >
                     FECHAR
                   </button>

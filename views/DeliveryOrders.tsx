@@ -4,6 +4,7 @@ import { socket, clientChatUnreadManager } from '../services/socket';
 import { Order, User, OrderStatusLabels, DeliveryDriver, Product, SaleType, BusinessSettings } from '../types';
 import { Icons } from '../constants';
 import { useToast } from '../hooks/useToast';
+import { usePrinter } from '../hooks/usePrinter';
 import CustomAlert from '../components/CustomAlert';
 import { sendOrderToThermalPrinter } from '../services/printService';
 
@@ -13,6 +14,7 @@ interface DeliveryOrdersProps {
 
 const DeliveryOrders: React.FC<DeliveryOrdersProps> = ({ currentUser }) => {
     const { addToast } = useToast();
+    const { printElement } = usePrinter();
     const [orders, setOrders] = useState<Order[]>([]);
     const [clients, setClients] = useState<any[]>([]);
     const [isLoading, setIsLoading] = useState(true);
@@ -490,7 +492,7 @@ const DeliveryOrders: React.FC<DeliveryOrdersProps> = ({ currentUser }) => {
 
             {printingOrder && businessSettings && (
                 <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-slate-900/80 backdrop-blur-md">
-                    <div className="is-receipt animate-in zoom-in duration-200">
+                    <div id="delivery-receipt" className="is-receipt animate-in zoom-in duration-200">
                         <div className="text-center mb-6 border-b border-dashed pb-4">
                             <h2 className="font-black text-sm uppercase tracking-tighter">{businessSettings.name}</h2>
                             <p className="text-[9px] font-bold mt-1 uppercase">Comprovante de Pedido</p>
@@ -518,17 +520,20 @@ const DeliveryOrders: React.FC<DeliveryOrdersProps> = ({ currentUser }) => {
                             <span className="font-black text-[10px] uppercase tracking-widest">TOTAL:</span>
                             <span className="text-2xl font-black">R$ {printingOrder.total.toFixed(2)}</span>
                         </div>
-
                         <div className="grid grid-cols-2 gap-4 no-print mt-6">
                             <button
-                                onClick={handlePrintOrder}
-                                className="bg-slate-900 text-white py-4 rounded-[22px] font-receipt font-black uppercase text-[11px] shadow-xl hover:bg-black active:scale-95 transition-all flex items-center justify-center"
+                                onClick={async () => {
+                                    if (!businessSettings || !printingOrder) return;
+                                    await printElement('delivery-receipt');
+                                    setPrintingOrder(null);
+                                }}
+                                className="bg-blue-600 text-white py-4 rounded-[22px] font-receipt font-black uppercase text-[11px] shadow-xl hover:bg-blue-700 active:scale-95 transition-all flex items-center justify-center"
                             >
                                 IMPRIMIR
                             </button>
                             <button
                                 onClick={() => setPrintingOrder(null)}
-                                className="bg-slate-50 text-slate-400 py-4 rounded-[22px] font-receipt font-black uppercase text-[11px] hover:bg-slate-100 active:scale-95 transition-all flex items-center justify-center"
+                                className="bg-slate-200 dark:bg-slate-800 text-slate-700 dark:text-slate-200 py-4 rounded-[22px] font-receipt font-black uppercase text-[11px] hover:bg-slate-300 dark:hover:bg-slate-700 active:scale-95 transition-all flex items-center justify-center"
                             >
                                 FECHAR
                             </button>

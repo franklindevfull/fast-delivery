@@ -43,35 +43,75 @@
     --color-blue-950: #1e1b4b;
 }
 
+/* Standardized Thermal Receipt Container (Both Preview and Print) */
+.is-receipt {
+  background: white !important;
+  color: black !important;
+  font-family: 'Lucida Console', Consolas, monospace !important;
+  width: 48mm !important;
+  min-height: 60mm !important;
+  padding: 2mm !important;
+  box-sizing: border-box !important;
+  margin: 0 auto !important;
+  box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1) !important;
+  position: relative;
+}
+
+/* Ensure all text inside receipt is black regardless of dark mode */
+.is-receipt *, 
+.is-receipt span, 
+.is-receipt p, 
+.is-receipt div, 
+.is-receipt h2, 
+.is-receipt td, 
+.is-receipt th {
+  color: black !important;
+}
+
+.is-receipt h2 {
+  font-size: 12px !important;
+  margin: 0 0 4px 0 !important;
+  text-transform: uppercase !important;
+  text-align: center !important;
+}
+
+.is-receipt .section-divider {
+  border-top: 1px dashed black !important;
+  margin: 4px 0 !important;
+  width: 100% !important;
+}
+
+.is-receipt .linha-produto {
+  display: flex;
+  justify-content: space-between;
+  width: 100%;
+  margin-bottom: 2px !important;
+}
+
 @media print {
   /* 1. Remove elements not needed in printing */
   body * {
     visibility: hidden;
   }
 
+  /* 2. Standardized Thermal Receipt Container for Print Only */
   .is-receipt, .is-receipt * {
     visibility: visible;
   }
 
-  /* 2. Standardized Thermal Receipt Container (58mm Paper) */
   .is-receipt {
-    position: fixed !important;
-    left: 0 !important;
-    right: 0 !important;
-    top: 0 !important;
-    width: 48mm !important; /* Standardized width for 58mm paper */
-    min-height: 60mm !important; /* Minimum length as requested */
-    margin: 0 auto !important; /* Horizontal centering */
-    padding: 2mm !important; /* Safety margin */
-    background: white !important;
-    z-index: 9999 !important;
-    color: black !important;
-    font-family: 'Lucida Console', Consolas, monospace !important;
-    font-size: 10px !important;
-    line-height: 1.1 !important;
-    letter-spacing: -0.1px !important;
-    box-sizing: border-box !important;
+    width: 48mm !important;
+    margin-left: 5mm !important; /* Safety offset for 58mm paper to avoid left-side cut-off */
+    margin-right: auto !important;
+    margin-top: 0 !important;
+    box-shadow: none !important;
+    border: none !important;
     overflow: visible !important;
+    display: block !important;
+    position: relative !important;
+    transform: none !important;
+    left: 0 !important;
+    font-size: 10px !important;
   }
 
   .no-print {
@@ -81,7 +121,7 @@
   /* 3. Page Setup for 58mm Paper */
   @page {
     margin: 0;
-    size: 58mm auto; /* Paper width x automatic height */
+    size: 58mm auto;
   }
 
   /* 4. Reset body for printing */
@@ -89,35 +129,8 @@
     margin: 0 !important;
     padding: 0 !important;
     width: 100% !important;
-    height: auto !important;
-    min-height: auto !important;
-    display: block !important;
     background-color: white !important;
     overflow: visible !important;
+    display: block !important;
   }
-
-  /* Structural Helpers */
-  .is-receipt h2 {
-    font-size: 12px !important;
-    margin: 0 0 4px 0 !important;
-    text-transform: uppercase !important;
-    text-align: center !important;
-  }
-
-  .is-receipt p, .is-receipt span, .is-receipt div {
-    margin: 0 !important;
-  }
-
-  .is-receipt .section-divider {
-    border-top: 1px dashed black !important;
-    margin: 4px 0 !important;
-    width: 100% !important;
-  }
-
-  .is-receipt .linha-produto {
-    display: flex;
-    justify-content: space-between;
-    width: 100%;
-    margin-bottom: 2px !important;
-  }
-}
+}

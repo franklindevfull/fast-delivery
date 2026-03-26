@@ -485,7 +485,7 @@ const Kitchen: React.FC = () => {
       )}
 
       {printingOrder && businessSettings && (
-        <div className="fixed inset-0 z-[120] flex items-center justify-center p-4 bg-slate-900/80 backdrop-blur-md">
+        <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-slate-900/80 backdrop-blur-md">
           <div id="kitchen-receipt" className="is-receipt animate-in zoom-in duration-200">
             <div className="text-center mb-1">
               <h2 className="font-bold text-[10px] uppercase tracking-tighter mb-0">{businessSettings.name}</h2>
@@ -586,13 +586,13 @@ const Kitchen: React.FC = () => {
                   await printElement('kitchen-receipt');
                   setPrintingOrder(null);
                 }}
-                className="bg-slate-900 text-white py-3 rounded-xl font-receipt font-black uppercase text-[10px] shadow-lg active:scale-95 transition-all flex items-center justify-center"
+                className="bg-blue-600 text-white py-3 rounded-xl font-receipt font-black uppercase text-[10px] shadow-lg hover:bg-blue-700 active:scale-95 transition-all flex items-center justify-center"
               >
                 IMPRIMIR
               </button>
               <button
                 onClick={() => setPrintingOrder(null)}
-                className="bg-slate-100 text-slate-500 py-3 rounded-xl font-receipt font-black uppercase text-[10px] active:scale-95 transition-all flex items-center justify-center"
+                className="bg-slate-200 dark:bg-slate-800 text-slate-700 dark:text-slate-200 py-3 rounded-xl font-receipt font-black uppercase text-[10px] hover:bg-slate-300 dark:hover:bg-slate-700 active:scale-95 transition-all flex items-center justify-center"
               >
                 FECHAR
               </button>

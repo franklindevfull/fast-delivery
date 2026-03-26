@@ -1960,13 +1960,13 @@ const POS: React.FC<POSProps> = ({ currentUser }) => {
               <div className="p-6 bg-slate-50/50 dark:bg-slate-800/50 border-t border-slate-100 dark:border-slate-800 grid grid-cols-2 gap-3 transition-all">
                 <button
                   onClick={() => setPrintingOrder(null)}
-                  className="py-4 bg-white dark:bg-slate-800 text-slate-400 dark:text-slate-500 rounded-2xl font-black uppercase text-[10px] tracking-widest hover:text-red-500 dark:hover:text-red-400 transition-all border border-slate-200 dark:border-slate-700 active:scale-95 flex items-center justify-center gap-2"
+                  className="py-4 bg-slate-200 dark:bg-slate-800 text-slate-700 dark:text-slate-200 rounded-2xl font-black uppercase text-[10px] tracking-widest hover:bg-slate-300 dark:hover:bg-slate-700 transition-all border border-slate-300 dark:border-slate-700 active:scale-95 flex items-center justify-center gap-2"
                 >
                   Fechar
                 </button>
                 <button
                   onClick={handlePrintOrder}
-                  className="py-4 bg-slate-900 text-white rounded-2xl font-black uppercase text-[10px] tracking-widest hover:bg-black transition-all shadow-xl active:scale-95 flex items-center justify-center gap-2"
+                  className="py-4 bg-blue-600 text-white rounded-2xl font-black uppercase text-[10px] tracking-widest hover:bg-blue-700 transition-all shadow-xl active:scale-95 flex items-center justify-center gap-2"
                 >
                   <Icons.Print className="w-4 h-4" />
                   Imprimir Comprovante
@@ -2330,7 +2330,7 @@ const POS: React.FC<POSProps> = ({ currentUser }) => {
       {
         isReviewModalOpen && reviewSession && (
           <div className="fixed inset-0 z-[200] flex items-center justify-center bg-slate-900/40 dark:bg-slate-950/60 animate-in fade-in duration-300 p-2 print:p-0 print:bg-white print:items-start print:static print:z-auto print-modal">
-            <div id="cash-closing-report" className="bg-white dark:bg-slate-900 w-full max-w-[650px] border border-slate-300 dark:border-slate-800 shadow-xl flex flex-col max-h-[98vh] print:max-h-none print:h-auto print:shadow-none print:border-none print:w-full print:m-0 rounded-2xl print:rounded-none">
+            <div id="cash-closing-report" className="is-receipt bg-white dark:bg-slate-900 w-full max-w-[650px] border border-slate-300 dark:border-slate-800 shadow-xl flex flex-col max-h-[98vh] print:max-h-none print:h-auto print:shadow-none print:border-none print:w-full print:m-0 rounded-2xl print:rounded-none">
               <div className="flex-1 p-4 lg:p-6 space-y-4 overflow-y-auto print:overflow-visible custom-scrollbar">
                 {/* Formal Header */}
                 <div className="border-b border-slate-900 dark:border-slate-700 pb-2">
@@ -2474,8 +2474,7 @@ const POS: React.FC<POSProps> = ({ currentUser }) => {
                   </div>
                 )}
 
-                {/* Buttons Area */}
-                <div className="grid grid-cols-2 gap-3 print:hidden pt-3 border-t border-slate-100 dark:border-slate-800">
+                <div className="grid grid-cols-2 gap-4 no-print mt-6">
                   <button
                     disabled={reviewSession.observations?.includes('Auto Fechamento') && currentUser.name !== 'Administrador Master'}
                     onClick={() => {
@@ -2489,18 +2488,18 @@ const POS: React.FC<POSProps> = ({ currentUser }) => {
                       });
                       setIsAdjustModalOpen(true);
                     }}
-                    className={`bg-white dark:bg-slate-800 border border-slate-300 dark:border-slate-700 text-slate-600 dark:text-slate-300 py-2.5 rounded-xl font-bold uppercase text-[10px] tracking-widest transition-all active:scale-95 flex items-center justify-center gap-2 hover:bg-slate-50 dark:hover:bg-slate-700 shadow-sm ${reviewSession.observations?.includes('Auto Fechamento') && currentUser.name !== 'Administrador Master' ? 'opacity-50 cursor-not-allowed grayscale' : ''}`}
+                    className={`bg-slate-200 dark:bg-slate-800 text-slate-700 dark:text-slate-200 py-4 rounded-[22px] font-receipt font-black uppercase text-[11px] hover:bg-slate-300 dark:hover:bg-slate-700 active:scale-95 transition-all flex items-center justify-center gap-2 ${reviewSession.observations?.includes('Auto Fechamento') && currentUser.name !== 'Administrador Master' ? 'opacity-50 cursor-not-allowed grayscale' : ''}`}
                   >
-                    <Icons.Dashboard className="w-3.5 h-3.5" /> Ajustes
+                    <Icons.Dashboard className="w-4 h-4" /> AJUSTES
                   </button>
                   <button
                     onClick={async () => {
-                      addToast({ title: 'Impressão', message: 'Gerando imagem do relatório...', type: 'INFO' });
-                      await printAsImage('cash-closing-report');
+                      addToast({ title: 'Impressão', message: 'Enviando relatório...', type: 'INFO' });
+                      await printElement('cash-closing-report');
                     }}
-                    className="bg-slate-900 dark:bg-white text-white dark:text-slate-900 py-2.5 rounded-xl font-bold uppercase text-[10px] tracking-widest hover:bg-black dark:hover:bg-slate-100 active:scale-95 transition-all flex items-center justify-center gap-2 shadow-md shadow-slate-200 dark:shadow-none"
+                    className="bg-blue-600 text-white py-4 rounded-[22px] font-receipt font-black uppercase text-[11px] shadow-xl hover:bg-blue-700 active:scale-95 transition-all flex items-center justify-center gap-2"
                   >
-                    Imprimir
+                    <Icons.Print className="w-4 h-4" /> IMPRIMIR
                   </button>
                 </div>
               </div>

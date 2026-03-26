@@ -10,6 +10,8 @@ import { validateEmail, validateCPF, validateCNPJ, maskPhone, maskDocument, toTi
 import { formatAddress } from '../services/formatUtils';
 import WaiterAuthModal from '../components/WaiterAuthModal';
 import { useToast } from '../hooks/useToast';
+import { usePrinter } from '../hooks/usePrinter';
+
 
 interface TablesProps {
   currentUser: User;
@@ -18,6 +20,7 @@ interface TablesProps {
 const Tables: React.FC<TablesProps> = ({ currentUser }) => {
   const { addToast } = useToast();
   const { isAlerting, dismissAlert } = useDigitalAlert();
+  const { printElement } = usePrinter();
   const [settings, setSettings] = useState<BusinessSettings | null>(null);
   const [sessions, setSessions] = useState<TableSession[]>([]);
   const [products, setProducts] = useState<Product[]>([]);
@@ -553,10 +556,8 @@ const Tables: React.FC<TablesProps> = ({ currentUser }) => {
     };
 
     if (!settings?.printerIp) {
-      // In soft printer mode, we keep visual as fallback but the user wants "direct"
-      // Since it's a browser, we can only window.print() if no thermal IP is set.
       addToast({ title: "Impressão", message: "Enviando para a impressora do sistema...", type: "INFO" });
-      setTimeout(() => window.print(), 500);
+      await printElement('table-receipt');
       return;
     }
 
@@ -1019,21 +1020,21 @@ const Tables: React.FC<TablesProps> = ({ currentUser }) => {
             <div className="p-6 pt-0 flex gap-3">
               <button
                 onClick={() => { setShowConsumptionTicket(false); setIsConfirmingBilling(false); }}
-                className="flex-1 py-4 bg-slate-100 dark:bg-slate-800 text-slate-500 dark:text-slate-400 rounded-2xl font-black uppercase text-[10px] tracking-widest transition-all hover:bg-slate-200 dark:hover:bg-slate-700 active:scale-95"
+                className="flex-1 py-4 bg-slate-200 dark:bg-slate-800 text-slate-700 dark:text-slate-200 rounded-2xl font-black uppercase text-[10px] tracking-widest transition-all hover:bg-slate-300 dark:hover:bg-slate-700 active:scale-95"
               >
                 {isConfirmingBilling ? 'Cancelar' : 'Fechar'}
               </button>
               {isConfirmingBilling ? (
                 <button
                   onClick={confirmBilling}
-                  className="flex-[1.5] py-4 bg-orange-600 hover:bg-orange-700 text-white rounded-2xl font-black uppercase text-[10px] tracking-widest shadow-xl shadow-orange-100 dark:shadow-none transition-all active:scale-95 flex items-center justify-center gap-2"
+                  className="flex-[1.5] py-4 bg-blue-600 hover:bg-blue-700 text-white rounded-2xl font-black uppercase text-[10px] tracking-widest shadow-xl transition-all active:scale-95 flex items-center justify-center gap-2"
                 >
                   <Icons.Check className="w-4 h-4" /> Confirmar
                 </button>
               ) : (
                 <button
                   onClick={handlePrintTable}
-                  className="flex-[1.5] py-4 bg-blue-600 hover:bg-blue-700 text-white rounded-2xl font-black uppercase text-[10px] tracking-widest shadow-xl shadow-blue-100 dark:shadow-none transition-all active:scale-95 flex items-center justify-center gap-2"
+                  className="flex-[1.5] py-4 bg-blue-600 hover:bg-blue-700 text-white rounded-2xl font-black uppercase text-[10px] tracking-widest shadow-xl transition-all active:scale-95 flex items-center justify-center gap-2"
                 >
                   <Icons.View className="w-4 h-4" /> Imprimir
                 </button>
