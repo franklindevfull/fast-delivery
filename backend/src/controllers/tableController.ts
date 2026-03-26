@@ -268,7 +268,7 @@ export const saveTableSession = async (req: Request, res: Response) => {
             });
 
             return session;
-        });
+        }, { timeout: 30000 });
 
         if (isNewItemsAdded) {
             try {
@@ -499,7 +499,7 @@ export const transferTableSession = async (req: Request, res: Response) => {
             await tx.orderItem.deleteMany({ where: { tableSessionId: fromTable } });
             await tx.order.deleteMany({ where: { id: fromOrderId } });
             await tx.tableSession.delete({ where: { tableNumber: fromTable } });
-        });
+        }, { timeout: 30000 });
 
         // Notify via sockets
         try {

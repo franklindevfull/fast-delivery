@@ -1,6 +1,3 @@
-// This is your Prisma schema file,
-// learn more about it in the docs: https://pris.ly/d/prisma-schema
-
 generator client {
   provider = "prisma-client-js"
 }
@@ -10,14 +7,411 @@ datasource db {
   url      = env("DATABASE_URL")
 }
 
+model User {
+  id                 String   @id @default(uuid())
+  name               String
+  email              String   @unique
+  password           String
+  permissions        String[]
+  createdAt          DateTime @default(now())
+  active             Boolean  @default(true)
+  mustChangePassword Boolean  @default(true)
+  phone              String?
+  recoveryCode       String?
+}
+
+model Client {
+  id                 String         @id @default(uuid())
+  name               String
+  phone              String
+  addresses          String[]
+  totalOrders        Int            @default(0)
+  lastOrderDate      String?
+  addressNumber      String?
+  avatarUrl          String?
+  cep                String?
+  city               String?
+  complement         String?
+  document           String?
+  email              String?
+  googleId           String?        @unique
+  mustChangePassword Boolean        @default(false)
+  neighborhood       String?
+  password           String?
+  pin                String?
+  recoveryCode       String?
+  state              String?
+  street             String?
+  webauthnCounter    Int            @default(0)
+  webauthnId         String?        @unique
+  webauthnPublicKey  String?
+  notifications      Notification[]
+  orders             Order[]
+  receivables        Receivable[]
+}
+
+model Waiter {
+  id            String         @id @default(uuid())
+  name          String
+  phone         String
+  active        Boolean        @default(true)
+  email         String?        @unique
+  orders        Order[]
+  tableSessions TableSession[]
+}
+
+model Product {
+  id           String       @id @default(uuid())
+  name         String
+  price        Float
+  category     String
+  stock        Int          @default(0)
+  imageUrl     String
+  active       Boolean      @default(true)
+  cest         String?
+  cfop         String?
+  ncm          String?
+  preparation  String?
+  comboItems   ComboItem[]  @relation("ComboParent")
+  partOfCombos ComboItem[]  @relation("ComboChild")
+  orderItems   OrderItem[]
+  recipe       RecipeItem[]
+}
+
+model InventoryItem {
+  id        String              @id @default(uuid())
+  name      String
+  unit      UnitType
+  quantity  Float
+  minStock  Float
+  cost      Float
+  movements InventoryMovement[]
+  recipes   RecipeItem[]
+}
+
+model InventoryMovement {
+  id              String        @id @default(uuid())
+  timestamp       DateTime      @default(now())
+  inventoryItemId String
+  type            String
+  quantity        Float
+  reason          String
+  orderId         String?
+  inventoryItem   InventoryItem @relation(fields: [inventoryItemId], references: [id])
+}
+
+model RecipeItem {
+  id              String        @id @default(uuid())
+  productId       String
+  inventoryItemId String
+  quantity        Float
+  wasteFactor     Float
+  inventoryItem   InventoryItem @relation(fields: [inventoryItemId], references: [id])
+  product         Product       @relation(fields: [productId], references: [id])
+}
+
+model ComboItem {
+  id        String  @id @default(uuid())
+  comboId   String
+  productId String
+  quantity  Int
+  combo     Product @relation("ComboParent", fields: [comboId], references: [id])
+  product   Product @relation("ComboChild", fields: [productId], references: [id])
+}
+
+model SupportMessage {
+  id        String   @id @default(uuid())
+  clientId  String?
+  userName  String?
+  message   String
+  isAdmin   Boolean  @default(false)
+  createdAt DateTime @default(now())
+  isRead    Boolean  @default(false)
+}
+
+model Order {
+  id                  String           @id @default(uuid())
+  clientId            String?
+  clientName          String
+  clientAddress       String?
+  clientPhone         String?
+  total               Float
+  status              OrderStatus      @default(PENDING)
+  type                SaleType
+  createdAt           DateTime         @default(now())
+  paymentMethod       String?
+  driverId            String?
+  tableNumber         Int?
+  waiterId            String?
+  appliedServiceFee   Float?
+  assignedAt          DateTime?
+  clientCep           String?
+  clientCity          String?
+  clientComplement    String?
+  clientDocument      String?
+  clientEmail         String?
+  clientNeighborhood  String?
+  clientState         String?
+  clientStreet        String?
+  couponId            String?
+  deliveryFee         Float?
+  digitalPin          String?
+  digitalToken        String?
+  discountValue       Float?           @default(0)
+  isOriginDeliveryApp Boolean          @default(false)
+  isOriginDigitalMenu Boolean          @default(false)
+  mpPaymentId         String?
+  mpPreferenceId      String?
+  nfeError            String?
+  nfeNumber           String?
+  nfeStatus           String?
+  nfeUrl              String?
+  paymentStatus       String?          @default("PENDING")
+  splitAmount1        Float?
+  updatedAt           DateTime         @default(now()) @updatedAt
+  client              Client?          @relation(fields: [clientId], references: [id])
+  coupon              Coupon?          @relation(fields: [couponId], references: [id])
+  driver              DeliveryDriver?  @relation(fields: [driverId], references: [id])
+  waiter              Waiter?          @relation(fields: [waiterId], references: [id])
+  items               OrderItem[]
+  messages            OrderMessage[]
+  rejections          OrderRejection[]
+  receivables         Receivable[]
+}
+
+model Coupon {
+  id            String    @id @default(uuid())
+  code          String    @unique
+  description   String?
+  type          String
+  value         Float?    @default(0)
+  minOrderValue Float?    @default(0)
+  maxDiscount   Float?
+  startDate     DateTime  @default(now())
+  endDate       DateTime?
+  usageLimit    Int?
+  usedCount     Int       @default(0)
+  active        Boolean   @default(true)
+  createdAt     DateTime  @default(now())
+  orders        Order[]
+}
+
+model Campaign {
+  id          String    @id @default(uuid())
+  title       String
+  message     String
+  type        String
+  segment     String?
+  scheduledAt DateTime?
+  sentAt      DateTime?
+  status      String    @default("DRAFT")
+  createdAt   DateTime  @default(now())
+}
+
+model Notification {
+  id        String   @id @default(uuid())
+  clientId  String
+  title     String
+  message   String
+  isRead    Boolean  @default(false)
+  link      String?
+  createdAt DateTime @default(now())
+  client    Client   @relation(fields: [clientId], references: [id])
+}
+
+model Receivable {
+  id            String    @id @default(uuid())
+  clientId      String
+  orderId       String
+  amount        Float
+  dueDate       DateTime
+  paymentMethod String?
+  status        String    @default("PENDING")
+  observations  String?
+  createdAt     DateTime  @default(now())
+  paidAt        DateTime?
+  client        Client    @relation(fields: [clientId], references: [id])
+  order         Order     @relation(fields: [orderId], references: [id])
+}
+
+model OrderItem {
+  id             String        @id @default(uuid())
+  orderId        String?
+  tableSessionId Int?
+  productId      String
+  quantity       Int
+  price          Float
+  isReady        Boolean       @default(false)
+  readyAt        DateTime?
+  observations   String?
+  order          Order?        @relation(fields: [orderId], references: [id])
+  product        Product       @relation(fields: [productId], references: [id])
+  tableSession   TableSession? @relation(fields: [tableSessionId], references: [tableNumber])
+}
+
+model TableSession {
+  tableNumber         Int           @id
+  status              SessionStatus @default(available)
+  clientName          String?
+  clientId            String?
+  waiterId            String?
+  startTime           DateTime      @default(now())
+  clientAddress       String?
+  clientPhone         String?
+  clientCep           String?
+  clientComplement    String?
+  clientDocument      String?
+  clientEmail         String?
+  hasPendingDigital   Boolean       @default(false)
+  isOriginDigitalMenu Boolean       @default(false)
+  pendingReviewItems  String?
+  pin                 String?
+  sessionToken        String?
+  items               OrderItem[]
+  waiter              Waiter?       @relation(fields: [waiterId], references: [id])
+}
+
+model DeliveryDriver {
+  id           String           @id @default(uuid())
+  name         String
+  phone        String
+  email        String?
+  address      String?
+  vehiclePlate String
+  vehicleModel String
+  vehicleBrand String
+  vehicleType  VehicleType
+  status       DriverStatus     @default(AVAILABLE)
+  active       Boolean          @default(true)
+  orders       Order[]
+  rejections   OrderRejection[]
+}
+
+model AuditLog {
+  id        String   @id @default(uuid())
+  timestamp DateTime @default(now())
+  userId    String
+  userName  String
+  action    String
+  details   String
+}
+
+model BusinessSettings {
+  key                  String  @id
+  name                 String
+  cnpj                 String
+  address              String
+  phone                String
+  deliveryFee          String
+  tableCount           Int
+  appBannerUrl         String?
+  autoCloseTime        String  @default("00:00")
+  campaignLogoUrl      String?
+  cscId                String?
+  cscToken             String?
+  enableDeliveryApp    Boolean @default(true)
+  enableDigitalMenu    Boolean @default(true)
+  enableDriverApp      Boolean @default(true)
+  enableNfcEmission    Boolean @default(false)
+  enableWaiterApp      Boolean @default(true)
+  facebook             String?
+  geofenceRadius       Int     @default(30)
+  ie                   String?
+  instagram            String?
+  isManuallyClosed     Boolean @default(false)
+  isNfeProduction      Boolean @default(false)
+  maxChange            Float   @default(191)
+  operatingHours       String  @default("[]")
+  orderTimeoutMinutes  Int     @default(5)
+  printerIp            String?
+  printerType          String  @default("EPSON")
+  qrCodeBaseUrl        String?
+  restaurantLat        Float?
+  restaurantLng        Float?
+  serviceFeePercentage Float   @default(10)
+  serviceFeeStatus     Boolean @default(true)
+  waiterLockEnabled    Boolean @default(true)
+  waiterPrivacyEnabled Boolean @default(false)
+  waiterPrivacyTimer   Int     @default(60)
+  website              String?
+  appBannerUrl2        String?
+  appBannerUrl3        String?
+}
+
+model ChatMessage {
+  id           String   @id @default(uuid())
+  content      String
+  timestamp    DateTime @default(now())
+  driverId     String
+  isFromDriver Boolean
+  senderName   String
+}
+
+model OrderRejection {
+  id        String         @id @default(uuid())
+  timestamp DateTime       @default(now())
+  orderId   String
+  driverId  String
+  type      RejectionType
+  reason    String?
+  driver    DeliveryDriver @relation(fields: [driverId], references: [id])
+  order     Order          @relation(fields: [orderId], references: [id])
+}
+
+model CashSession {
+  id             String    @id @default(uuid())
+  openedAt       DateTime  @default(now())
+  openedBy       String
+  openedByName   String
+  initialBalance Float
+  closedAt       DateTime?
+  closedBy       String?
+  closedByName   String?
+  status         String    @default("OPEN")
+  reportedCash   Float?
+  reportedPix    Float?
+  reportedCredit Float?
+  reportedDebit  Float?
+  reportedOthers Float?
+  reportedFiado  Float?
+  systemCash     Float?
+  systemPix      Float?
+  systemCredit   Float?
+  systemDebit    Float?
+  systemOthers   Float?
+  systemFiado    Float?
+  totalSales     Float?
+  orphanSales    Float?
+  difference     Float?
+  observations   String?
+}
+
+model Feedback {
+  id          String   @id @default(uuid())
+  name        String?
+  message     String
+  tableNumber Int
+  isRead      Boolean  @default(false)
+  createdAt   DateTime @default(now())
+}
+
+model OrderMessage {
+  id        String   @id @default(uuid())
+  orderId   String
+  sender    String
+  text      String
+  createdAt DateTime @default(now())
+  order     Order    @relation(fields: [orderId], references: [id])
+}
+
 enum OrderStatus {
   PENDING
   PREPARING
-  PARTIALLY_READY
   READY
   OUT_FOR_DELIVERY
   DELIVERED
   CANCELLED
+  PARTIALLY_READY
   REOPENED
 }
 
@@ -57,411 +451,4 @@ enum SessionStatus {
 enum RejectionType {
   AUTO
   MANUAL
-}
-
-model User {
-  id                 String     @id @default(uuid())
-  name               String
-  email              String     @unique
-  password           String
-  phone              String?
-  recoveryCode       String?
-  mustChangePassword Boolean    @default(true)
-  active             Boolean    @default(true)
-  permissions        String[]
-  createdAt          DateTime   @default(now())
-}
-
-model Client {
-  id            String       @id @default(uuid())
-  name          String
-  phone         String
-  email         String?
-  password      String?
-  googleId      String?      @unique
-  pin           String?
-  recoveryCode  String?
-  mustChangePassword Boolean    @default(false)
-  document      String?
-  cep           String?
-  street        String?
-  addressNumber String?
-  neighborhood  String?
-  city          String?
-  state         String?
-  complement    String?
-  addresses     String[]
-  totalOrders   Int          @default(0)
-  lastOrderDate String?
-  orders        Order[]
-  receivables   Receivable[]
-  notifications Notification[]
-  webauthnId      String?      @unique
-  webauthnPublicKey String?
-  webauthnCounter   Int          @default(0)
-  avatarUrl     String?
-}
-
-model Waiter {
-  id            String         @id @default(uuid())
-  name          String
-  phone         String
-  email         String?        @unique
-  active        Boolean        @default(true)
-  orders        Order[]
-  tableSessions TableSession[]
-}
-
-model Product {
-  id         String       @id @default(uuid())
-  name       String
-  price      Float
-  category   String
-  stock      Int          @default(0)
-  imageUrl   String
-  active     Boolean      @default(true)
-  ncm        String?
-  cfop       String?
-  cest       String?
-  preparation String?
-  recipe     RecipeItem[]
-  orderItems OrderItem[]
-  comboItems   ComboItem[] @relation("ComboParent")
-  partOfCombos ComboItem[] @relation("ComboChild")
-}
-
-model InventoryItem {
-  id        String              @id @default(uuid())
-  name      String
-  unit      UnitType
-  quantity  Float
-  minStock  Float
-  cost      Float
-  recipes   RecipeItem[]
-  movements InventoryMovement[]
-}
-
-model InventoryMovement {
-  id              String        @id @default(uuid())
-  timestamp       DateTime      @default(now())
-  inventoryItemId String
-  inventoryItem   InventoryItem @relation(fields: [inventoryItemId], references: [id])
-  type            String // INPUT, OUTPUT, ADJUSTMENT
-  quantity        Float
-  reason          String // e.g., "Sale", "Manual Adjustment", "Restock"
-  orderId         String? // Link to order if applicable
-}
-
-model RecipeItem {
-  id              String        @id @default(uuid())
-  productId       String
-  product         Product       @relation(fields: [productId], references: [id])
-  inventoryItemId String
-  inventoryItem   InventoryItem @relation(fields: [inventoryItemId], references: [id])
-  quantity        Float
-  wasteFactor     Float
-}
-
-model ComboItem {
-  id              String      @id @default(uuid())
-  comboId         String
-  combo           Product     @relation("ComboParent", fields: [comboId], references: [id])
-  productId       String
-  product         Product     @relation("ComboChild", fields: [productId], references: [id])
-  quantity        Int
-}
-
-model SupportMessage {
-  id        String   @id @default(uuid())
-  clientId  String?
-  userName  String?
-  message   String
-  isAdmin   Boolean  @default(false)
-  createdAt DateTime @default(now())
-  isRead    Boolean  @default(false)
-}
-
-model Order {
-  id                  String           @id @default(uuid())
-  clientId            String?
-  client              Client?           @relation(fields: [clientId], references: [id])
-  clientName          String
-  clientAddress       String?
-  clientPhone         String?
-  clientEmail         String?
-  clientDocument      String?
-  clientCep           String?
-  clientStreet        String?
-  clientNeighborhood  String?
-  clientCity          String?
-  clientState         String?
-  clientComplement    String?
-  items               OrderItem[]
-  total               Float
-  status              OrderStatus      @default(PENDING)
-  type                SaleType
-  createdAt           DateTime         @default(now())
-  updatedAt           DateTime         @default(now()) @updatedAt
-  paymentMethod       String?
-  driverId            String?
-  driver              DeliveryDriver?  @relation(fields: [driverId], references: [id])
-  assignedAt          DateTime?
-  deliveryFee         Float?
-  tableNumber         Int?
-  waiterId            String?
-  waiter              Waiter?          @relation(fields: [waiterId], references: [id])
-  isOriginDigitalMenu Boolean          @default(false)
-  isOriginDeliveryApp Boolean          @default(false)
-  rejections          OrderRejection[]
-  messages            OrderMessage[]
-  // Fiscal Fields
-  nfeStatus           String? // PENDING, EMITTED, ERROR
-  nfeNumber           String?
-  nfeUrl              String?
-  nfeError            String?
-  splitAmount1        Float?
-  appliedServiceFee   Float? // Optional Service Fee recorded at the time of order
-  digitalPin          String? // Store PIN for session recovery on reopen
-  digitalToken        String? // Store token for session recovery on reopen
-  receivables         Receivable[]
-  // Mercado Pago
-  mpPreferenceId      String?
-  mpPaymentId         String?
-  paymentStatus       String?          @default("PENDING") // PENDING, APPROVED, REJECTED
-  
-  // Promotion Fields
-  couponId            String?
-  coupon              Coupon?          @relation(fields: [couponId], references: [id])
-  discountValue       Float?           @default(0)
-}
-
-model Coupon {
-  id              String      @id @default(uuid())
-  code            String      @unique
-  description     String?
-  type            String      // FIXED, PERCENTAGE, FREE_SHIPPING
-  value           Float?      @default(0)
-  minOrderValue   Float?      @default(0)
-  maxDiscount     Float?
-  startDate       DateTime    @default(now())
-  endDate         DateTime?
-  usageLimit      Int?
-  usedCount       Int         @default(0)
-  active          Boolean     @default(true)
-  createdAt       DateTime    @default(now())
-  orders          Order[]
-}
-
-model Campaign {
-  id              String      @id @default(uuid())
-  title           String
-  message         String
-  type            String      // PUSH, IN_APP, BOTH
-  segment         String?     // ALL, ACTIVE, INACTIVE, etc.
-  scheduledAt     DateTime?
-  sentAt          DateTime?
-  status          String      @default("DRAFT") // DRAFT, SCHEDULED, SENT, CANCELLED
-  createdAt       DateTime    @default(now())
-}
-
-model Notification {
-  id              String      @id @default(uuid())
-  clientId        String
-  client          Client      @relation(fields: [clientId], references: [id])
-  title           String
-  message         String
-  isRead          Boolean     @default(false)
-  link            String?     // Optional link to open (e.g., product page or coupon)
-  createdAt       DateTime    @default(now())
-}
-
-model Receivable {
-// ... existing Receivable model ...
-
-  id            String    @id @default(uuid())
-  clientId      String
-  client        Client    @relation(fields: [clientId], references: [id])
-  orderId       String
-  order         Order     @relation(fields: [orderId], references: [id])
-  amount        Float
-  dueDate       DateTime
-  paymentMethod String? // Method used when the receivables are finally PAID
-  status        String    @default("PENDING") // PENDING, PAID
-  observations  String?
-  createdAt     DateTime  @default(now())
-  paidAt        DateTime?
-}
-
-model OrderItem {
-  id             String        @id @default(uuid())
-  orderId        String?
-  order          Order?        @relation(fields: [orderId], references: [id])
-  tableSessionId Int?
-  tableSession   TableSession? @relation(fields: [tableSessionId], references: [tableNumber])
-  productId      String
-  product        Product       @relation(fields: [productId], references: [id])
-  quantity       Int
-  price          Float
-  isReady        Boolean       @default(false)
-  readyAt        DateTime?
-  observations   String?
-}
-
-model TableSession {
-  tableNumber         Int           @id
-  status              SessionStatus @default(available)
-  items               OrderItem[]
-  clientName          String?
-  clientPhone         String?
-  clientEmail         String?
-  clientDocument      String?
-  clientId            String?
-  waiterId            String?
-  waiter              Waiter?       @relation(fields: [waiterId], references: [id])
-  startTime           DateTime      @default(now())
-  clientAddress       String?
-  clientCep           String?
-  clientComplement    String?
-  hasPendingDigital   Boolean       @default(false)
-  pendingReviewItems  String? // To store stringified array of requested digital items before approval
-  isOriginDigitalMenu Boolean       @default(false)
-  pin                 String?
-  sessionToken        String?
-}
-
-model DeliveryDriver {
-  id           String           @id @default(uuid())
-  name         String
-  phone        String
-  email        String?
-  address      String?
-  vehiclePlate String
-  vehicleModel String
-  vehicleBrand String
-  vehicleType  VehicleType
-  status       DriverStatus     @default(AVAILABLE)
-  active       Boolean          @default(true)
-  orders       Order[]
-  rejections   OrderRejection[]
-}
-
-model AuditLog {
-  id        String   @id @default(uuid())
-  timestamp DateTime @default(now())
-  userId    String
-  userName  String
-  action    String
-  details   String
-}
-
-model BusinessSettings {
-  key                  String  @id
-  name                 String
-  cnpj                 String
-  address              String
-  phone                String
-  deliveryFee          String
-  tableCount           Int
-  restaurantLat        Float?
-  restaurantLng        Float?
-  geofenceRadius       Int     @default(30)
-  isManuallyClosed     Boolean @default(false)
-  operatingHours       String  @default("[]")
-  orderTimeoutMinutes  Int     @default(5)
-  maxChange            Float   @default(191)
-  serviceFeeStatus     Boolean @default(true)
-  serviceFeePercentage Float   @default(10)
-  // NFC-e Fields
-  ie                   String?
-  cscId                String?
-  cscToken             String?
-  isNfeProduction      Boolean @default(false)
-  enableNfcEmission    Boolean @default(false)
-  waiterPrivacyEnabled Boolean @default(false)
-  waiterPrivacyTimer   Int     @default(60)
-
-  enableDeliveryApp    Boolean @default(true)
-  enableDigitalMenu    Boolean @default(true)
-  enableWaiterApp      Boolean @default(true)
-  enableDriverApp      Boolean @default(true)
-  autoCloseTime        String  @default("00:00")
-  waiterLockEnabled    Boolean @default(true)
-  qrCodeBaseUrl        String?
-  facebook             String?
-  instagram            String?
-  website              String?
-  campaignLogoUrl      String?
-  appBannerUrl         String?
-  appBannerUrl2        String?
-  appBannerUrl3        String?
-  printerIp            String?
-  printerType          String  @default("EPSON")
-}
-model ChatMessage {
-  id           String   @id @default(uuid())
-  content      String
-  timestamp    DateTime @default(now())
-  driverId     String
-  isFromDriver Boolean
-  senderName   String
-}
-
-model OrderRejection {
-  id        String         @id @default(uuid())
-  timestamp DateTime       @default(now())
-  orderId   String
-  order     Order          @relation(fields: [orderId], references: [id])
-  driverId  String
-  driver    DeliveryDriver @relation(fields: [driverId], references: [id])
-  type      RejectionType
-  reason    String?
-}
-
-model CashSession {
-  id             String    @id @default(uuid())
-  openedAt       DateTime  @default(now())
-  openedBy       String
-  openedByName   String
-  initialBalance Float
-  closedAt       DateTime?
-  closedBy       String?
-  closedByName   String?
-  status         String    @default("OPEN")
-
-  reportedCash   Float?
-  reportedPix    Float?
-  reportedCredit Float?
-  reportedDebit  Float?
-  reportedOthers Float?
-  reportedFiado  Float?
-
-  systemCash   Float?
-  systemPix    Float?
-  systemCredit Float?
-  systemDebit  Float?
-  systemOthers Float?
-  systemFiado  Float?
-
-  totalSales   Float?
-  orphanSales  Float?
-  difference   Float?
-  observations String?
-}
-
-model Feedback {
-  id          String   @id @default(uuid())
-  name        String?
-  message     String
-  tableNumber Int
-  isRead      Boolean  @default(false)
-  createdAt   DateTime @default(now())
-}
-
-model OrderMessage {
-  id        String   @id @default(uuid())
-  orderId   String
-  order     Order    @relation(fields: [orderId], references: [id])
-  sender    String   // 'STORE' | 'CLIENT'
-  text      String
-  createdAt DateTime @default(now())
 }
