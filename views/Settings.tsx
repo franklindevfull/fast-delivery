@@ -117,14 +117,14 @@ const WaiterManagement: React.FC = () => {
                 onCancel={() => setAlertConfig(prev => ({ ...prev, isOpen: false }))}
             />
 
-            <div className="flex justify-between items-center bg-white dark:bg-slate-900 p-6 sm:p-8 rounded-3xl border border-slate-100 dark:border-slate-800 shadow-sm transition-colors">
+            <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 sm:gap-0 bg-white dark:bg-slate-900 p-6 sm:p-8 rounded-3xl border border-slate-100 dark:border-slate-800 shadow-sm transition-colors">
                 <div>
                     <h3 className="text-xl font-black text-slate-800 dark:text-white uppercase tracking-tighter">Equipe de Garçons</h3>
                     <p className="text-[10px] text-slate-400 dark:text-slate-500 font-bold uppercase tracking-widest leading-relaxed">Colaboradores com acesso ao App Garçom</p>
                 </div>
                 <button
                     onClick={() => { setEditingWaiter(null); setFormData({ name: '', phone: '', email: '' }); setIsModalOpen(true); }}
-                    className="bg-blue-600 hover:bg-blue-700 text-white px-5 py-2.5 rounded-xl font-bold text-sm transition-all flex items-center justify-center gap-2 shadow-lg shadow-blue-500/20 active:scale-95 shrink-0"
+                    className="w-full sm:w-auto bg-blue-600 hover:bg-blue-700 text-white px-5 py-2.5 rounded-xl font-bold text-sm transition-all flex items-center justify-center gap-2 shadow-lg shadow-blue-500/20 active:scale-95 shrink-0"
                 >
                     <Icons.Plus size={18} strokeWidth={3} />
                     Novo Garçom
@@ -387,14 +387,14 @@ const EntregadoresManagement: React.FC = () => {
                 onConfirm={alertConfig.onConfirm || (() => setAlertConfig(prev => ({ ...prev, isOpen: false })))}
                 onCancel={() => setAlertConfig(prev => ({ ...prev, isOpen: false }))}
             />
-            <div className="flex justify-between items-center bg-white dark:bg-slate-900 p-6 sm:p-8 rounded-3xl border border-slate-100 dark:border-slate-800 shadow-sm transition-colors">
+            <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 sm:gap-0 bg-white dark:bg-slate-900 p-6 sm:p-8 rounded-3xl border border-slate-100 dark:border-slate-800 shadow-sm transition-colors">
                 <div>
                     <h3 className="text-xl font-black text-slate-800 dark:text-white uppercase tracking-tighter">Entregadores</h3>
                     <p className="text-[10px] text-slate-400 dark:text-slate-500 font-bold uppercase tracking-widest leading-relaxed">Base de entregadores cadastrados no sistema</p>
                 </div>
                 <button
                     onClick={() => openModal()}
-                    className="bg-blue-600 hover:bg-blue-700 text-white px-5 py-2.5 rounded-xl font-bold text-sm transition-all flex items-center justify-center gap-2 shadow-lg shadow-blue-500/20 active:scale-95 shrink-0"
+                    className="w-full sm:w-auto bg-blue-600 hover:bg-blue-700 text-white px-5 py-2.5 rounded-xl font-bold text-sm transition-all flex items-center justify-center gap-2 shadow-lg shadow-blue-500/20 active:scale-95 shrink-0"
                 >
                     <Icons.Plus size={18} strokeWidth={3} />
                     Novo Entregador
@@ -667,14 +667,14 @@ const UserManagementInternal: React.FC = () => {
                 onConfirm={alertConfig.onConfirm || (() => setAlertConfig(prev => ({ ...prev, isOpen: false })))}
                 onCancel={() => setAlertConfig(prev => ({ ...prev, isOpen: false }))}
             />
-            <div className="flex justify-between items-center bg-white dark:bg-slate-900 p-6 sm:p-8 rounded-3xl border border-slate-100 dark:border-slate-800 shadow-sm transition-colors">
+            <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 sm:gap-0 bg-white dark:bg-slate-900 p-6 sm:p-8 rounded-3xl border border-slate-100 dark:border-slate-800 shadow-sm transition-colors">
                 <div>
                     <h3 className="text-xl font-black text-slate-800 dark:text-white uppercase tracking-tighter">Usuários do Sistema</h3>
                     <p className="text-[10px] text-slate-400 dark:text-slate-500 font-bold uppercase tracking-widest leading-relaxed">Gerencie níveis de acesso e permissões</p>
                 </div>
                 <button
                     onClick={() => { setEditingUser(null); setFormData({ name: '', email: '', password: '123', phone: '', permissions: ['dashboard'] }); setIsModalOpen(true); }}
-                    className="bg-blue-600 hover:bg-blue-700 text-white px-5 py-2.5 rounded-xl font-bold text-sm transition-all flex items-center justify-center gap-2 shadow-lg shadow-blue-500/20 active:scale-95 shrink-0"
+                    className="w-full sm:w-auto bg-blue-600 hover:bg-blue-700 text-white px-5 py-2.5 rounded-xl font-bold text-sm transition-all flex items-center justify-center gap-2 shadow-lg shadow-blue-500/20 active:scale-95 shrink-0"
                 >
                     <Icons.Plus size={18} strokeWidth={3} />
                     Novo Usuário
@@ -1333,12 +1333,12 @@ const Settings: React.FC<SettingsProps> = ({ settings, setSettings, onReset }) =
 
                         <div className="space-y-6">
                             {/* Toggle Modo Escuro */}
-                            <div className="p-5 sm:p-6 bg-slate-50 dark:bg-slate-800 rounded-3xl sm:rounded-2xl border border-slate-100 dark:border-slate-700 flex items-center justify-between gap-4">
+                            <div className="p-5 sm:p-6 bg-slate-50 dark:bg-slate-800 rounded-3xl sm:rounded-2xl border border-slate-100 dark:border-slate-700 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-6 sm:gap-4">
                                 <div className="flex items-center gap-4">
                                     <div className={`w-10 h-10 sm:w-12 sm:h-12 rounded-xl sm:rounded-2xl flex items-center justify-center shrink-0 ${theme === 'dark' ? 'bg-blue-600 text-white' : 'bg-white dark:bg-slate-700 text-blue-600 dark:text-blue-400 shadow-sm'}`}>
                                         <Icons.Moon size={20} className="sm:w-6 sm:h-6" />
                                     </div>
-                                    <div>
+                                    <div className="flex-1 min-w-0">
                                         <h4 className="text-[12px] font-black text-slate-800 dark:text-white uppercase tracking-widest">Modo Escuro</h4>
                                         <p className="text-[10px] font-bold text-slate-400 dark:text-slate-500 mt-1 uppercase leading-relaxed">Ativa tons escuros para reduzir o cansaço visual.</p>
                                     </div>
@@ -1354,12 +1354,12 @@ const Settings: React.FC<SettingsProps> = ({ settings, setSettings, onReset }) =
                             </div>
 
                             {/* Toggle Sincronizar com Sistema */}
-                            <div className="p-5 sm:p-6 bg-slate-50 dark:bg-slate-800 rounded-3xl sm:rounded-2xl border border-slate-100 dark:border-slate-700 flex items-center justify-between gap-4">
+                            <div className="p-5 sm:p-6 bg-slate-50 dark:bg-slate-800 rounded-3xl sm:rounded-2xl border border-slate-100 dark:border-slate-700 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-6 sm:gap-4">
                                 <div className="flex items-center gap-4">
                                     <div className={`w-10 h-10 sm:w-12 sm:h-12 rounded-xl sm:rounded-2xl flex items-center justify-center shrink-0 ${theme === 'system' ? 'bg-blue-600 text-white' : 'bg-white dark:bg-slate-700 text-blue-600 dark:text-blue-400 shadow-sm'}`}>
                                         <Icons.Dashboard size={20} className="sm:w-6 sm:h-6" />
                                     </div>
-                                    <div>
+                                    <div className="flex-1 min-w-0">
                                         <h4 className="text-[12px] font-black text-slate-800 dark:text-white uppercase tracking-widest">Acompanhar Sistema</h4>
                                         <p className="text-[10px] font-bold text-slate-400 dark:text-slate-500 mt-1 uppercase leading-relaxed">Segue automaticamente o tema definido no seu dispositivo.</p>
                                     </div>

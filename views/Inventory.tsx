@@ -218,27 +218,27 @@ const Inventory: React.FC = () => {
           </div>
         </div>
       ) : (
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6 overflow-y-auto pb-10">
+        <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 xl:grid-cols-8 gap-4 overflow-y-auto pb-10">
           {products.map(product => (
-            <div key={product.id} className="bg-white dark:bg-slate-900 rounded-[2.5rem] shadow-sm border border-slate-100 dark:border-slate-800 p-6 flex flex-col group hover:shadow-xl hover:border-blue-100 dark:hover:border-blue-900 transition-all">
-              <div className="relative mb-4 bg-slate-50 dark:bg-slate-800 rounded-3xl overflow-hidden aspect-square flex items-center justify-center border border-slate-50 dark:border-slate-800 group-hover:scale-[1.02] transition-transform">
+            <div key={product.id} className="bg-white dark:bg-slate-900 rounded-3xl shadow-sm border border-slate-100 dark:border-slate-800 p-4 flex flex-col group hover:shadow-xl hover:border-blue-100 dark:hover:border-blue-900 transition-all">
+              <div className="relative mb-3 bg-slate-50 dark:bg-slate-800 rounded-2xl overflow-hidden aspect-square flex items-center justify-center border border-slate-50 dark:border-slate-800 group-hover:scale-[1.02] transition-transform">
                 <img src={formatImageUrl(product.imageUrl)} onError={e => e.currentTarget.src = PLACEHOLDER_FOOD_IMAGE} className="w-full h-full object-contain" />
               </div>
-              <h4 className="font-black text-slate-800 dark:text-white text-sm uppercase mb-1 h-10 line-clamp-2 leading-tight">{product.name}</h4>
-              <p className="text-lg font-black text-blue-600 dark:text-blue-500 mb-6">R$ {product.price.toFixed(2)}</p>
-              <div className="flex gap-1.5">
-                <button onClick={() => openProdModal(product)} className="flex-1 py-3 bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-600 dark:text-slate-300 rounded-2xl text-[9px] font-black uppercase transition-all flex items-center justify-center gap-1.5" title="Editar">
+              <h4 className="font-black text-slate-800 dark:text-white text-xs uppercase mb-1 h-8 line-clamp-2 leading-tight">{product.name}</h4>
+              <p className="text-sm font-black text-blue-600 dark:text-blue-500 mb-4">R$ {product.price.toFixed(2)}</p>
+              <div className="flex gap-2 flex-col xl:flex-row">
+                <button onClick={() => openProdModal(product)} className="flex-1 py-3 px-3 bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-600 dark:text-slate-300 rounded-2xl text-[9px] font-black uppercase transition-all flex items-center justify-center gap-1.5" title="Editar">
                   <Icons.Edit className="w-3.5 h-3.5 flex-shrink-0" />
                   <span className="truncate">Editar / Ficha</span>
                 </button>
-                <button onClick={() => deleteProd(product.id)} className="w-12 py-3 bg-red-50 dark:bg-red-900/20 hover:bg-red-100 dark:hover:bg-red-900/40 text-red-600 dark:text-red-400 rounded-2xl transition-all flex items-center justify-center flex-shrink-0" title="Excluir">
+                <button onClick={() => deleteProd(product.id)} className="w-full xl:w-12 py-3 bg-red-50 dark:bg-red-900/20 hover:bg-red-100 dark:hover:bg-red-900/40 text-red-600 dark:text-red-400 rounded-2xl transition-all flex items-center justify-center flex-shrink-0" title="Excluir">
                   <Icons.Delete className="w-4 h-4" />
                 </button>
               </div>
             </div>
           ))}
-          <button onClick={() => openProdModal()} className="border-2 border-dashed border-slate-200 dark:border-slate-800 rounded-[2.5rem] flex flex-col items-center justify-center h-full min-h-[300px] text-slate-400 dark:text-slate-500 font-black uppercase gap-2 hover:bg-slate-50 dark:hover:bg-slate-800/50 hover:border-blue-200 dark:hover:border-blue-900 hover:text-blue-400 transition-all text-[10px] tracking-widest">
-            <span className="text-3xl">+</span>
+          <button onClick={() => openProdModal()} className="border-2 border-dashed border-slate-200 dark:border-slate-800 rounded-3xl flex flex-col items-center justify-center h-full min-h-[200px] text-slate-400 dark:text-slate-500 font-black uppercase gap-2 hover:bg-slate-50 dark:hover:bg-slate-800/50 hover:border-blue-200 dark:hover:border-blue-900 hover:text-blue-400 transition-all text-[10px] tracking-widest">
+            <span className="text-2xl">+</span>
             Adicionar Produto
           </button>
         </div>
@@ -371,13 +371,15 @@ const Inventory: React.FC = () => {
                                 step="1"
                                 placeholder="0"
                                 value={item.wasteFactor === 1 ? '' : Math.round((item.wasteFactor - 1) * 100)}
+                                onKeyDown={e => { if (e.key === 'ArrowUp' || e.key === 'ArrowDown') e.preventDefault(); }}
                                 onChange={e => {
-                                  const percentage = e.target.value === '' ? 0 : parseFloat(e.target.value);
+                                  let val = e.target.value;
+                                  const percentage = val === '' ? 0 : parseFloat(val);
                                   const updated = [...tempRecipe];
                                   updated[index].wasteFactor = 1 + (percentage / 100);
                                   setTempRecipe(updated);
                                 }}
-                                className="w-full p-3 bg-white dark:bg-slate-900 border-none rounded-xl text-xs font-bold text-slate-800 dark:text-white text-center focus:ring-2 focus:ring-blue-500 [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
+                                className="w-full p-3 bg-white dark:bg-slate-900 border-none rounded-xl text-xs font-bold text-slate-800 dark:text-white placeholder:text-slate-800 dark:placeholder:text-white text-center focus:ring-2 focus:ring-blue-500 [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
                               />
                             </div>
                             <button type="button" onClick={() => setTempRecipe(tempRecipe.filter((_, i) => i !== index))} className="p-3 text-red-500 hover:bg-red-50 dark:hover:bg-red-900/20 rounded-xl transition-all shrink-0"><Icons.Delete className="h-4 w-4" /></button>
