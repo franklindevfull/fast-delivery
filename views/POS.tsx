@@ -68,8 +68,8 @@ const POS: React.FC<POSProps> = ({ currentUser }) => {
   const [isNfceVisual, setIsNfceVisual] = useState(false);
   const [isServiceFeeAccepted, setIsServiceFeeAccepted] = useState(true);
 
-  const [alertConfig, setAlertConfig] = useState<{ isOpen: boolean, title: string, message: string, onConfirm: () => void, type: 'INFO' | 'DANGER' | 'SUCCESS' }>({
-    isOpen: false, title: '', message: '', onConfirm: () => { }, type: 'INFO'
+  const [alertConfig, setAlertConfig] = useState<{ isOpen: boolean, title: string, message: string, onConfirm: () => void, onCancel?: () => void, type: 'INFO' | 'DANGER' | 'SUCCESS' }>({
+    isOpen: false, title: '', message: '', onConfirm: () => { }, onCancel: undefined, type: 'INFO'
   });
 
   const [errors, setErrors] = useState<Record<string, boolean>>({});
@@ -101,7 +101,21 @@ const POS: React.FC<POSProps> = ({ currentUser }) => {
   const [productSearchTerm, setProductSearchTerm] = useState('');
 
   const showAlert = (title: string, message: string, type: 'INFO' | 'DANGER' | 'SUCCESS' = 'INFO') => {
-    setAlertConfig({ isOpen: true, title, message, onConfirm: () => setAlertConfig(prev => ({ ...prev, isOpen: false })), type });
+    setAlertConfig({ isOpen: true, title, message, onConfirm: () => setAlertConfig(prev => ({ ...prev, isOpen: false })), onCancel: undefined, type });
+  };
+
+  const showConfirm = (title: string, message: string, onConfirm: () => void, type: 'INFO' | 'DANGER' | 'SUCCESS' = 'INFO') => {
+    setAlertConfig({
+      isOpen: true,
+      title,
+      message,
+      onConfirm: () => {
+        onConfirm();
+        setAlertConfig(prev => ({ ...prev, isOpen: false }));
+      },
+      onCancel: () => setAlertConfig(prev => ({ ...prev, isOpen: false })),
+      type
+    });
   };
 
   useEffect(() => {
@@ -908,7 +922,7 @@ const POS: React.FC<POSProps> = ({ currentUser }) => {
 
   return (
     <div className="flex flex-col h-full gap-2 lg:gap-4 xl:gap-6">
-      <CustomAlert {...alertConfig} onConfirm={alertConfig.onConfirm} />
+      <CustomAlert {...alertConfig} onConfirm={alertConfig.onConfirm} onCancel={alertConfig.onCancel} />
 
       {/* Payment Selection Modal */}
       {isPaymentModalOpen && (
@@ -1227,7 +1241,12 @@ const POS: React.FC<POSProps> = ({ currentUser }) => {
                       <button
                         onClick={(e) => {
                           e.stopPropagation();
-                          handleReopenTable(t.tableNumber);
+                          showConfirm(
+                            "Reabrir Mesa", 
+                            `Tem certeza que deseja reabrir a Mesa ${t.tableNumber} para novos lançamentos?`,
+                            () => handleReopenTable(t.tableNumber),
+                            "INFO"
+                          );
                         }}
                         className="w-8 h-8 flex items-center justify-center bg-amber-50 text-amber-500 rounded-xl hover:bg-amber-500 hover:text-white transition-all shadow-sm"
                         title="Reabrir Mesa"
@@ -1237,8 +1256,9 @@ const POS: React.FC<POSProps> = ({ currentUser }) => {
                       <button
                         onClick={(e) => {
                           e.stopPropagation();
+                          const isEmpty = cart.length === 0 && !selectedClient && !tableNumberInput && !editingOrderId && !isReceivingFiado;
                           clearState();
-                          addToast({ title: "LIMPO", message: "Seleção da mesa removida da Área de Pagamento.", type: "SUCCESS" });
+                          if (!isEmpty) addToast({ title: "LIMPO", message: "Seleção da mesa removida da Área de Pagamento.", type: "SUCCESS" });
                         }}
                         className="w-8 h-8 flex items-center justify-center bg-slate-50 text-slate-400 rounded-xl hover:bg-slate-200 hover:text-slate-600 transition-all shadow-sm"
                         title="Limpar Seleção"
@@ -1269,8 +1289,9 @@ const POS: React.FC<POSProps> = ({ currentUser }) => {
                       onClick={(e) => {
                         e.stopPropagation();
                         // Se estiver selecionado, limpa. Se não, apenas limpa o estado atual.
+                        const isEmpty = cart.length === 0 && !selectedClient && !tableNumberInput && !editingOrderId && !isReceivingFiado;
                         clearState();
-                        addToast({ title: "LIMPO", message: "Seleção do balcão removida.", type: "SUCCESS" });
+                        if (!isEmpty) addToast({ title: "LIMPO", message: "Seleção do balcão removida.", type: "SUCCESS" });
                       }}
                       className="w-8 h-8 flex items-center justify-center bg-slate-50 text-slate-400 rounded-xl hover:bg-slate-200 hover:text-slate-600 transition-all shadow-sm"
                       title="Limpar Seleção"
@@ -1638,7 +1659,16 @@ const POS: React.FC<POSProps> = ({ currentUser }) => {
                   </button>
                 )}
                 <button
-                  onClick={() => handleReopenTable()}
+                  onClick={() => {
+                    const num = parseInt(tableNumberInput);
+                    if (isNaN(num)) return;
+                    showConfirm(
+                      "Reabrir Mesa",
+                      `Deseja reabrir a Mesa ${num} para novos lançamentos? Isso permitirá adicionar novos produtos à conta atual.`,
+                      () => handleReopenTable(),
+                      "INFO"
+                    );
+                  }}
                   disabled={!!isReceivingFiado}
                   className="flex-1 bg-amber-500 hover:bg-amber-600 text-white font-black py-3 xl:py-4 rounded-xl xl:rounded-2xl shadow-xl uppercase text-[9px] xl:text-[10px] tracking-widest transition-all active:scale-95 disabled:opacity-30 disabled:cursor-not-allowed"
                 >
@@ -1646,7 +1676,11 @@ const POS: React.FC<POSProps> = ({ currentUser }) => {
                 </button>
                 {(editingOrderId || (saleType === SaleType.TABLE && tableNumber)) && (
                   <button
-                    onClick={() => clearState()}
+                    onClick={() => {
+                      const isEmpty = cart.length === 0 && !selectedClient && !tableNumberInput && !editingOrderId && !isReceivingFiado;
+                      clearState();
+                      if (!isEmpty) addToast({ title: "LIMPO", message: "Seleção da mesa removida da Área de Pagamento.", type: "SUCCESS" });
+                    }}
                     className="flex-1 bg-slate-100 hover:bg-slate-200 text-slate-500 font-black py-3 xl:py-4 rounded-xl xl:rounded-2xl shadow-sm uppercase text-[9px] xl:text-[10px] tracking-widest transition-all active:scale-95"
                   >
                     Limpar Seleção
@@ -1670,7 +1704,11 @@ const POS: React.FC<POSProps> = ({ currentUser }) => {
             </button>
 
             {editingOrderId && (
-              <button onClick={() => clearState()} className="w-full mt-2 text-slate-400 font-black uppercase text-[10px] tracking-widest hover:text-slate-600 transition-colors">
+              <button onClick={() => {
+                const isEmpty = cart.length === 0 && !selectedClient && !tableNumberInput && !editingOrderId && !isReceivingFiado;
+                clearState();
+                if (!isEmpty) addToast({ title: "LIMPO", message: isReceivingFiado ? "Recebimento removido da Área de Pagamento." : "Seleção removida da Área de Pagamento.", type: "SUCCESS" });
+              }} className="w-full mt-2 text-slate-400 font-black uppercase text-[10px] tracking-widest hover:text-slate-600 transition-colors">
                 {isReceivingFiado ? 'Limpar / Devolver p/ Lista' : 'Limpar Seleção'}
               </button>
             )}

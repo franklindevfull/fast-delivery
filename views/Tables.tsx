@@ -526,18 +526,6 @@ const Tables: React.FC<TablesProps> = ({ currentUser }) => {
     setPrintingPreBill(null);
     setSelectedTable(null);
     setSelectedClient(null);
-    setManualClientName('');
-    setManualClientPhone('');
-    setManualClientEmail('');
-    setManualClientDocument('');
-    setManualClientAddress('');
-    setManualClientStreet('');
-    setManualClientNumber('');
-    setManualClientNeighborhood('');
-    setManualClientCity('');
-    setManualClientState('');
-    setManualClientComplement('');
-    setManualClientCep('');
     setClientSearch('');
     await refreshData();
     addToast({ title: "SUCESSO", message: "Solicitação de fechamento enviada ao PDV!", type: "SUCCESS" });
