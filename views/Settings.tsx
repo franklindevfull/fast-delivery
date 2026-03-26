@@ -132,7 +132,7 @@ const WaiterManagement: React.FC = () => {
             </div>
 
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-6">
-                {waiters.map(w => (
+                {waiters.filter(w => w.name && w.name.trim() !== '').map(w => (
                     <div key={w.id} className={`bg-white dark:bg-slate-900 p-5 sm:p-6 rounded-3xl sm:rounded-[2.5rem] border border-slate-100 dark:border-slate-800 flex flex-col group hover:shadow-xl transition-all relative overflow-hidden ${!w.active ? 'opacity-50 grayscale' : ''}`}>
                         <div className="flex items-center gap-4 mb-4">
                             <div className="w-10 h-10 sm:w-12 sm:h-12 bg-blue-50 dark:bg-blue-900/20 text-blue-600 dark:text-blue-400 rounded-xl sm:rounded-2xl flex items-center justify-center font-black uppercase text-sm shadow-inner shrink-0 relative">

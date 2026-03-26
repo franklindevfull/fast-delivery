@@ -33,7 +33,7 @@ async function main() {
       name: 'Administrador Master',
       password: hashedPassword,
       recoveryCode: 'ADMIN1',
-      mustChangePassword: true,
+      mustChangePassword: false,
       permissions: [
         'dashboard',
         'pos',
@@ -50,6 +50,18 @@ async function main() {
         'reports'
       ]
     },
+  })
+
+  // Create Admin as a Waiter as well
+  await prisma.waiter.upsert({
+    where: { email: adminEmail },
+    update: { name: 'Admin', active: true },
+    create: {
+      name: 'Admin',
+      email: adminEmail,
+      phone: '(00) 00000-0000',
+      active: true
+    }
   })
 
   console.log({ admin })

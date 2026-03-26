@@ -85,6 +85,16 @@ export const resetSystem = async (req: Request, res: Response) => {
                 }
             });
 
+            // Create Admin as a Waiter as well
+            await tx.waiter.create({
+                data: {
+                    name: 'Admin',
+                    email: 'admin@admin.com',
+                    phone: '(00) 00000-0000',
+                    active: true
+                }
+            });
+
         });
 
         res.json({ message: 'Sistema reiniciado com sucesso para os padrões de fábrica.' });

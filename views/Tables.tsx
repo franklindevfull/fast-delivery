@@ -230,7 +230,8 @@ const Tables: React.FC<TablesProps> = ({ currentUser }) => {
     const existingSess = getSessForTable(selectedTable);
 
     // Ownership Rule: Only the owner or an Admin can edit an occupied table (if waiter lock is enabled).
-    if (settings?.waiterLockEnabled && existingSess && existingSess.waiterId && existingSess.waiterId !== selectedWaiterId && !currentUser.permissions.includes('admin')) {
+    const isAdmin = currentUser.permissions.includes('admin');
+    if (settings?.waiterLockEnabled && existingSess && existingSess.waiterId && existingSess.waiterId !== selectedWaiterId && !isAdmin) {
       return addToast({ title: "ACESSO NEGADO", message: "Esta mesa já está sendo atendida por outro garçom. O primeiro garçom a atender torna-se o dono da mesa.", type: "DANGER" });
     }
 
@@ -757,9 +758,22 @@ const Tables: React.FC<TablesProps> = ({ currentUser }) => {
                     )}
                     <div className="bg-white dark:bg-slate-800 p-6 rounded-3xl border border-slate-100 dark:border-slate-700 shadow-sm mb-6">
                       <label className="text-[10px] font-black text-slate-400 dark:text-slate-500 uppercase tracking-widest block mb-2">Selecione o Garçom da Mesa:</label>
-                      <select disabled={getTableStatus(selectedTable) === 'billing'} value={selectedWaiterId} onChange={(e) => handleWaiterChange(e.target.value)} className="w-full max-w-sm p-4 bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-2xl text-sm font-bold focus:ring-4 focus:ring-blue-100 dark:focus:ring-blue-900 transition-all outline-none disabled:opacity-50 dark:text-white">
+                      <select 
+                        disabled={getTableStatus(selectedTable) === 'billing'} 
+                        value={selectedWaiterId} 
+                        onChange={(e) => handleWaiterChange(e.target.value)} 
+                        className="w-full max-w-sm p-4 bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-2xl text-sm font-bold focus:ring-4 focus:ring-blue-100 dark:focus:ring-blue-900 transition-all outline-none disabled:opacity-50 dark:text-white appearance-none"
+                      >
                         <option value="">Selecione...</option>
-                        {waiters.map(w => <option key={w.id} value={w.id}>{w.name}</option>)}
+                        {waiters
+                          .filter(w => w.active && w.name.trim() !== '')
+                          .sort((a, b) => {
+                            if (a.name === 'Admin') return -1;
+                            if (b.name === 'Admin') return 1;
+                            return a.name.localeCompare(b.name);
+                          })
+                          .map(w => <option key={w.id} value={w.id}>{w.name}</option>)
+                        }
                       </select>
                     </div>
                     <div className="grid grid-cols-2 md:grid-cols-4 gap-6">
