@@ -778,15 +778,15 @@ const Tables: React.FC<TablesProps> = ({ currentUser }) => {
                       {!showMenu ? (
                         <button 
                           onClick={() => setShowMenu(true)}
-                          className="flex items-center gap-3 px-8 py-3 bg-indigo-600 text-white rounded-full font-black uppercase text-[10px] tracking-widest shadow-2xl shadow-indigo-500/40 hover:bg-indigo-700 transition-all active:scale-95 mb-10 group"
+                          className="flex items-center justify-center gap-3 px-8 py-3 bg-indigo-600 text-white rounded-full font-black uppercase text-[10px] tracking-widest shadow-2xl shadow-indigo-500/40 hover:bg-indigo-700 transition-all active:scale-95 mb-10 group whitespace-nowrap min-w-[200px]"
                         >
-                          <Icons.View size={20} strokeWidth={3} className="group-hover:scale-110 transition-transform" />
+                          <Icons.View size={20} strokeWidth={2.5} className="group-hover:scale-110 transition-transform" />
                           Mostrar Cardápio
                         </button>
                       ) : (
                         <button 
                           onClick={() => setShowMenu(false)}
-                          className="flex items-center gap-3 px-8 py-3 bg-slate-800/80 text-blue-400/90 rounded-full font-black uppercase text-[10px] tracking-widest border border-slate-700/50 hover:bg-slate-800 transition-all active:scale-95 mb-10 group"
+                          className="flex items-center justify-center gap-3 px-8 py-3 bg-slate-800/80 text-blue-400/90 rounded-full font-black uppercase text-[10px] tracking-widest border border-slate-700/50 hover:bg-slate-800 transition-all active:scale-95 mb-10 group whitespace-nowrap min-w-[200px]"
                         >
                           <Icons.ViewOff size={20} strokeWidth={2.5} className="group-hover:scale-110 transition-transform" />
                           Ocultar Cardápio

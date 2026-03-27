@@ -218,7 +218,7 @@ const Inventory: React.FC = () => {
           </div>
         </div>
       ) : (
-        <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 xl:grid-cols-8 gap-4 overflow-y-auto pb-10">
+        <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 2xl:grid-cols-6 gap-4 overflow-y-auto pb-10">
           {products.map(product => (
             <div key={product.id} className="bg-white dark:bg-slate-900 rounded-3xl shadow-sm border border-slate-100 dark:border-slate-800 p-4 flex flex-col group hover:shadow-xl hover:border-blue-100 dark:hover:border-blue-900 transition-all">
               <div className="relative mb-3 bg-slate-50 dark:bg-slate-800 rounded-2xl overflow-hidden aspect-square flex items-center justify-center border border-slate-50 dark:border-slate-800 group-hover:scale-[1.02] transition-transform">
@@ -226,18 +226,18 @@ const Inventory: React.FC = () => {
               </div>
               <h4 className="font-black text-slate-800 dark:text-white text-xs uppercase mb-1 h-8 line-clamp-2 leading-tight">{product.name}</h4>
               <p className="text-sm font-black text-blue-600 dark:text-blue-500 mb-4">R$ {product.price.toFixed(2)}</p>
-              <div className="flex gap-2 flex-col xl:flex-row">
-                <button onClick={() => openProdModal(product)} className="flex-1 py-3 px-3 bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-600 dark:text-slate-300 rounded-2xl text-[9px] font-black uppercase transition-all flex items-center justify-center gap-1.5" title="Editar">
+              <div className="flex gap-2 mt-auto min-w-0">
+                <button onClick={() => openProdModal(product)} className="flex-1 min-w-0 py-3 px-2 bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-600 dark:text-slate-300 rounded-2xl text-[9px] font-black uppercase transition-all flex items-center justify-center gap-1.5" title="Editar">
                   <Icons.Edit className="w-3.5 h-3.5 flex-shrink-0" />
                   <span className="truncate">Editar / Ficha</span>
                 </button>
-                <button onClick={() => deleteProd(product.id)} className="w-full xl:w-12 py-3 bg-red-50 dark:bg-red-900/20 hover:bg-red-100 dark:hover:bg-red-900/40 text-red-600 dark:text-red-400 rounded-2xl transition-all flex items-center justify-center flex-shrink-0" title="Excluir">
+                <button onClick={() => deleteProd(product.id)} className="w-11 h-11 shrink-0 bg-red-50 dark:bg-red-900/20 hover:bg-red-100 dark:hover:bg-red-900/40 text-red-600 dark:text-red-400 rounded-2xl transition-all flex items-center justify-center" title="Excluir">
                   <Icons.Delete className="w-4 h-4" />
                 </button>
               </div>
             </div>
           ))}
-          <button onClick={() => openProdModal()} className="border-2 border-dashed border-slate-200 dark:border-slate-800 rounded-3xl flex flex-col items-center justify-center h-full min-h-[200px] text-slate-400 dark:text-slate-500 font-black uppercase gap-2 hover:bg-slate-50 dark:hover:bg-slate-800/50 hover:border-blue-200 dark:hover:border-blue-900 hover:text-blue-400 transition-all text-[10px] tracking-widest">
+          <button onClick={() => openProdModal()} className="border-2 border-dashed border-slate-200 dark:border-slate-800 rounded-3xl flex flex-col items-center justify-center min-h-[250px] transition-all text-slate-400 dark:text-slate-500 font-black uppercase gap-2 hover:bg-slate-50 dark:hover:bg-slate-800/50 hover:border-blue-200 dark:hover:border-blue-900 hover:text-blue-400 text-[10px] tracking-widest">
             <span className="text-2xl">+</span>
             Adicionar Produto
           </button>
@@ -265,8 +265,19 @@ const Inventory: React.FC = () => {
             </div>
             <form id="inv-item-form" onSubmit={saveInvItem} className="p-8 space-y-5 overflow-y-auto custom-scrollbar">
               <div className="space-y-1">
-                <label className="text-[10px] font-black text-slate-400 dark:text-slate-500 uppercase tracking-widest ml-1">Nome do Insumo</label>
-                <input type="text" required value={invFormData.name} onChange={e => setInvFormData({ ...invFormData, name: e.target.value })} className="w-full p-4 bg-slate-100 dark:bg-slate-800 border-none rounded-2xl focus:ring-2 focus:ring-blue-500 font-bold text-sm text-slate-800 dark:text-white placeholder:text-slate-400 dark:placeholder:text-slate-600" placeholder="Ex: Pão Brioche" />
+                <div className="flex justify-between items-center ml-1">
+                  <label className="text-[10px] font-black text-slate-400 dark:text-slate-500 uppercase tracking-widest">Nome do Insumo</label>
+                  <span className="text-[9px] font-bold text-slate-400 dark:text-slate-500 uppercase">Máx. 12 carac.</span>
+                </div>
+                <input 
+                  type="text" 
+                  required 
+                  maxLength={12}
+                  value={invFormData.name} 
+                  onChange={e => setInvFormData({ ...invFormData, name: e.target.value })} 
+                  className="w-full p-4 bg-slate-100 dark:bg-slate-800 border-none rounded-2xl focus:ring-2 focus:ring-blue-500 font-bold text-sm text-slate-800 dark:text-white placeholder:text-slate-400 dark:placeholder:text-slate-600" 
+                  placeholder="Ex: Pão Brioche" 
+                />
               </div>
               <div className="grid grid-cols-2 gap-4">
                 <div className="space-y-1">
