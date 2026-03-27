@@ -30,7 +30,6 @@ const UserManagement: React.FC = () => {
     { id: 'delivery-orders', label: 'App Delivery (Pedidos)' },
     { id: 'logistics', label: 'Logística' },
     { id: 'receivables', label: 'Recebimentos (Fiado)' },
-    { id: 'qrcodes', label: 'QR Codes das Mesas' },
     { id: 'reports', label: 'Relatórios' },
     { id: 'waiter', label: 'App Garçom' },
     { id: 'settings', label: 'Configurações' }

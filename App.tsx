@@ -14,7 +14,6 @@ import Settings from './views/Settings';
 import DeliveryOrders from './views/DeliveryOrders';
 import Login from './components/Login';
 import AuditLogs from './views/AuditLogs';
-import QRCodes from './views/QRCodes';
 import Receivables from './views/Receivables';
 import EngagementManager from './views/EngagementManager';
 import { db } from './services/db';
@@ -141,7 +140,6 @@ const App: React.FC = () => {
       case 'logistics': return <Logistics />;
       case 'receivables': return <Receivables currentUser={currentUser} setActiveTab={setActiveTab} />;
       case 'reports': return <Reports currentUser={currentUser} />;
-      case 'qrcodes': return <QRCodes />;
       case 'engagement': return <EngagementManager currentUser={currentUser} settings={settings || {}} setSettings={setSettings} />;
       case 'settings':
         return (

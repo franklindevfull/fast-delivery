@@ -7,6 +7,7 @@ import CustomAlert from '../components/CustomAlert';
 import { useTheme } from '../components/ThemeProvider';
 import { useToast } from '../hooks/useToast';
 import AuditLogs from './AuditLogs';
+import QRCodes from './QRCodes';
 
 // Sub-componente para Gestão de Garçons
 const WaiterManagement: React.FC = () => {
@@ -562,7 +563,6 @@ const UserManagementInternal: React.FC = () => {
         { id: 'waiter', label: 'App Garçom' },
         { id: 'driver', label: 'Entregador' },
         { id: 'receivables', label: 'Recebimentos (Fiado)' },
-        { id: 'qrcodes', label: 'QR Codes das Mesas' },
         { id: 'engagement', label: 'Engajamento & Promoções' },
         { id: 'reports', label: 'Relatórios' },
         { id: 'settings', label: 'Configurações' }
@@ -913,7 +913,7 @@ interface SettingsProps {
 }
 
 const Settings: React.FC<SettingsProps> = ({ settings, setSettings, onReset }) => {
-    const [activeSubTab, setActiveSubTab] = useState<'EMPRESA' | 'HORARIOS' | 'FISCAL' | 'GARCONS' | 'FROTAS' | 'USUARIOS' | 'AUDITORIA' | 'AVANCADO' | 'APARENCIA'>('EMPRESA');
+    const [activeSubTab, setActiveSubTab] = useState<'EMPRESA' | 'HORARIOS' | 'FISCAL' | 'GARCONS' | 'FROTAS' | 'USUARIOS' | 'QR_CODES' | 'AUDITORIA' | 'AVANCADO' | 'APARENCIA'>('EMPRESA');
     const { addToast } = useToast();
     const [storeStatus, setStoreStatus] = useState<{ status: string, is_manually_closed: boolean } | null>(null);
     const { theme, setTheme } = useTheme();
@@ -955,6 +955,7 @@ const Settings: React.FC<SettingsProps> = ({ settings, setSettings, onReset }) =
         { id: 'GARCONS', label: 'Garçons', icon: Icons.CRM },
         { id: 'FROTAS', label: 'Entregadores', icon: Icons.Logistics },
         { id: 'USUARIOS', label: 'Usuários', icon: Icons.POS },
+        { id: 'QR_CODES', label: 'QR Codes', icon: Icons.QrCode },
         { id: 'AUDITORIA', label: 'Auditoria', icon: Icons.View },
         { id: 'AVANCADO', label: 'Avançado', icon: Icons.Settings },
         { id: 'APARENCIA', label: 'Aparência', icon: Icons.Sun },
@@ -1322,6 +1323,7 @@ const Settings: React.FC<SettingsProps> = ({ settings, setSettings, onReset }) =
                 {activeSubTab === 'GARCONS' && <WaiterManagement />}
                 {activeSubTab === 'FROTAS' && <EntregadoresManagement />}
                 {activeSubTab === 'USUARIOS' && <UserManagementInternal />}
+                {activeSubTab === 'QR_CODES' && <QRCodes />}
                 {activeSubTab === 'AUDITORIA' && <div className="bg-white dark:bg-slate-900 p-8 rounded-[3rem] border border-slate-100 dark:border-slate-800 transition-colors"><AuditLogs /></div>}
 
                 {activeSubTab === 'APARENCIA' && (

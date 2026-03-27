@@ -41,12 +41,11 @@ const Layout: React.FC<LayoutProps> = ({ children, activeTab, setActiveTab, curr
     { id: 'sales-monitor', label: 'Monitor de Vendas', icon: Icons.View },
     { id: 'tables', label: 'Gestão de Mesas', icon: Icons.Table },
     { id: 'kitchen', label: 'Cozinha', icon: Icons.Kitchen },
-    { id: 'crm', label: 'Clientes (CRM)', icon: Icons.CRM },
+    { id: 'crm', label: 'CRM / Clientes', icon: Icons.CRM },
     { id: 'inventory', label: 'Estoque / Cardápio', icon: Icons.Inventory },
     { id: 'delivery-orders', label: 'App Delivery (Pedidos)', icon: Icons.Smartphone },
     { id: 'logistics', label: 'Logística', icon: Icons.Logistics },
     { id: 'receivables', label: 'Recebimentos (Fiado)', icon: Icons.Receivables },
-    { id: 'qrcodes', label: 'QR Codes das Mesas', icon: Icons.Dashboard },
     { id: 'reports', label: 'Relatórios', icon: Icons.Print },
     { id: 'engagement', label: 'Engajamento & Promoções', icon: Icons.Megaphone },
     { id: 'settings', label: 'Configurações', icon: Icons.Settings },
@@ -241,10 +240,11 @@ const Layout: React.FC<LayoutProps> = ({ children, activeTab, setActiveTab, curr
     const isMaster = currentUser.permissions.includes('admin') || currentUser.permissions.includes('settings');
 
     if (settings && !isMaster) {
+      // Regras de negócio para visibilidade de módulos
       if (item.id === 'delivery-orders' && settings.enableDeliveryApp === false) return false;
       if (item.id === 'tables' && (settings.enableDigitalMenu === false && settings.enableWaiterApp === false)) return false;
-      if (item.id === 'qrcodes' && settings.enableDigitalMenu === false) return false;
       if (item.id === 'logistics' && settings.enableDeliveryApp === false && settings.enableDriverApp === false) return false;
+      if (item.id === 'engagement' && settings.enableDeliveryApp === false) return false;
     }
 
     return true;

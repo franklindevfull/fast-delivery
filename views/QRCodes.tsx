@@ -66,8 +66,8 @@ const QRCodes: React.FC = () => {
                 </div>
             </div>
 
-            {/* Grid de QR Codes */}
-            <div id="print-area" ref={contentRef} className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:xl-grid-cols-5 gap-8 overflow-y-auto pb-12 print:overflow-visible print:pb-0 print:grid-cols-3 print:gap-8">
+            {/* Grid de QR Codes - CRITICAL: gap-4 is required for 12 cards on A4 page. DO NOT INCREASE. */}
+            <div id="print-area" ref={contentRef} className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:xl-grid-cols-5 gap-4 overflow-y-auto pb-12 print:overflow-visible print:pb-0 print:grid-cols-3 print:gap-4">
                 {tables.map((tableNum) => {
                     const tableUrl = `${MENU_BASE_URL}/?mesa=${tableNum}`;
 
