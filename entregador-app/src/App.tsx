@@ -1,8 +1,10 @@
 import React, { useState, useEffect, useRef, useMemo } from 'react';
+import { useReactToPrint } from 'react-to-print';
 import { DeliveryDriver, Order, OrderStatus, OrderStatusLabels, SaleType, User, Product, BusinessSettings } from './types';
 import { db } from './services/db';
 import { socket } from './services/socket';
 import { Icons } from './constants';
+import { useReactToPrint } from 'react-to-print';
 import LogoutModal from './components/LogoutModal';
 import Login from './components/Login';
 
@@ -89,9 +91,15 @@ const App: React.FC = () => {
   const [myOrders, setMyOrders] = useState<Order[]>([]);
   const [products, setProducts] = useState<Product[]>([]);
   const [isAlertOpen, setIsAlertOpen] = useState(false);
+  const [printingHistoryOrder, setPrintingHistoryOrder] = useState<Order | null>(null);
+  const historyContentRef = useRef<HTMLDivElement>(null);
+  const handlePrintHistory = useReactToPrint({ contentRef: historyContentRef });
+  
   const [printingOrder, setPrintingOrder] = useState<Order | null>(null);
-  const [isLogoutModalOpen, setIsLogoutModalOpen] = useState(false);
+  const currentOrderContentRef = useRef<HTMLDivElement>(null);
+  const handlePrintCurrent = useReactToPrint({ contentRef: currentOrderContentRef });
 
+  const [isLogoutModalOpen, setIsLogoutModalOpen] = useState(false);
   const [activeTab, setActiveTab] = useState<'PENDING' | 'HISTORY' | 'CHAT'>('PENDING');
   const [settings, setSettings] = useState<BusinessSettings | null>(null);
   const [historyOrders, setHistoryOrders] = useState<Order[]>([]);
@@ -101,8 +109,7 @@ const App: React.FC = () => {
     return d.toISOString().split('T')[0];
   });
   const [historyEndDate, setHistoryEndDate] = useState(new Date().toISOString().split('T')[0]);
-  const [printingHistoryOrder, setPrintingHistoryOrder] = useState<Order | null>(null);
-  const [isPrinting, setIsPrinting] = useState(false);
+
   const [storeStatus, setStoreStatus] = useState<{ status: 'online' | 'offline', next_status_change?: string | null, is_manually_closed?: boolean, enableDigitalMenu: boolean }>({ status: 'offline', enableDigitalMenu: true });
   const [countdown, setCountdown] = useState<string | null>(null);
   const [customAlertMessage, setCustomAlertMessage] = useState<string | null>(null);
@@ -310,45 +317,8 @@ const App: React.FC = () => {
     return Object.entries(grouped);
   }, [printingOrder, products]);
 
-  const handlePrintNetwork = async () => {
-    if (!printingHistoryOrder) return;
-    if (!settings || !settings.printerIp) {
-      window.print();
-      return;
-    }
-    
-    setIsPrinting(true);
-    try {
-        const payload = {
-             printerIp: settings.printerIp,
-             type: settings.printerType || 'EPSON',
-             data: {
-                 businessName: settings.name,
-                 date: printingHistoryOrder.createdAt || new Date().toISOString(),
-                 clientName: printingHistoryOrder.clientName || 'Não Identificado',
-                 clientAddress: printingHistoryOrder.clientAddress,
-                 paymentMethod: printingHistoryOrder.paymentMethod,
-                 deliveryFee: printingHistoryOrder.deliveryFee || 0,
-                 subtotal: printingHistoryOrder.items.reduce((acc, item) => acc + (item.quantity * item.price), 0),
-                 total: printingHistoryOrder.total,
-                 items: printingHistoryOrder.items.map(item => ({
-                     name: ((item as any).product?.name || (item as any).productName || 'Item').substring(0, 20),
-                     quantity: item.quantity,
-                     price: item.price,
-                     total: item.price * item.quantity
-                 }))
-             }
-        };
-        await db.printThermalReceipt(payload);
-        setPrintingHistoryOrder(null);
-        alert("Cupom de comprovação enviado para a impressora.");
-    } catch(e: any) {
-        console.error(e);
-        alert("Erro de Impressão: " + (e.message || 'Falha ao acessar impressora da rede.'));
-    } finally {
-      setIsPrinting(false);
-    }
-  };
+
+
 
 
   useEffect(() => {
@@ -744,7 +714,7 @@ const App: React.FC = () => {
       {/* MODALS DE IMPRESSÃO - REUTILIZADOS MAS ESTILIZADOS */}
       {printingOrder && (
         <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-slate-900/80 backdrop-blur-md animate-in fade-in duration-200" onClick={() => setPrintingOrder(null)}>
-          <div className="relative w-full max-w-sm bg-white p-6 rounded-[2.5rem] shadow-2xl overflow-hidden font-receipt" onClick={e => e.stopPropagation()}>
+          <div ref={currentOrderContentRef} className="relative w-full max-w-sm bg-white p-6 rounded-[2.5rem] shadow-2xl overflow-hidden font-receipt is-receipt cupom" onClick={e => e.stopPropagation()}>
             <div className="text-center mb-6 pb-4 border-b border-dashed border-slate-200">
               <h2 className="font-black text-lg uppercase tracking-tight">PEDIDO #{printingOrder.id.split('-')[1] || printingOrder.id}</h2>
               <p className="text-[10px] font-black text-slate-400 mt-1 uppercase tracking-widest">Resumo de Entrega</p>
@@ -773,14 +743,17 @@ const App: React.FC = () => {
               <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest leading-none">VALOR FINAL:</span>
               <span className="text-2xl font-black text-blue-600 leading-none">R$ {printingOrder.total.toFixed(2)}</span>
             </div>
-            <button onClick={() => setPrintingOrder(null)} className="w-full py-4 bg-slate-100 text-slate-600 rounded-2xl font-black uppercase text-xs tracking-widest hover:bg-slate-200 transition-all">Fechar visualização</button>
+            <div className="flex gap-2 no-print">
+              <button onClick={() => handlePrintCurrent()} className="flex-1 bg-slate-900 text-white py-4 rounded-2xl font-black uppercase text-xs tracking-widest shadow-xl">Imprimir</button>
+              <button onClick={() => setPrintingOrder(null)} className="flex-1 bg-slate-100 text-slate-600 py-4 rounded-2xl font-black uppercase text-xs tracking-widest hover:bg-slate-200 transition-all">Fechar</button>
+            </div>
           </div>
         </div>
       )}
 
       {printingHistoryOrder && (
         <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-slate-900/80 backdrop-blur-md animate-in fade-in duration-200" onClick={() => setPrintingHistoryOrder(null)}>
-          <div className="relative w-full max-w-[58mm] bg-white p-4 border border-dashed shadow-2xl font-receipt text-[10px] text-black print-container is-receipt" onClick={e => e.stopPropagation()}>
+          <div ref={historyContentRef} className="relative w-full max-w-[58mm] bg-white p-4 border border-dashed shadow-2xl font-receipt text-[10px] text-black print-container is-receipt cupom" onClick={e => e.stopPropagation()}>
             <div className="text-center mb-6 border-b border-dashed pb-4">
               <h2 className="font-black text-sm uppercase tracking-tighter">ESTABELECIMENTO</h2>
               <p className="text-[9px] font-bold mt-1 uppercase">Cópia de Comprovante</p>
@@ -803,7 +776,7 @@ const App: React.FC = () => {
               <span className="text-2xl font-black">R$ {printingHistoryOrder.total.toFixed(2)}</span>
             </div>
             <div className="flex gap-2 no-print">
-              <button onClick={handlePrintNetwork} disabled={isPrinting} className="flex-1 bg-slate-900 text-white py-4 rounded-2xl font-black uppercase text-[10px] shadow-xl disabled:opacity-50">{isPrinting ? 'Enviando...' : 'Imprimir'}</button>
+              <button onClick={() => handlePrintHistory()} className="flex-1 bg-slate-900 text-white py-4 rounded-2xl font-black uppercase text-[10px] shadow-xl">Imprimir</button>
               <button onClick={() => setPrintingHistoryOrder(null)} className="flex-1 bg-slate-100 text-slate-600 py-4 rounded-2xl font-black uppercase text-[10px]">Fechar</button>
             </div>
           </div>

@@ -1,9 +1,10 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { Receivable, User, Client, Order, Product, BusinessSettings } from '../types';
 import { db } from '../services/db';
 import { Icons } from '../constants';
 import { useToast } from '../hooks/useToast';
-import { usePrinter } from '../hooks/usePrinter';
+
+import { useReactToPrint } from 'react-to-print';
 import CustomAlert from '../components/CustomAlert';
 
 interface ReceivablesProps {
@@ -13,7 +14,7 @@ interface ReceivablesProps {
 
 const Receivables: React.FC<ReceivablesProps> = ({ currentUser, setActiveTab }) => {
     const { addToast } = useToast();
-    const { printElement } = usePrinter();
+
     const [receivables, setReceivables] = useState<(Receivable & { client: Client })[]>([]);
     const [searchTerm, setSearchTerm] = useState('');
     const [selectedOrder, setSelectedOrder] = useState<Order | null>(null);
@@ -24,6 +25,8 @@ const Receivables: React.FC<ReceivablesProps> = ({ currentUser, setActiveTab }) 
     const [printingOrder, setPrintingOrder] = useState<Order | null>(null);
     const [businessSettings, setBusinessSettings] = useState<BusinessSettings | null>(null);
     const [isLoading, setIsLoading] = useState(false);
+    const contentRef = useRef<HTMLDivElement>(null);
+    const triggerPrint = useReactToPrint({ contentRef });
 
     const [alertConfig, setAlertConfig] = useState<{
         isOpen: boolean;
@@ -517,7 +520,7 @@ const Receivables: React.FC<ReceivablesProps> = ({ currentUser, setActiveTab }) 
             {/* Printing Modal (Receipt Layout) */}
             {printingOrder && businessSettings && (
                 <div className="fixed inset-0 z-[120] flex items-center justify-center p-4 bg-slate-900/80 dark:bg-slate-950/90 backdrop-blur-md">
-                    <div id="receivable-receipt" className="is-receipt animate-in zoom-in duration-200">
+                    <div ref={contentRef} className="is-receipt cupom animate-in zoom-in duration-200">
                         <div className="text-center mb-6 border-b border-dashed pb-4">
                             <h2 className="font-black text-xs uppercase tracking-tighter">{businessSettings.name}</h2>
                             <p className="text-[8px] font-bold mt-1 uppercase">Extrato de Consumo (Fiado)</p>
@@ -563,44 +566,11 @@ const Receivables: React.FC<ReceivablesProps> = ({ currentUser, setActiveTab }) 
                                 onClick={async () => {
                                     if (!businessSettings || !printingOrder) return;
                                     try {
-                                        const payload = {
-                                            printerIp: businessSettings.printerIp,
-                                            type: businessSettings.printerType || 'EPSON',
-                                            data: {
-                                                businessName: businessSettings.name,
-                                                cnpj: businessSettings.cnpj,
-                                                date: printingOrder.createdAt,
-                                                clientName: printingOrder.clientName || 'NÃO IDENTIFICADO',
-                                                status: 'PENDENTE',
-                                                paymentMethod: 'FIADO / RECEBÍVEL',
-                                                subtotal: printingOrder.total - (printingOrder.deliveryFee || 0),
-                                                deliveryFee: printingOrder.deliveryFee || 0,
-                                                total: printingOrder.total,
-                                                items: printingOrder.items.map((it: any) => {
-                                                    const prod = availableProducts.find(p => p.id === it.productId);
-                                                    return {
-                                                        name: (prod?.name || 'Item').substring(0, 22),
-                                                        quantity: it.quantity,
-                                                        total: it.price * it.quantity
-                                                    };
-                                                })
-                                            }
-                                        };
-
-                                        if (businessSettings.printerIp) {
-                                            addToast({ title: 'Impressão', message: 'Enviando extrato...', type: 'INFO' });
-                                            const res = await db.printThermalReceipt(payload);
-                                            if (res.success) {
-                                                addToast({ title: 'Sucesso', message: 'Extrato impresso!', type: 'SUCCESS' });
-                                                setPrintingOrder(null);
-                                            }
-                                        } else {
-                                            await printElement('receivable-receipt');
-                                            setPrintingOrder(null);
-                                        }
+                                        addToast({ title: 'Impressão', message: 'Gerando extrato...', type: 'INFO' });
+                                        triggerPrint();
+                                        setPrintingOrder(null);
                                     } catch (error: any) {
                                         addToast({ title: 'Erro na Impressão', message: error.message || 'Falha ao comunicar com a impressora.', type: 'DANGER' });
-                                        await printElement('receivable-receipt');
                                         setPrintingOrder(null);
                                     }
                                 }}

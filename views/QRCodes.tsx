@@ -3,10 +3,14 @@ import { QRCodeSVG } from 'qrcode.react';
 import { db } from '../services/db';
 import { BusinessSettings } from '../types';
 import { Icons } from '../constants';
+import { useReactToPrint } from 'react-to-print';
+import { useRef } from 'react';
 
 const QRCodes: React.FC = () => {
     const [settings, setSettings] = useState<BusinessSettings | null>(null);
     const [isLoading, setIsLoading] = useState(false);
+    const contentRef = useRef<HTMLDivElement>(null);
+    const handlePrint = useReactToPrint({ contentRef });
 
     useEffect(() => {
         const init = async () => {
@@ -53,7 +57,7 @@ const QRCodes: React.FC = () => {
                 </div>
                 <div className="flex items-center gap-4">
                     <button
-                        onClick={() => window.print()}
+                        onClick={() => handlePrint()}
                         className="w-full sm:w-auto px-6 py-3 bg-slate-900 text-white rounded-xl text-xs font-black uppercase hover:bg-slate-800 transition-all flex items-center justify-center gap-2 shadow-lg"
                     >
                         <Icons.Print />
@@ -63,7 +67,7 @@ const QRCodes: React.FC = () => {
             </div>
 
             {/* Grid de QR Codes */}
-            <div id="print-area" className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-8 overflow-y-auto pb-12 print:overflow-visible print:pb-0 print:grid-cols-3 print:gap-8">
+            <div id="print-area" ref={contentRef} className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:xl-grid-cols-5 gap-8 overflow-y-auto pb-12 print:overflow-visible print:pb-0 print:grid-cols-3 print:gap-8">
                 {tables.map((tableNum) => {
                     const tableUrl = `${MENU_BASE_URL}/?mesa=${tableNum}`;
 

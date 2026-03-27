@@ -1,5 +1,6 @@
 
-import React, { useState, useEffect, useMemo } from 'react';
+import React, { useState, useEffect, useMemo, useRef } from 'react';
+import { useReactToPrint } from 'react-to-print';
 import { Product, OrderItem, SaleType, Order, OrderStatus, OrderStatusLabels, User, Client, DeliveryDriver, TableSession, CashSession, Receivable, BusinessSettings } from '../types';
 import { db } from '../services/db';
 import { useToast } from '../hooks/useToast';
@@ -11,7 +12,7 @@ import { formatAddress } from '../services/formatUtils';
 import { QRCodeCanvas } from 'qrcode.react';
 import { sendOrderToThermalPrinter } from '../services/printService';
 
-import { usePrinter } from '../hooks/usePrinter';
+
 
 const API_URL = (import.meta as any).env.VITE_API_URL || 'http://localhost:3000/api';
 
@@ -20,8 +21,12 @@ interface POSProps {
 }
 
 const POS: React.FC<POSProps> = ({ currentUser }) => {
-  const { printElement } = usePrinter();
   const { addToast } = useToast();
+  const orderPrintRef = useRef<HTMLDivElement>(null);
+  const triggerPrintOrder = useReactToPrint({ contentRef: orderPrintRef });
+  
+  const reportPrintRef = useRef<HTMLDivElement>(null);
+  const triggerPrintReport = useReactToPrint({ contentRef: reportPrintRef });
   const [products, setProducts] = useState<Product[]>([]);
   const [cart, setCart] = useState<OrderItem[]>([]);
   const [saleType, setSaleType] = useState<SaleType>(SaleType.COUNTER);
@@ -591,15 +596,14 @@ const POS: React.FC<POSProps> = ({ currentUser }) => {
     await refreshAllData();
   };
 
-  const handlePrintOrder = async () => {
+  const handleSystemPrint = async () => {
     if (!printingOrder) return;
     
     // Se não houver IP, tentamos impressão do sistema (com diálogo)
     if (!businessSettings?.printerIp) {
       addToast({ title: "Impressão", message: "Enviando para a impressora do sistema...", type: "INFO" });
       setTimeout(() => {
-        window.print();
-        // Não fechamos o modal aqui para dar tempo do usuário ver o preview do sistema
+        triggerPrintOrder();
       }, 500);
       return;
     }
@@ -1754,10 +1758,10 @@ const POS: React.FC<POSProps> = ({ currentUser }) => {
         printingOrder && businessSettings && (
           <div className="fixed inset-0 z-[120] flex items-center justify-center p-4 bg-slate-900/90 backdrop-blur-xl animate-in fade-in duration-300 overflow-y-auto">
             {/* Hidden Receipt for Printing Only */}
-            <div id="pos-receipt" className="hidden print:block is-receipt">
+            <div ref={orderPrintRef} className="is-receipt cupom hidden print:block">
                {isNfceVisual ? (
                 // NFC-e Layout
-                <div className="space-y-4 font-mono text-[16px] leading-tight text-black">
+                <div className="space-y-4 font-mono text-[16px] leading-tight text-black bg-white">
                   <div className="text-center space-y-1">
                     <p className="font-bold">CNPJ - {businessSettings.cnpj} - {businessSettings.name?.toUpperCase()}</p>
                     <p className="uppercase">{businessSettings.address}</p>
@@ -1957,16 +1961,16 @@ const POS: React.FC<POSProps> = ({ currentUser }) => {
                 </div>
               </div>
 
-              <div className="p-6 bg-slate-50/50 dark:bg-slate-800/50 border-t border-slate-100 dark:border-slate-800 grid grid-cols-2 gap-3 transition-all">
+              <div className="p-6 bg-slate-50/50 dark:bg-slate-800/50 border-t border-slate-100 dark:border-slate-800 grid grid-cols-2 gap-3 transition-all no-print">
                 <button
                   onClick={() => setPrintingOrder(null)}
-                  className="py-4 bg-slate-200 dark:bg-slate-800 text-slate-700 dark:text-slate-200 rounded-2xl font-black uppercase text-[10px] tracking-widest hover:bg-slate-300 dark:hover:bg-slate-700 transition-all border border-slate-300 dark:border-slate-700 active:scale-95 flex items-center justify-center gap-2"
+                  className="py-4 bg-slate-200 dark:bg-slate-800 text-slate-700 dark:text-slate-200 rounded-2xl font-black uppercase text-[10px] tracking-widest hover:bg-slate-300 dark:hover:bg-slate-700 transition-all border border-slate-300 dark:border-slate-700 active:scale-95 flex items-center justify-center gap-2 no-print"
                 >
                   Fechar
                 </button>
                 <button
-                  onClick={handlePrintOrder}
-                  className="py-4 bg-blue-600 text-white rounded-2xl font-black uppercase text-[10px] tracking-widest hover:bg-blue-700 transition-all shadow-xl active:scale-95 flex items-center justify-center gap-2"
+                  onClick={handleSystemPrint}
+                  className="py-4 bg-blue-600 text-white rounded-2xl font-black uppercase text-[10px] tracking-widest hover:bg-blue-700 transition-all shadow-xl active:scale-95 flex items-center justify-center gap-2 no-print"
                 >
                   <Icons.Print className="w-4 h-4" />
                   Imprimir Comprovante
@@ -2330,7 +2334,7 @@ const POS: React.FC<POSProps> = ({ currentUser }) => {
       {
         isReviewModalOpen && reviewSession && (
           <div className="fixed inset-0 z-[200] flex items-center justify-center bg-slate-900/40 dark:bg-slate-950/60 animate-in fade-in duration-300 p-2 print:p-0 print:bg-white print:items-start print:static print:z-auto print-modal">
-            <div id="cash-closing-report" className="is-receipt bg-white dark:bg-slate-900 w-full max-w-[650px] border border-slate-300 dark:border-slate-800 shadow-xl flex flex-col max-h-[98vh] print:max-h-none print:h-auto print:shadow-none print:border-none print:w-full print:m-0 rounded-2xl print:rounded-none">
+            <div id="cash-closing-report" ref={reportPrintRef} className="is-receipt cupom bg-white dark:bg-slate-900 w-full max-w-[650px] border border-slate-300 dark:border-slate-800 shadow-xl flex flex-col max-h-[98vh] print:max-h-none print:h-auto print:shadow-none print:border-none print:w-full print:m-0 rounded-2xl print:rounded-none">
               <div className="flex-1 p-4 lg:p-6 space-y-4 overflow-y-auto print:overflow-visible custom-scrollbar">
                 {/* Formal Header */}
                 <div className="border-b border-slate-900 dark:border-slate-700 pb-2">
@@ -2495,7 +2499,7 @@ const POS: React.FC<POSProps> = ({ currentUser }) => {
                   <button
                     onClick={async () => {
                       addToast({ title: 'Impressão', message: 'Enviando relatório...', type: 'INFO' });
-                      await printElement('cash-closing-report');
+                      triggerPrintReport();
                     }}
                     className="bg-blue-600 text-white py-4 rounded-[22px] font-receipt font-black uppercase text-[11px] shadow-xl hover:bg-blue-700 active:scale-95 transition-all flex items-center justify-center gap-2"
                   >

@@ -1,4 +1,4 @@
-import 'dotenv/config';
+import 'dotenv/config'; 
 import express from 'express';
 import cors from 'cors';
 import compression from 'compression';
@@ -28,7 +28,7 @@ import backupRoutes from './routes/backupRoutes.js';
 import supportRoutes from './routes/supportRoutes.js';
 import promotionRoutes from './routes/promotionRoutes.js';
 import campaignRoutes from './routes/campaignRoutes.js';
-import printRoutes from './routes/printRoutes.js';
+// import printRoutes from './routes/printRoutes.js';
 import { initSocket } from './socket.js';
 import { startOrderTimeoutService } from './services/orderTimeoutService.js';
 import { loadSettingsToCache } from './storeStatusCache.js';
@@ -89,7 +89,7 @@ app.use('/api/backup', backupRoutes);
 app.use('/api/support', supportRoutes);
 app.use('/api/promotions', promotionRoutes);
 app.use('/api/campaigns', campaignRoutes);
-app.use('/api/print', printRoutes);
+// app.use('/api/print', printRoutes);
 
 // Basic health check
 app.get('/health', (req, res) => {

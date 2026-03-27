@@ -1,10 +1,11 @@
 import React, { useState, useEffect, useRef } from 'react';
+import { useReactToPrint } from 'react-to-print';
 import { db } from '../services/db';
 import { socket, clientChatUnreadManager } from '../services/socket';
 import { Order, User, OrderStatusLabels, DeliveryDriver, Product, SaleType, BusinessSettings } from '../types';
 import { Icons } from '../constants';
 import { useToast } from '../hooks/useToast';
-import { usePrinter } from '../hooks/usePrinter';
+
 import CustomAlert from '../components/CustomAlert';
 import { sendOrderToThermalPrinter } from '../services/printService';
 
@@ -14,7 +15,8 @@ interface DeliveryOrdersProps {
 
 const DeliveryOrders: React.FC<DeliveryOrdersProps> = ({ currentUser }) => {
     const { addToast } = useToast();
-    const { printElement } = usePrinter();
+    const contentRef = useRef<HTMLDivElement>(null);
+    const triggerPrint = useReactToPrint({ contentRef });
     const [orders, setOrders] = useState<Order[]>([]);
     const [clients, setClients] = useState<any[]>([]);
     const [isLoading, setIsLoading] = useState(true);
@@ -63,6 +65,24 @@ const DeliveryOrders: React.FC<DeliveryOrdersProps> = ({ currentUser }) => {
         if (!driverId) return 'Desconhecido';
         return drivers.find(d => d.id === driverId)?.name || 'Removido';
     };
+
+    const groupedPrintingItems = React.useMemo(() => {
+        if (!printingOrder) return [];
+        const grouped: Record<string, { name: string, quantity: number, price: number }> = {};
+        printingOrder.items.forEach(item => {
+            const prod = products.find(p => p.id === item.productId);
+            const key = item.productId || item.product?.id || 'unknown';
+            if (!grouped[key]) {
+                grouped[key] = {
+                    name: prod?.name || item.product?.name || '...',
+                    quantity: 0,
+                    price: item.price
+                };
+            }
+            grouped[key].quantity += (item.quantity || 1);
+        });
+        return Object.entries(grouped);
+    }, [printingOrder, products]);
 
     const fetchOrders = async () => {
         setIsLoading(true);
@@ -492,48 +512,66 @@ const DeliveryOrders: React.FC<DeliveryOrdersProps> = ({ currentUser }) => {
 
             {printingOrder && businessSettings && (
                 <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-slate-900/80 backdrop-blur-md">
-                    <div id="delivery-receipt" className="is-receipt animate-in zoom-in duration-200">
-                        <div className="text-center mb-6 border-b border-dashed pb-4">
-                            <h2 className="font-black text-sm uppercase tracking-tighter">{businessSettings.name}</h2>
-                            <p className="text-[9px] font-bold mt-1 uppercase">Comprovante de Pedido</p>
+                    <div ref={contentRef} className="is-receipt cupom animate-in zoom-in duration-200">
+                        <div className="text-center mb-1">
+                            <h2 className="font-bold text-[10px] uppercase tracking-tighter mb-0">{businessSettings.name}</h2>
+                            <div className="section-divider"></div>
+                            <p className="text-[8px] font-black uppercase tracking-widest">Cópia de Comprovante</p>
+                            <div className="section-divider"></div>
                         </div>
 
-                        <div className="space-y-1 mb-4">
-                            <p>DATA: {new Date(printingOrder.createdAt).toLocaleString('pt-BR')}</p>
+                        <div className="text-[9px] mb-1">
+                            <p>DATA: {new Date(printingOrder.createdAt).toLocaleDateString('pt-BR')} {new Date(printingOrder.createdAt).toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' })}</p>
                             <p>CLIENTE: {printingOrder.clientName}</p>
                             {printingOrder.clientPhone && <p>FONE: {printingOrder.clientPhone}</p>}
+                            
                             {printingOrder.clientAddress && (
-                                <p className="font-bold border-t border-dashed mt-2 pt-1 uppercase leading-tight">ENTREGA: {printingOrder.clientAddress}</p>
+                                <p className="font-bold border-t border-dotted border-black/20 mt-1 pt-1 uppercase leading-tight">ENTREGA: {printingOrder.clientAddress}</p>
                             )}
+                            <p>PAGTO: {(paymentLabels[(printingOrder.paymentMethod || '').toUpperCase()] || printingOrder.paymentMethod || 'PENDENTE').toUpperCase()}</p>
+                            <p className="font-bold border-t border-black/10 mt-1 pt-1 uppercase">ENTREGADOR: {getDriverName(printingOrder.driverId)}</p>
                         </div>
 
-                        <div className="border-t border-dashed my-3 py-3">
-                            {printingOrder.items.map((it, idx) => (
-                                <div key={idx} className="flex justify-between font-black uppercase py-0.5">
-                                    <span>{it.quantity}X {(it.product?.name || 'Item').substring(0, 18)}</span>
-                                    <span>R$ {((it.quantity || 1) * (it.price || 0)).toFixed(2)}</span>
-                                </div>
-                            ))}
+                        {groupedPrintingItems.length > 0 && (
+                            <div className="section-divider"></div>
+                        )}
+                        
+                        {groupedPrintingItems.length > 0 && (
+                            <div className="mb-1">
+                                {groupedPrintingItems.map(([id, data]: [string, any]) => (
+                                    <div key={id} className="flex justify-between font-bold uppercase py-0.5 text-[10px]">
+                                        <span className="flex-1 pr-2">{data.quantity}X {data.name.substring(0, 20)}</span>
+                                        <span className="shrink-0">R$ {(data.quantity * data.price).toFixed(2)}</span>
+                                    </div>
+                                ))}
+                            </div>
+                        )}
+
+                        <div className="section-divider"></div>
+
+                        <div className="flex justify-between items-center py-0.5 text-[9px]">
+                            <span className="uppercase font-bold">TAXA ENTREGA:</span>
+                            <span className="font-bold">R$ {(printingOrder.deliveryFee || 0).toFixed(2)}</span>
                         </div>
 
-                        <div className="flex justify-between items-end border-t border-dashed pt-4 mb-8">
-                            <span className="font-black text-[10px] uppercase tracking-widest">TOTAL:</span>
-                            <span className="text-2xl font-black">R$ {printingOrder.total.toFixed(2)}</span>
+                        <div className="flex justify-between items-end pt-1 mb-2">
+                            <span className="font-black text-[9px] uppercase tracking-widest">TOTAL:</span>
+                            <span className="text-xl font-black">R$ {printingOrder.total.toFixed(2)}</span>
                         </div>
                         <div className="grid grid-cols-2 gap-4 no-print mt-6">
                             <button
                                 onClick={async () => {
                                     if (!businessSettings || !printingOrder) return;
-                                    await printElement('delivery-receipt');
+                                    triggerPrint();
                                     setPrintingOrder(null);
                                 }}
-                                className="bg-blue-600 text-white py-4 rounded-[22px] font-receipt font-black uppercase text-[11px] shadow-xl hover:bg-blue-700 active:scale-95 transition-all flex items-center justify-center"
+                                className="bg-blue-600 text-white py-3 rounded-xl font-receipt font-black uppercase text-[10px] shadow-lg hover:bg-blue-700 active:scale-95 transition-all flex items-center justify-center no-print"
                             >
                                 IMPRIMIR
                             </button>
                             <button
                                 onClick={() => setPrintingOrder(null)}
-                                className="bg-slate-200 dark:bg-slate-800 text-slate-700 dark:text-slate-200 py-4 rounded-[22px] font-receipt font-black uppercase text-[11px] hover:bg-slate-300 dark:hover:bg-slate-700 active:scale-95 transition-all flex items-center justify-center"
+                                className="bg-slate-200 dark:bg-slate-800 text-slate-700 dark:text-slate-200 py-3 rounded-xl font-receipt font-black uppercase text-[10px] hover:bg-slate-300 dark:hover:bg-slate-700 active:scale-95 transition-all flex items-center justify-center no-print"
                             >
                                 FECHAR
                             </button>

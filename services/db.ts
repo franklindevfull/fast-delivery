@@ -640,13 +640,7 @@ class APIDBService {
     });
   }
 
-  // Thermal Printing API
-  public async printThermalReceipt(payload: { printerIp?: string, printerPort?: number, type?: string, data: any }): Promise<{ success: boolean, message?: string }> {
-    return this.request<{ success: boolean, message?: string }>('/print/receipt', {
-      method: 'POST',
-      body: JSON.stringify(payload)
-    });
-  }
+  // Removed legacy Thermal Printing API as per project standardization to window.print()
 }
 
 export const db = new APIDBService();

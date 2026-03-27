@@ -1,5 +1,6 @@
 
-import React, { useState, useEffect, useMemo } from 'react';
+import React, { useState, useEffect, useMemo, useRef } from 'react';
+import { useReactToPrint } from 'react-to-print';
 import { db } from '../services/db';
 import { socket } from '../services/socket';
 import { TableSession, Product, User, OrderItem, Order, OrderStatus, SaleType, Waiter, Client, BusinessSettings } from '../types';
@@ -10,7 +11,7 @@ import { validateEmail, validateCPF, validateCNPJ, maskPhone, maskDocument, toTi
 import { formatAddress } from '../services/formatUtils';
 import WaiterAuthModal from '../components/WaiterAuthModal';
 import { useToast } from '../hooks/useToast';
-import { usePrinter } from '../hooks/usePrinter';
+
 
 
 interface TablesProps {
@@ -20,7 +21,8 @@ interface TablesProps {
 const Tables: React.FC<TablesProps> = ({ currentUser }) => {
   const { addToast } = useToast();
   const { isAlerting, dismissAlert } = useDigitalAlert();
-  const { printElement } = usePrinter();
+  const contentRef = useRef<HTMLDivElement>(null);
+  const triggerPrint = useReactToPrint({ contentRef });
   const [settings, setSettings] = useState<BusinessSettings | null>(null);
   const [sessions, setSessions] = useState<TableSession[]>([]);
   const [products, setProducts] = useState<Product[]>([]);
@@ -557,7 +559,7 @@ const Tables: React.FC<TablesProps> = ({ currentUser }) => {
 
     if (!settings?.printerIp) {
       addToast({ title: "Impressão", message: "Enviando para a impressora do sistema...", type: "INFO" });
-      await printElement('table-receipt');
+      triggerPrint();
       return;
     }
 
@@ -887,7 +889,7 @@ const Tables: React.FC<TablesProps> = ({ currentUser }) => {
         <div className="fixed inset-0 z-[70] flex items-center justify-center p-4 bg-slate-900/60 dark:bg-slate-950/80 backdrop-blur-md animate-in fade-in duration-300">
           <div className="relative w-full max-w-md bg-white dark:bg-slate-900 rounded-[2.5rem] shadow-2xl border border-slate-100 dark:border-slate-800 overflow-hidden animate-in zoom-in-95 duration-300">
             {/* Hidden Receipt for Printing Only */}
-            <div id="table-receipt" className={`hidden print:block is-receipt`}>
+            <div ref={contentRef} className={`hidden print:block is-receipt cupom`}>
               <div className="text-center mb-2">
                 <h2 className="font-bold text-xs uppercase tracking-tighter mb-0">{settings.name}</h2>
                 <p className="text-[8px] font-bold uppercase">CNPJ: {settings.cnpj}</p>

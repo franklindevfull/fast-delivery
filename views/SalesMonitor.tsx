@@ -1,5 +1,6 @@
 
 import React, { useState, useEffect, useRef, useMemo } from 'react';
+import { useReactToPrint } from 'react-to-print';
 import { Order, OrderStatus, OrderStatusLabels, SaleType, Product, User, BusinessSettings } from '../types';
 import { QRCodeCanvas } from 'qrcode.react';
 import { db } from '../services/db';
@@ -7,11 +8,12 @@ import { Icons } from '../constants';
 import CustomAlert from '../components/CustomAlert';
 import { useToast } from '../hooks/useToast';
 
-import { usePrinter } from '../hooks/usePrinter';
+
 
 const SalesMonitor: React.FC = () => {
-  const { printElement } = usePrinter();
   const { addToast } = useToast();
+  const contentRef = useRef<HTMLDivElement>(null);
+  const triggerPrint = useReactToPrint({ contentRef });
   const [orders, setOrders] = useState<Order[]>([]);
   const [products, setProducts] = useState<Product[]>([]);
   const [businessSettings, setBusinessSettings] = useState<BusinessSettings | null>(null);
@@ -103,7 +105,7 @@ const SalesMonitor: React.FC = () => {
 
   const renderPaymentEditor = () => (
     <div className="mt-2 pt-2 border-t border-dashed no-print w-full">
-      <div className="flex justify-between items-center bg-slate-50 dark:bg-slate-800 p-2 rounded-lg border border-slate-100 dark:border-slate-700">
+      <div className="flex justify-between items-center bg-slate-100 dark:bg-slate-800 p-2 rounded-lg border border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-200">
         {editingPaymentMethod ? (
           <div className="flex gap-2 w-full">
             <select
@@ -147,20 +149,20 @@ const SalesMonitor: React.FC = () => {
                   setIsSavingPayment(false);
                 }
               }}
-              className="bg-emerald-500 text-white px-2 py-1 rounded text-[8px] font-black uppercase"
+              className="bg-emerald-500 text-white px-2 py-1 rounded text-[8px] font-black uppercase no-print"
             >
               Salvar
             </button>
             <button
               onClick={() => setEditingPaymentMethod(false)}
-              className="bg-slate-200 dark:bg-slate-700 text-slate-600 dark:text-slate-300 px-2 py-1 rounded text-[8px] font-black uppercase"
+              className="bg-slate-200 dark:bg-slate-700 text-slate-600 dark:text-slate-300 px-2 py-1 rounded text-[8px] font-black uppercase no-print"
             >
               X
             </button>
           </div>
         ) : (
           <>
-            <p className="font-black text-[10px] dark:text-white">PAGTO: {(paymentLabels[(printingOrder?.paymentMethod || '').toUpperCase()] || printingOrder?.paymentMethod || 'PENDENTE').toUpperCase()}</p>
+            <p className="font-black text-[10px] text-slate-700 dark:text-white no-print">PAGTO: {(paymentLabels[(printingOrder?.paymentMethod || '').toUpperCase()] || printingOrder?.paymentMethod || 'PENDENTE').toUpperCase()}</p>
             <button
               onClick={() => {
                 const rawMethod = printingOrder?.paymentMethod || 'DINHEIRO';
@@ -168,14 +170,14 @@ const SalesMonitor: React.FC = () => {
                 setNewPaymentMethod(mappedMethod);
                 setEditingPaymentMethod(true);
               }}
-              className="text-[9px] text-blue-600 font-bold underline px-2"
+              className="text-[9px] text-blue-600 dark:text-blue-400 font-bold underline px-2 no-print"
             >
               Editar
             </button>
           </>
         )}
       </div>
-      <p className="font-black hidden print:block pt-1 text-[10px] dark:text-white">PAGTO: {(paymentLabels[(printingOrder?.paymentMethod || '').toUpperCase()] || printingOrder?.paymentMethod || 'PENDENTE').toUpperCase()}</p>
+      <p className="font-black hidden print:block pt-1 text-[10px] text-black">PAGTO: {(paymentLabels[(printingOrder?.paymentMethod || '').toUpperCase()] || printingOrder?.paymentMethod || 'PENDENTE').toUpperCase()}</p>
     </div>
   );
 
@@ -328,7 +330,7 @@ const SalesMonitor: React.FC = () => {
 
           {printingOrder && businessSettings && (
             <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-sm">
-            <div id="monitor-receipt" className="is-receipt animate-in zoom-in duration-200">
+            <div ref={contentRef} className="is-receipt cupom animate-in zoom-in duration-200">
                 {isNfceVisual ? (
                   <div className="space-y-4 font-mono text-[10px] leading-tight text-black dark:text-white">
                     <div className="text-center space-y-1">
@@ -479,7 +481,7 @@ const SalesMonitor: React.FC = () => {
                     onClick={async () => {
                       if (!businessSettings || !printingOrder) return;
                       addToast({ title: 'Impressão', message: 'Enviando cupom...', type: 'INFO' });
-                      await printElement('monitor-receipt');
+                      triggerPrint();
                       setPrintingOrder(null); // Assuming this closes the modal, or setIsReceiptModalOpen(false) if it exists
                     }}
                     className="bg-blue-600 text-white py-4 rounded-[22px] font-receipt font-black uppercase text-[11px] shadow-xl hover:bg-blue-700 active:scale-95 transition-all flex items-center justify-center whitespace-nowrap"

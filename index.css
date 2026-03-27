@@ -43,94 +43,80 @@
     --color-blue-950: #1e1b4b;
 }
 
-/* Standardized Thermal Receipt Container (Both Preview and Print) */
-.is-receipt {
+/* 
+   CRITICAL: Standardized Thermal Receipt Container (Both Preview and Print)
+   DO NOT CHANGE: 48mm width + 2mm padding ensures visibility on 58mm/80mm/A4 papers.
+   DO NOT USE: Absolute positioning (left: 0) as it causes clipping on many printers.
+*/
+.is-receipt, .cupom {
   background: white !important;
   color: black !important;
   font-family: 'Lucida Console', Consolas, monospace !important;
   width: 48mm !important;
-  min-height: 60mm !important;
+  min-height: 40mm !important;
   padding: 2mm !important;
   box-sizing: border-box !important;
   margin: 0 auto !important;
-  box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1) !important;
   position: relative;
+  word-wrap: break-word;
+  white-space: normal;
+  font-size: 12px !important;
 }
 
-/* Ensure all text inside receipt is black regardless of dark mode */
-.is-receipt *, 
-.is-receipt span, 
-.is-receipt p, 
-.is-receipt div, 
-.is-receipt h2, 
-.is-receipt td, 
-.is-receipt th {
+/* Ensure all text inside receipt is black regardless of dark mode, except for UI elements */
+.is-receipt *:not(.no-print):not(.no-print *), 
+.cupom *:not(.no-print):not(.no-print *) {
   color: black !important;
 }
 
-.is-receipt h2 {
-  font-size: 12px !important;
+.is-receipt h2, .cupom h2 {
+  font-size: 14px !important;
   margin: 0 0 4px 0 !important;
   text-transform: uppercase !important;
   text-align: center !important;
+  font-weight: bold !important;
 }
 
-.is-receipt .section-divider {
+.is-receipt .section-divider, .cupom .section-divider {
   border-top: 1px dashed black !important;
   margin: 4px 0 !important;
   width: 100% !important;
 }
 
-.is-receipt .linha-produto {
-  display: flex;
-  justify-content: space-between;
-  width: 100%;
-  margin-bottom: 2px !important;
-}
-
 @media print {
-  /* 1. Remove elements not needed in printing */
+  body {
+    margin: 0 !important;
+    padding: 0 !important;
+  }
+
+  /* 1. Hide everything by default for window.print() fallback */
   body * {
     visibility: hidden;
   }
 
-  /* 2. Standardized Thermal Receipt Container for Print Only */
-  .is-receipt, .is-receipt * {
-    visibility: visible;
+  /* 2. Standardized Thermal Receipt Container */
+  .is-receipt, .is-receipt *, .cupom, .cupom * {
+    visibility: visible !important;
   }
 
-  .is-receipt {
-    width: 48mm !important;
-    margin-left: 5mm !important; /* Safety offset for 58mm paper to avoid left-side cut-off */
-    margin-right: auto !important;
-    margin-top: 0 !important;
-    box-shadow: none !important;
-    border: none !important;
-    overflow: visible !important;
+  /* 
+     CRITICAL: Definitive Clipping Fix
+     Uses horizontal centering (margin: auto) instead of absolute positioning.
+     This ensures the 48mm content is centered on ANY paper size.
+  */
+  .is-receipt, .cupom {
     display: block !important;
+    width: 48mm !important;
+    margin: 0 auto !important;
+    padding: 2mm !important;
+    background-color: white !important;
+    overflow: visible !important;
+    float: none !important;
     position: relative !important;
-    transform: none !important;
-    left: 0 !important;
-    font-size: 10px !important;
   }
 
-  .no-print {
-    display: none !important;
-  }
-
-  /* 3. Page Setup for 58mm Paper */
   @page {
     margin: 0;
     size: 58mm auto;
-  }
-
-  /* 4. Reset body for printing */
-  body, html {
-    margin: 0 !important;
-    padding: 0 !important;
-    width: 100% !important;
-    background-color: white !important;
-    overflow: visible !important;
-    display: block !important;
   }
 }

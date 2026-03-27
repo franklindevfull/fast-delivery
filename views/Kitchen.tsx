@@ -1,5 +1,6 @@
 
 import React, { useState, useEffect, useRef } from 'react';
+import { useReactToPrint } from 'react-to-print';
 import { Order, OrderStatus, OrderStatusLabels, Product, InventoryItem, User, SaleType, OrderItem, Waiter, BusinessSettings } from '../types';
 import { db } from '../services/db';
 import { socket } from '../services/socket';
@@ -7,11 +8,12 @@ import { Icons } from '../constants';
 import { useDigitalAlert } from '../hooks/useDigitalAlert';
 import { useToast } from '../hooks/useToast';
 
-import { usePrinter } from '../hooks/usePrinter';
+
 
 const Kitchen: React.FC = () => {
-  const { printElement } = usePrinter();
   const { addToast } = useToast();
+  const contentRef = useRef<HTMLDivElement>(null);
+  const triggerPrint = useReactToPrint({ contentRef });
   const { isAlerting, dismissAlert } = useDigitalAlert();
   const [orders, setOrders] = useState<Order[]>([]);
   const [products, setProducts] = useState<Product[]>([]);
@@ -486,7 +488,7 @@ const Kitchen: React.FC = () => {
 
       {printingOrder && businessSettings && (
         <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-slate-900/80 backdrop-blur-md">
-          <div id="kitchen-receipt" className="is-receipt animate-in zoom-in duration-200">
+          <div ref={contentRef} className="is-receipt cupom animate-in zoom-in duration-200">
             <div className="text-center mb-1">
               <h2 className="font-bold text-[10px] uppercase tracking-tighter mb-0">{businessSettings.name}</h2>
               <p className="text-[8px] font-black uppercase">
@@ -583,16 +585,16 @@ const Kitchen: React.FC = () => {
             <div className="grid grid-cols-2 gap-2 no-print mt-4">
               <button
                 onClick={async () => {
-                  await printElement('kitchen-receipt');
+                  triggerPrint();
                   setPrintingOrder(null);
                 }}
-                className="bg-blue-600 text-white py-3 rounded-xl font-receipt font-black uppercase text-[10px] shadow-lg hover:bg-blue-700 active:scale-95 transition-all flex items-center justify-center"
+                className="bg-blue-600 text-white py-3 rounded-xl font-receipt font-black uppercase text-[10px] shadow-lg hover:bg-blue-700 active:scale-95 transition-all flex items-center justify-center no-print"
               >
                 IMPRIMIR
               </button>
               <button
                 onClick={() => setPrintingOrder(null)}
-                className="bg-slate-200 dark:bg-slate-800 text-slate-700 dark:text-slate-200 py-3 rounded-xl font-receipt font-black uppercase text-[10px] hover:bg-slate-300 dark:hover:bg-slate-700 active:scale-95 transition-all flex items-center justify-center"
+                className="bg-slate-200 dark:bg-slate-800 text-slate-700 dark:text-slate-200 py-3 rounded-xl font-receipt font-black uppercase text-[10px] hover:bg-slate-300 dark:hover:bg-slate-700 active:scale-95 transition-all flex items-center justify-center no-print"
               >
                 FECHAR
               </button>

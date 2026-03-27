@@ -150,8 +150,5 @@ export const db = {
         return data;
     },
 
-    printThermalReceipt: async (payload: any): Promise<{ success: boolean; message: string }> => {
-        const { data } = await api.post('/print/receipt', payload);
-        return data;
     }
 };

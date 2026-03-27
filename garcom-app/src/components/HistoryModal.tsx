@@ -1,6 +1,7 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { X, TrendingUp, History, Clock, DollarSign, ClipboardList, Printer } from 'lucide-react';
 import { db } from '../api';
+import { useReactToPrint } from 'react-to-print';
 import type { User, Order, TableSession, BusinessSettings } from '../types';
 
 interface HistoryModalProps {
@@ -18,47 +19,10 @@ const HistoryModal: React.FC<HistoryModalProps> = ({ user, tables, settings, res
     const [orders, setOrders] = useState<Order[]>([]);
     const [loading, setLoading] = useState(true);
     const [printingOrder, setPrintingOrder] = useState<Order | null>(null);
-    const [isPrinting, setIsPrinting] = useState(false);
+    const contentRef = useRef<HTMLDivElement>(null);
+    const handlePrint = useReactToPrint({ contentRef });
 
-    const handlePrintNetwork = async () => {
-        if (!printingOrder) return;
-        if (!settings?.printerIp) {
-            window.print();
-            return;
-        }
-        
-        setIsPrinting(true);
-        try {
-            const payload = {
-                 printerIp: settings.printerIp,
-                 type: settings.printerType || 'EPSON',
-                 data: {
-                     businessName: settings.name,
-                     date: printingOrder.createdAt || new Date().toISOString(),
-                     clientName: printingOrder.clientName || 'Não Identificado',
-                     table: printingOrder.tableNumber,
-                     paymentMethod: printingOrder.paymentMethod,
-                     subtotal: printingOrder.items.reduce((acc, item) => acc + (item.quantity * item.price), 0),
-                     serviceFee: printingOrder.appliedServiceFee || 0,
-                     total: printingOrder.total,
-                     items: printingOrder.items.map(item => ({
-                         name: ((item as any).product?.name || (item as any).productName || 'Item').substring(0, 20),
-                         quantity: item.quantity,
-                         price: item.price,
-                         total: item.price * item.quantity
-                     }))
-                 }
-            };
-            await db.printThermalReceipt(payload);
-            setPrintingOrder(null);
-            alert("Cupom enviado para a impressora configurada na rede.");
-        } catch(e: any) {
-            console.error(e);
-            alert("Erro de Impressora: " + (e.message || 'Verifique se a impressora térmica está online.'));
-        } finally {
-            setIsPrinting(false);
-        }
-    };
+
 
     useEffect(() => {
         const fetchOrders = async () => {
@@ -289,7 +253,7 @@ const HistoryModal: React.FC<HistoryModalProps> = ({ user, tables, settings, res
 
             {printingOrder && (
                 <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-slate-900/80 backdrop-blur-md" onClick={() => setPrintingOrder(null)}>
-            <div className="relative w-full max-w-[42mm] bg-white p-2 shadow-2xl font-mono text-black is-receipt animate-in zoom-in duration-200" onClick={e => e.stopPropagation()}>
+            <div ref={contentRef} className="relative w-full bg-white p-2 shadow-2xl font-mono text-black is-receipt cupom animate-in zoom-in duration-200" onClick={e => e.stopPropagation()}>
                 <div className="text-center mb-1">
                     <h2 className="font-bold text-[10px] uppercase tracking-tighter mb-0">{settings?.name || 'ESTABELECIMENTO'}</h2>
                     <div className="section-divider"></div>
@@ -330,8 +294,8 @@ const HistoryModal: React.FC<HistoryModalProps> = ({ user, tables, settings, res
 
                 <div className="flex flex-col gap-2 no-print">
                     <div className="flex gap-2">
-                        <button onClick={handlePrintNetwork} disabled={isPrinting} className="flex-[2] bg-slate-900 text-white font-bold py-4 rounded-3xl uppercase text-[10px] tracking-widest shadow-xl active:scale-95 transition-all disabled:opacity-50">{isPrinting ? 'Enviando...' : 'Imprimir'}</button>
-                        <button onClick={() => setPrintingOrder(null)} className="flex-1 bg-slate-200 text-slate-600 font-bold py-4 rounded-3xl uppercase text-[10px] tracking-widest active:scale-95 transition-all">Fechar</button>
+                        <button onClick={() => handlePrint()} className="flex-[2] bg-slate-900 text-white font-bold py-4 rounded-3xl uppercase text-[10px] tracking-widest shadow-xl active:scale-95 transition-all no-print">Imprimir</button>
+                        <button onClick={() => setPrintingOrder(null)} className="flex-1 bg-slate-200 text-slate-600 font-bold py-4 rounded-3xl uppercase text-[10px] tracking-widest active:scale-95 transition-all no-print">Fechar</button>
                     </div>
                 </div>
             </div>

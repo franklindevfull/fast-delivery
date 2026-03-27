@@ -1,11 +1,12 @@
 
-import React, { useState, useEffect, useMemo } from 'react';
+import React, { useState, useEffect, useMemo, useRef } from 'react';
 import { DeliveryDriver, Order, OrderStatus, OrderStatusLabels, SaleType, User, Product, BusinessSettings } from '../types';
 import { db } from '../services/db';
 import { Icons } from '../constants';
 import { socket, chatUnreadManager } from '../services/socket';
 import { useToast } from '../hooks/useToast';
-import { usePrinter } from '../hooks/usePrinter';
+
+import { useReactToPrint } from 'react-to-print';
 import CustomAlert from '../components/CustomAlert';
 import { getLocalIsoDate } from '../services/dateUtils';
 
@@ -63,11 +64,14 @@ const CheckoutTimer: React.FC<{ assignedAt: string, timeoutMinutes: number }> = 
 
 const Logistics: React.FC = () => {
   const { addToast } = useToast();
-  const { printElement } = usePrinter();
+  const printRef = useRef<HTMLDivElement>(null);
+  const triggerPrint = useReactToPrint({ contentRef: printRef });
   const [drivers, setDrivers] = useState<DeliveryDriver[]>([]);
   const [readyOrders, setReadyOrders] = useState<Order[]>([]);
   const [products, setProducts] = useState<Product[]>([]);
   const [businessSettings, setBusinessSettings] = useState<BusinessSettings | null>(null);
+  const contentRef = useRef<HTMLDivElement>(null);
+  const handlePrint = useReactToPrint({ contentRef });
   const [currentUser, setCurrentUser] = useState<User | null>(null);
   const [printingOrder, setPrintingOrder] = useState<Order | null>(null);
   const [isLoading, setIsLoading] = useState(false);
@@ -466,7 +470,7 @@ const Logistics: React.FC = () => {
                 {historyOrders.length > 0 ? (
                   historyOrders.sort((a, b) => b.createdAt.localeCompare(a.createdAt)).map(order => (
                     <tr key={order.id} className="hover:bg-slate-50/30 dark:hover:bg-slate-800/20 group transition-colors">
-                      <td className="px-8 py-5 text-center">
+                      <td className="px-8 py-5 text-left">
                         <span className="px-3 py-1.5 rounded-xl text-[9px] font-black uppercase text-white shadow-sm bg-emerald-500">
                           ENTREGUE
                         </span>
@@ -630,7 +634,7 @@ const Logistics: React.FC = () => {
       {/* CUPOM DE ENTREGA AGRUPADO */}
       {printingOrder && businessSettings && (
         <div className="fixed inset-0 z-[120] flex items-center justify-center p-4 bg-slate-900/80 backdrop-blur-sm">
-          <div id="logistics-receipt" className="is-receipt animate-in zoom-in duration-200">
+          <div ref={printRef} className="is-receipt cupom animate-in zoom-in duration-200">
             <div className="text-center mb-1">
               <h2 className="font-bold text-[10px] uppercase tracking-tighter mb-0">{businessSettings.name}</h2>
               <div className="section-divider"></div>
@@ -687,52 +691,21 @@ const Logistics: React.FC = () => {
                 onClick={async () => {
                   if (!businessSettings || !printingOrder) return;
                   try {
-                    const payload = {
-                      printerIp: businessSettings.printerIp,
-                      type: businessSettings.printerType || 'EPSON',
-                      data: {
-                        businessName: businessSettings.name,
-                        cnpj: businessSettings.cnpj,
-                        date: printingOrder.createdAt,
-                        clientName: printingOrder.clientName || 'NÃO IDENTIFICADO',
-                        clientPhone: printingOrder.clientPhone,
-                        clientAddress: printingOrder.clientAddress,
-                        status: OrderStatusLabels[printingOrder.status],
-                        paymentMethod: printingOrder.paymentMethod,
-                        deliveryFee: printingOrder.deliveryFee || 0,
-                        total: printingOrder.total,
-                        items: printingOrder.items.map((it: any) => {
-                          const prod = products.find(p => p.id === it.productId);
-                          return {
-                            name: (prod?.name || 'Item').substring(0, 22),
-                            quantity: it.quantity,
-                            total: it.price * it.quantity
-                          };
-                        })
-                      }
-                    };
-
-                    if (businessSettings.printerIp) {
-                      addToast({ title: 'Impressão', message: 'Enviando cupom de entrega...', type: 'INFO' });
-                      const res = await db.printThermalReceipt(payload);
-                      if (res.success) {
-                        addToast({ title: 'Sucesso', message: 'Cupom impresso!', type: 'SUCCESS' });
-                        setPrintingOrder(null);
-                      }
-                    }
+                    addToast({ title: 'Impressão', message: 'Gerando cupom de entrega...', type: 'INFO' });
+                    triggerPrint();
+                    setPrintingOrder(null);
                   } catch (error: any) {
                     addToast({ title: 'Erro na Impressão', message: error.message || 'Falha ao comunicar com a impressora.', type: 'DANGER' });
-                    await printElement('logistics-receipt');
                     setPrintingOrder(null);
                   }
                 }}
-                className="bg-blue-600 text-white py-3 rounded-xl font-receipt font-black uppercase text-[10px] shadow-lg hover:bg-blue-700 active:scale-95 transition-all flex items-center justify-center"
+                className="bg-blue-600 text-white py-3 rounded-xl font-receipt font-black uppercase text-[10px] shadow-lg hover:bg-blue-700 active:scale-95 transition-all flex items-center justify-center no-print"
               >
                 IMPRIMIR
               </button>
               <button
                 onClick={() => setPrintingOrder(null)}
-                className="bg-slate-200 dark:bg-slate-800 text-slate-700 dark:text-slate-200 py-3 rounded-xl font-receipt font-black uppercase text-[10px] hover:bg-slate-300 dark:hover:bg-slate-700 active:scale-95 transition-all flex items-center justify-center"
+                className="bg-slate-200 dark:bg-slate-800 text-slate-700 dark:text-slate-200 py-3 rounded-xl font-receipt font-black uppercase text-[10px] hover:bg-slate-300 dark:hover:bg-slate-700 active:scale-95 transition-all flex items-center justify-center no-print"
               >
                 FECHAR
               </button>
@@ -744,7 +717,7 @@ const Logistics: React.FC = () => {
       {/* CUPOM DE HISTÓRICO RESUMIDO */}
       {printingHistoryOrder && businessSettings && (
         <div className="fixed inset-0 z-[120] flex items-center justify-center p-4 bg-slate-900/80 backdrop-blur-sm">
-          <div id="logistics-history-receipt" className="is-receipt animate-in zoom-in duration-200">
+          <div ref={contentRef} className="is-receipt cupom animate-in zoom-in duration-200">
             <div className="text-center mb-1">
               <h2 className="font-bold text-[10px] uppercase tracking-tighter mb-0">{businessSettings.name}</h2>
               <div className="section-divider"></div>
@@ -798,47 +771,13 @@ const Logistics: React.FC = () => {
                 onClick={async () => {
                   if (!businessSettings || !printingHistoryOrder) return;
                   try {
-                    // Logic from before...
-                    if (businessSettings.printerIp) {
-                      // ... (Keeping IP printing logic)
-                      const payload = {
-                        printerIp: businessSettings.printerIp,
-                        type: businessSettings.printerType || 'EPSON',
-                        data: {
-                          businessName: businessSettings.name,
-                          cnpj: businessSettings.cnpj,
-                          date: printingHistoryOrder.createdAt,
-                          clientName: printingHistoryOrder.clientName || 'NÃO IDENTIFICADO',
-                          clientPhone: printingHistoryOrder.clientPhone,
-                          clientAddress: printingHistoryOrder.clientAddress,
-                          status: 'ENTREGUE',
-                          paymentMethod: printingHistoryOrder.paymentMethod,
-                          deliveryFee: printingHistoryOrder.deliveryFee || 0,
-                          total: printingHistoryOrder.total,
-                          items: printingHistoryOrder.items.map((it: any) => {
-                            const prod = products.find(p => p.id === it.productId);
-                            return {
-                              name: (prod?.name || 'Item').substring(0, 22),
-                              quantity: it.quantity,
-                              total: it.price * it.quantity
-                            };
-                          })
-                        }
-                      };
-                      addToast({ title: 'Impressão', message: 'Enviando cupom de histórico...', type: 'INFO' });
-                      const res = await db.printThermalReceipt(payload);
-                      if (res.success) {
-                        addToast({ title: 'Sucesso', message: 'Cupom impresso!', type: 'SUCCESS' });
-                        setPrintingHistoryOrder(null);
-                      }
-                        await printElement('logistics-history-receipt');
-                        setPrintingHistoryOrder(null);
-                      }
-                    } catch (error: any) {
-                      addToast({ title: 'Erro na Impressão', message: error.message || 'Falha ao comunicar com a impressora.', type: 'DANGER' });
-                      await printElement('logistics-history-receipt');
-                      setPrintingHistoryOrder(null);
-                    }
+                    addToast({ title: 'Impressão', message: 'Gerando cupom de histórico...', type: 'INFO' });
+                    handlePrint();
+                    setPrintingHistoryOrder(null);
+                  } catch (error: any) {
+                    addToast({ title: 'Erro na Impressão', message: error.message || 'Falha ao comunicar com a impressora.', type: 'DANGER' });
+                    setPrintingHistoryOrder(null);
+                  }
                 }}
                 className="bg-blue-600 text-white py-3 rounded-xl font-receipt font-black uppercase text-[10px] shadow-lg hover:bg-blue-700 active:scale-95 transition-all flex items-center justify-center"
               >

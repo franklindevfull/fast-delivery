@@ -1,7 +1,8 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { api } from '../services/api';
 import { socket } from '../services/socket';
+import { useReactToPrint } from 'react-to-print';
 import type { Order } from '../types';
 import { Icons } from '../constants';
 
@@ -18,6 +19,8 @@ const OrderHistory: React.FC = () => {
     const [printingOrder, setPrintingOrder] = useState<Order | null>(null);
     const [businessSettings, setBusinessSettings] = useState<any>(null);
     const navigate = useNavigate();
+    const contentRef = useRef<HTMLDivElement>(null);
+    const handlePrint = useReactToPrint({ contentRef });
 
     useEffect(() => {
         const clientStr = localStorage.getItem('delivery_app_client');
@@ -208,7 +211,7 @@ const OrderHistory: React.FC = () => {
             {printingOrder && (
                 <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-slate-900/80 backdrop-blur-md animate-in fade-in duration-300">
                     <div className="absolute inset-0 no-print" onClick={() => setPrintingOrder(null)}></div>
-                    <div className={`bg-white dark:bg-slate-900 w-full max-w-[58mm] border-dashed shadow-2xl p-4 animate-in zoom-in duration-300 overflow-y-auto max-h-[95vh] custom-scrollbar relative is-receipt ${printingOrder.status === 'CANCELLED' ? 'rounded-[2rem]' : 'border dark:border-slate-800'}`}>
+                    <div ref={contentRef} className={`bg-white dark:bg-slate-900 w-full max-w-[58mm] border-dashed shadow-2xl p-4 animate-in zoom-in duration-300 overflow-y-auto max-h-[95vh] custom-scrollbar relative is-receipt cupom ${printingOrder.status === 'CANCELLED' ? 'rounded-[2rem]' : 'border dark:border-slate-800'}`}>
                         <div className="text-center mb-6 border-b border-dashed dark:border-slate-700 pb-4">
                             <h2 className="font-black text-sm uppercase tracking-tighter text-slate-800 dark:text-white">{businessSettings?.name || 'Sistema de Delivery'}</h2>
                             {businessSettings?.cnpj && printingOrder.status !== 'CANCELLED' && <p className="text-[9px] font-bold mt-1 text-slate-500 dark:text-slate-400">CNPJ: {businessSettings.cnpj}</p>}
@@ -285,7 +288,7 @@ const OrderHistory: React.FC = () => {
                         <div className="mt-8 flex gap-2 no-print">
                             {printingOrder.status !== 'CANCELLED' && (
                                 <button
-                                    onClick={() => window.print()}
+                                    onClick={() => handlePrint()}
                                     className="flex-1 bg-slate-900 dark:bg-indigo-600 hover:bg-black dark:hover:bg-indigo-500 text-white py-4 rounded-xl font-black uppercase text-[10px] shadow-xl transition-all flex items-center justify-center gap-2"
                                 >
                                     <Icons.Print className="w-4 h-4" /> Imprimir
