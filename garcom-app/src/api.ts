@@ -149,6 +149,4 @@ export const db = {
         const { data } = await api.get<any[]>('/public/feedback');
         return data;
     },
-
-    }
 };

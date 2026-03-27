@@ -4,7 +4,6 @@ import { DeliveryDriver, Order, OrderStatus, OrderStatusLabels, SaleType, User, 
 import { db } from './services/db';
 import { socket } from './services/socket';
 import { Icons } from './constants';
-import { useReactToPrint } from 'react-to-print';
 import LogoutModal from './components/LogoutModal';
 import Login from './components/Login';
 

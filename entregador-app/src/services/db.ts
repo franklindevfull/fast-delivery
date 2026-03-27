@@ -108,8 +108,6 @@ class DriverDBService {
     public async getStoreStatus(): Promise<any> {
         return this.request('/public/store-status');
     }
-
-    }
 }
 
 export const db = new DriverDBService();
