@@ -33,6 +33,7 @@ const Tables: React.FC<TablesProps> = ({ currentUser }) => {
   const [feedbacks, setFeedbacks] = useState<any[]>([]);
   const [showFeedbacks, setShowFeedbacks] = useState(false);
   const [hasNewFeedback, setHasNewFeedback] = useState(false);
+  const [showMenu, setShowMenu] = useState(false); // Menu escondido por padrão
   const [lastFeedbackBlink, setLastFeedbackBlink] = useState(false);
 
   const [lastAddedProduct, setLastAddedProduct] = useState<string | null>(null);
@@ -644,6 +645,7 @@ const Tables: React.FC<TablesProps> = ({ currentUser }) => {
 
               setClientSearch('');
               setSelectedClient(null);
+              setShowMenu(false); // Garante ocultar ao abrir nova mesa
             }}
               className={`relative h-44 rounded-[2.5rem] border-4 transition-all duration-300 flex flex-col items-center justify-center gap-2 shadow-sm ${status === 'available' ? 'bg-white dark:bg-slate-800 border-emerald-50 dark:border-emerald-900/30 text-emerald-600 dark:text-emerald-400 hover:border-emerald-300 dark:hover:border-emerald-500' :
                 status === 'occupied' ? 'bg-red-600 border-red-700 text-white hover:bg-red-700' :
@@ -770,32 +772,56 @@ const Tables: React.FC<TablesProps> = ({ currentUser }) => {
                         }
                       </select>
                     </div>
-                    <div className="grid grid-cols-2 md:grid-cols-4 gap-6">
-                      {products.map(prod => (
-                        <button
-                          key={prod.id}
-                          onClick={() => {
-                            setSelectedProductForLaunch(prod);
-                            setModalObservation('');
-                          }}
-                          className={`p-5 bg-white dark:bg-slate-800 border rounded-[2.5rem] shadow-sm transition-all duration-200 text-left group relative overflow-hidden active:scale-95 hover:scale-[1.02] ${lastAddedProduct === prod.id
-                            ? 'border-emerald-500 ring-4 ring-emerald-50 dark:ring-emerald-900/20 scale-95'
-                            : 'border-slate-100 dark:border-slate-700 hover:border-blue-200 dark:hover:border-blue-500 hover:shadow-lg'
-                            }`}
+
+                    {/* Toggle Cardápio conforme prints do usuário */}
+                    <div className="flex justify-center md:justify-start">
+                      {!showMenu ? (
+                        <button 
+                          onClick={() => setShowMenu(true)}
+                          className="flex items-center gap-3 px-8 py-3 bg-indigo-600 text-white rounded-full font-black uppercase text-[10px] tracking-widest shadow-2xl shadow-indigo-500/40 hover:bg-indigo-700 transition-all active:scale-95 mb-10 group"
                         >
-                          <div className="aspect-square mb-4 bg-slate-50 dark:bg-slate-900 rounded-3xl flex items-center justify-center overflow-hidden">
-                            <img src={formatImageUrl(prod.imageUrl)} onError={e => e.currentTarget.src = PLACEHOLDER_FOOD_IMAGE} className="w-full h-full object-contain group-hover:scale-110 transition-transform duration-500" />
-                          </div>
-                          <p className="text-[11px] font-black text-slate-800 dark:text-white uppercase line-clamp-1">{prod.name}</p>
-                          <div className="flex justify-between items-center mt-1">
-                            <p className="text-sm font-black text-blue-600 dark:text-blue-400">R$ {prod.price.toFixed(2)}</p>
-                            {lastAddedProduct === prod.id && (
-                              <span className="bg-emerald-500 text-white text-[8px] font-black px-2 py-1 rounded-full animate-bounce">OK!</span>
-                            )}
-                          </div>
+                          <Icons.View size={20} strokeWidth={3} className="group-hover:scale-110 transition-transform" />
+                          Mostrar Cardápio
                         </button>
-                      ))}
+                      ) : (
+                        <button 
+                          onClick={() => setShowMenu(false)}
+                          className="flex items-center gap-3 px-8 py-3 bg-slate-800/80 text-blue-400/90 rounded-full font-black uppercase text-[10px] tracking-widest border border-slate-700/50 hover:bg-slate-800 transition-all active:scale-95 mb-10 group"
+                        >
+                          <Icons.ViewOff size={20} strokeWidth={2.5} className="group-hover:scale-110 transition-transform" />
+                          Ocultar Cardápio
+                        </button>
+                      )}
                     </div>
+
+                    {showMenu && (
+                      <div className="grid grid-cols-2 md:grid-cols-4 gap-6 animate-in fade-in slide-in-from-top-4 duration-500">
+                        {products.map(prod => (
+                          <button
+                            key={prod.id}
+                            onClick={() => {
+                              setSelectedProductForLaunch(prod);
+                              setModalObservation('');
+                            }}
+                            className={`p-5 bg-white dark:bg-slate-800 border rounded-[2.5rem] shadow-sm transition-all duration-200 text-left group relative overflow-hidden active:scale-95 hover:scale-[1.02] ${lastAddedProduct === prod.id
+                              ? 'border-emerald-500 ring-4 ring-emerald-50 dark:ring-emerald-900/20 scale-95'
+                              : 'border-slate-100 dark:border-slate-700 hover:border-blue-200 dark:hover:border-blue-500 hover:shadow-lg'
+                              }`}
+                          >
+                            <div className="aspect-square mb-4 bg-slate-50 dark:bg-slate-900 rounded-3xl flex items-center justify-center overflow-hidden">
+                              <img src={formatImageUrl(prod.imageUrl)} onError={e => e.currentTarget.src = PLACEHOLDER_FOOD_IMAGE} className="w-full h-full object-contain group-hover:scale-110 transition-transform duration-500" />
+                            </div>
+                            <p className="text-[11px] font-black text-slate-800 dark:text-white uppercase line-clamp-1">{prod.name}</p>
+                            <div className="flex justify-between items-center mt-1">
+                              <p className="text-sm font-black text-blue-600 dark:text-blue-400">R$ {prod.price.toFixed(2)}</p>
+                              {lastAddedProduct === prod.id && (
+                                <span className="bg-emerald-500 text-white text-[8px] font-black px-2 py-1 rounded-full animate-bounce">OK!</span>
+                              )}
+                            </div>
+                          </button>
+                        ))}
+                      </div>
+                    )}
                   </div>
                 )}
 

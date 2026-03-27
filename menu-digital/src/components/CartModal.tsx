@@ -20,7 +20,7 @@ const CartModal: React.FC<CartModalProps> = ({ isOpen, onClose, cart, tableNumbe
     const [clientName, setClientName] = useState('');
     const [success, setSuccess] = useState(false);
     const [showClearConfirm, setShowClearConfirm] = useState(false);
-    const [errorModal, setErrorModal] = useState<{ message: string, isPinError: boolean } | null>(null);
+    const [errorModal, setErrorModal] = useState<{ message: string, isPinError: boolean, title?: string } | null>(null);
 
     if (!isOpen) return null;
 
@@ -64,6 +64,8 @@ const CartModal: React.FC<CartModalProps> = ({ isOpen, onClose, cart, tableNumbe
                 console.error(e);
                 if (e.pin_required || e.message?.toLowerCase().includes('pin') || e.message?.toLowerCase().includes('sessão inválida')) {
                     setErrorModal({ message: "Sessão expirada ou PIN necessário para enviar o pedido.", isPinError: true });
+                } else if (e.message?.toLowerCase().includes('caixa')) {
+                    setErrorModal({ message: e.message, isPinError: false, title: "Caixa Fechado" });
                 } else {
                     setErrorModal({ message: e.message || "Erro ao enviar o pedido.", isPinError: false });
                 }
@@ -110,7 +112,7 @@ const CartModal: React.FC<CartModalProps> = ({ isOpen, onClose, cart, tableNumbe
                             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M6 18L18 6M6 6l12 12" />
                         </svg>
                     </div>
-                    <h2 className="text-xl font-black text-slate-800 uppercase tracking-tighter mb-4">Erro no Pedido</h2>
+                    <h2 className="text-xl font-black text-slate-800 uppercase tracking-tighter mb-4">{errorModal.title || "Erro no Pedido"}</h2>
                     <p className="text-slate-500 text-sm font-bold mb-8 leading-relaxed px-2">
                         {errorModal.message}
                     </p>
