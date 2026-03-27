@@ -222,15 +222,6 @@ const OrderHistory: React.FC = () => {
 
                         <div className="space-y-1 mb-4 text-[11px] font-receipt text-slate-700 dark:text-slate-300">
                             <p>DATA: {new Date(printingOrder.createdAt).toLocaleString('pt-BR')}</p>
-                            {printingOrder.status !== 'CANCELLED' && (
-                                <>
-                                    <p className="uppercase">CLIENTE: {printingOrder.clientName}</p>
-                                    {printingOrder.clientPhone && <p>FONE: {printingOrder.clientPhone}</p>}
-                                    {printingOrder.clientAddress && (
-                                        <p className="font-bold border-t border-dashed dark:border-slate-700 mt-2 pt-1 uppercase leading-tight">ENTREGA: {printingOrder.clientAddress}</p>
-                                    )}
-                                </>
-                            )}
                             <p>STATUS: {(getStatusLabel(printingOrder.status)).toUpperCase()}</p>
                         </div>
 

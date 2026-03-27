@@ -303,7 +303,7 @@ const Login: React.FC = () => {
                                     <input
                                         type={showPassword ? "text" : "password"}
                                         className="w-full pl-14 pr-14 py-3 md:py-4 bg-slate-50 dark:bg-slate-900 border-none rounded-2xl focus:ring-4 focus:ring-indigo-100 dark:focus:ring-indigo-900/20 transition-all font-bold text-sm text-slate-800 dark:text-slate-100 placeholder-slate-400 dark:placeholder-slate-500"
-                                        placeholder="Use SENHA ou BIOMETRIA"
+                                        placeholder="Digite sua senha"
                                         value={password}
                                         onChange={e => setPassword(e.target.value)}
                                     />
@@ -353,15 +353,7 @@ const Login: React.FC = () => {
                                 </button>
                             )}
 
-                            {canUseBiometrics && password.length === 0 && (
-                                <button
-                                    type="button"
-                                    onClick={() => setCanUseBiometrics(false)}
-                                    className="w-full py-2 text-[10px] font-black text-slate-400 dark:text-slate-500 uppercase tracking-widest hover:text-indigo-600 transition-colors"
-                                >
-                                    Entrar com senha tradicional
-                                </button>
-                            )}
+
                         </form>
 
                         <div className="mt-5 md:mt-8 flex flex-col items-center gap-3 md:gap-6">
