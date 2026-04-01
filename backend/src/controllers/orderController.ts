@@ -1157,10 +1157,14 @@ export const updateOrderServiceFee = async (req: Request, res: Response) => {
 };
 
 export const getClientOrders = async (req: Request, res: Response) => {
-    const { clientId, startDate, endDate } = req.query;
+    const { clientId, startDate, endDate, isOriginDeliveryApp } = req.query;
     if (!clientId) return res.status(400).json({ error: 'clientId é obrigatório' });
 
     let whereClause: any = { clientId: String(clientId) };
+
+    if (isOriginDeliveryApp === 'true') {
+        whereClause.isOriginDeliveryApp = true;
+    }
 
     if (startDate && endDate) {
         whereClause.createdAt = {

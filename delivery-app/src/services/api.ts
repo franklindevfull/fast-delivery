@@ -110,7 +110,7 @@ class DeliveryApiService {
 
     async getMyOrders() {
         const client = JSON.parse(localStorage.getItem('delivery_app_client') || '{}');
-        return this.request<any[]>(`/orders/client/my-orders?clientId=${client.id}&t=${Date.now()}`);
+        return this.request<any[]>(`/orders/client/my-orders?clientId=${client.id}&isOriginDeliveryApp=true&t=${Date.now()}`);
     }
 
     async updateClient(clientId: string, data: any, overrideToken?: string) {
