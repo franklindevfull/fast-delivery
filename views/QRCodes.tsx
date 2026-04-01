@@ -65,40 +65,38 @@ const QRCodes: React.FC = () => {
                     </button>
                 </div>
             </div>
-
-            {/* Grid de QR Codes - CRITICAL: gap-4 is required for 12 cards on A4 page. DO NOT INCREASE. */}
-            <div id="print-area" ref={contentRef} className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:xl-grid-cols-5 gap-4 overflow-y-auto pb-12 print:overflow-visible print:pb-0 print:grid-cols-3 print:gap-4">
+            {/* Grid de QR Codes - Optimized for A4 Printing (3 columns x 4 rows = 12 cards) */}
+            <div id="print-area" ref={contentRef} className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:xl-grid-cols-5 gap-4 overflow-y-auto pb-12 print:overflow-visible print:pb-0 print:grid-cols-3 print:gap-[1mm] print:justify-center">
                 {tables.map((tableNum) => {
                     const tableUrl = `${MENU_BASE_URL}/?mesa=${tableNum}`;
-
 
                     return (
                         <div
                             key={tableNum}
-                            className="bg-white dark:bg-slate-900 p-6 rounded-[2rem] border-2 border-dashed border-slate-200 dark:border-slate-800 flex flex-col items-center justify-center gap-4 print:border-solid print:border-black print:rounded-xl print:p-4 break-inside-avoid"
+                            className="bg-white dark:bg-slate-900 p-6 rounded-[2rem] border-2 border-dashed border-slate-200 dark:border-slate-800 flex flex-col items-center justify-center gap-4 print:border-solid print:border-slate-300 print:rounded-2xl print:p-2 break-inside-avoid print:w-[58mm] print:h-[64mm] print:mx-auto"
                         >
                             <div className="text-center">
-                                <h3 className="text-xl font-black text-slate-800 dark:text-white uppercase tracking-tighter print:text-lg">
+                                <h3 className="text-xl font-black text-slate-800 dark:text-white uppercase tracking-tighter print:text-sm print:mb-0">
                                     Mesa {tableNum}
                                 </h3>
-                                <p className="text-[10px] font-bold text-slate-400 dark:text-slate-500 uppercase tracking-widest print:text-[8px]">
+                                <p className="text-[10px] font-bold text-slate-400 dark:text-slate-500 uppercase tracking-widest print:text-[6px]">
                                     Escaneie para Pedir
                                 </p>
                             </div>
 
-                            <div className="p-4 bg-white rounded-2xl shadow-sm border border-slate-100 print:shadow-none print:border-none print:p-2">
+                            <div className="p-4 bg-white rounded-2xl shadow-sm border border-slate-100 print:shadow-none print:border-none print:p-0">
                                 <QRCodeSVG
                                     value={tableUrl}
                                     size={140}
                                     level="H"
                                     includeMargin={false}
-                                    className="print:w-[120px] print:h-[120px]"
+                                    className="print:w-[130px] print:h-[130px]"
                                 />
                             </div>
 
-                            <div className="text-center mt-2 opacity-30 dark:opacity-50 print:opacity-100 print:mt-1">
-                                <p className="text-[8px] font-bold uppercase tracking-widest break-all w-full select-all text-slate-700 dark:text-slate-500">
-                                    {MENU_BASE_URL}
+                            <div className="text-center mt-2 opacity-30 dark:opacity-50 print:opacity-80 print:mt-1">
+                                <p className="text-[8px] font-bold uppercase tracking-widest break-all w-full select-all text-slate-700 dark:text-slate-500 print:text-[8px] print:leading-tight">
+                                    {MENU_BASE_URL.replace(/(^\w+:|^)\/\//, '')}
                                 </p>
                             </div>
                         </div>
@@ -106,12 +104,18 @@ const QRCodes: React.FC = () => {
                 })}
             </div>
 
-            {/* Estilos de Impressão Específicos para a página toda */}
+            {/* Estilos de Impressão de Alta Precisão - Calibrado para 12 cards por folha A4 (3x4) */}
+            {/* NÃO ALTERAR AS DIMENSÕES ABAIXO SEM REVISÃO TÉCNICA - CONFIGURAÇÃO FINAL APROVADA */}
             <style>{`
+        @page {
+          size: A4 portrait;
+          margin: 15mm;
+        }
+
         @media print {
           body {
             background-color: white !important;
-            visibility: hidden; /* Oculta tudo por padrão (Herdado do index.html) */
+            visibility: hidden;
           }
           
           /* Força a visibilidade Apenas da área de QR Codes */
@@ -119,12 +123,13 @@ const QRCodes: React.FC = () => {
             visibility: visible !important;
             background-color: transparent !important;
             color: black !important;
-            border-color: black !important;
+            border-color: #cbd5e1 !important; /* slate-300 */
           }
 
           #print-area > div {
              background-color: white !important;
-             border: 1px solid black !important;
+             border: 1px solid #cbd5e1 !important;
+             page-break-inside: avoid;
           }
           
           #print-area {
@@ -133,11 +138,14 @@ const QRCodes: React.FC = () => {
             top: 0;
             width: 100%;
             margin: 0;
-            padding: 20px;
+            padding: 0;
+            display: grid !important;
+            grid-template-columns: repeat(3, 1fr) !important;
+            gap: 1mm !important;
           }
 
           /* Esconder Sidebar e Header (Garantia extra) */
-          aside, header, nav {
+          aside, header, nav, .print-hidden, .bg-indigo-100 {
             display: none !important;
           }
         }
