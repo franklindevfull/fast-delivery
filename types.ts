@@ -163,6 +163,7 @@ export interface Campaign {
   scheduledAt?: string;
   sentAt?: string;
   status: 'DRAFT' | 'SCHEDULED' | 'SENT' | 'CANCELLED';
+  imageUrl?: string;
   createdAt: string;
 }
 

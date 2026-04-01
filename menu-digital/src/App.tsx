@@ -5,9 +5,11 @@ import CartModal from './components/CartModal';
 import { CartItem } from './types';
 import FooterNav from './components/FooterNav';
 import OrderReadyNotification from './components/OrderReadyNotification';
-import { verifyTable, socket, fetchStoreStatus, StoreStatus, validatePin, joinTableRoom, acknowledgeRejection } from './api';
+import { verifyTable, socket, fetchStoreStatus, StoreStatus, validatePin, joinTableRoom, acknowledgeRejection, fetchActiveCampaigns, fetchActivePromotions } from './api';
+import NotificationCenter, { BaseCampaign, CouponItem } from './components/NotificationCenter';
 
 function AppContent() {
+
   const [searchParams] = useSearchParams();
   const tableParam = searchParams.get('mesa');
   const [tableNumber, setTableNumber] = useState<string | null>(tableParam);
@@ -29,6 +31,10 @@ function AppContent() {
   const [blockingRejection, setBlockingRejection] = useState<{ message: string } | null>(null);
   const [orderReadyNotify, setOrderReadyNotify] = useState<{ message: string } | null>(null);
   const [orderStatus, setOrderStatus] = useState<string | null>(null);
+
+  // Notificações In-App
+  const [activeCampaigns, setActiveCampaigns] = useState<BaseCampaign[]>([]);
+  const [activeCoupons, setActiveCoupons] = useState<CouponItem[]>([]);
 
   // Ref para rastrear estados terminais e propriedade em tempo real (evita "stale closures")
   const sessionContextRef = useRef({
@@ -208,8 +214,13 @@ function AppContent() {
   useEffect(() => {
     fetchTableData();
     fetchStatus();
+    
+    // Buscar Campanhas e Promocoes uma unica vez quando o componente monta
+    fetchActiveCampaigns().then(setActiveCampaigns);
+    fetchActivePromotions().then(setActiveCoupons);
 
     const intervalId = setInterval(() => {
+
       // Usamos a ref para garantir que o setInterval leia o valor MAIS RECENTE sem precisar recriar o hook
       const timeSinceFinished = Date.now() - sessionContextRef.current.lastFinishedAt;
       if (!sessionContextRef.current.finished && timeSinceFinished > 60000) {
@@ -775,9 +786,11 @@ function AppContent() {
           </div>
         </div>
         
-        {/* Status do Pedido no Header */}
-        {orderStatus && (
-          <div className="flex flex-col items-end gap-1">
+        
+        {/* Lado Direito do Header (Status + Notificações) */}
+        <div className="flex flex-col items-end gap-2">
+          <NotificationCenter campaigns={activeCampaigns} coupons={activeCoupons} />
+          {orderStatus && (
             <span className={`text-[9px] font-black px-2.5 py-1 rounded-lg shadow-sm border animate-pulse uppercase tracking-[0.05em] ${
               orderStatus === 'PENDING_APPROVAL' ? 'bg-amber-50 text-amber-600 border-amber-200' :
               orderStatus === 'PREPARING' ? 'bg-blue-50 text-blue-600 border-blue-200' :
@@ -793,9 +806,10 @@ function AppContent() {
                 orderStatus
               }
             </span>
-          </div>
-        )}
+          )}
+        </div>
       </header>
+
 
 
       <main className="flex-1 overflow-y-auto hide-scrollbar">

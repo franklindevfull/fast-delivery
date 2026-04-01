@@ -145,3 +145,23 @@ export const acknowledgeRejection = async (tableNumber: string) => {
         throw error.response?.data || { message: 'Erro ao confirmar rejeição.' };
     }
 };
+
+export const fetchActiveCampaigns = async () => {
+    try {
+        const response = await axios.get(`${API_URL}/campaigns`);
+        return response.data;
+    } catch (error: any) {
+        console.error('Error fetching campaigns', error);
+        return [];
+    }
+};
+
+export const fetchActivePromotions = async () => {
+    try {
+        const response = await axios.get(`${API_URL}/promotions`);
+        return response.data;
+    } catch (error: any) {
+        console.error('Error fetching promotions', error);
+        return [];
+    }
+};

@@ -20,6 +20,22 @@ export const getProducts = async (req: Request, res: Response) => {
     }
 };
 
+export const getActiveCampaigns = async (req: Request, res: Response) => {
+    try {
+        const campaigns = await prisma.campaign.findMany({
+            where: {
+                status: 'SENT',
+                type: { in: ['IN_APP', 'BOTH'] }
+            },
+            orderBy: { sentAt: 'desc' }
+        });
+        res.json(campaigns);
+    } catch (error) {
+        console.error('Error fetching active campaigns:', error);
+        res.status(500).json({ message: 'Error fetching campaigns' });
+    }
+};
+
 export const verifyTable = async (req: Request, res: Response) => {
     const id = req.params.id as string;
     const tableNumber = parseInt(id as string);

@@ -24,6 +24,7 @@ const EngagementManager: React.FC<EngagementManagerProps> = ({ currentUser, sett
   const bannerFileInputRef = React.useRef<HTMLInputElement>(null);
   const bannerFileInputRef2 = React.useRef<HTMLInputElement>(null);
   const bannerFileInputRef3 = React.useRef<HTMLInputElement>(null);
+  const campaignImageFileInputRef = React.useRef<HTMLInputElement>(null);
 
   const [alertConfig, setAlertConfig] = useState<{
     isOpen: boolean;
@@ -183,6 +184,16 @@ const EngagementManager: React.FC<EngagementManagerProps> = ({ currentUser, sett
       reader.readAsDataURL(file);
     }
   };
+
+  const handleCampaignImageUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file) {
+      const reader = new FileReader();
+      reader.onloadend = () => setEditingCampaign((prev: any) => ({ ...prev, imageUrl: reader.result as string }));
+      reader.readAsDataURL(file);
+    }
+  };
+
 
   return (
     <div className="bg-white dark:bg-slate-900 rounded-2xl shadow-sm border border-slate-100 dark:border-slate-800 flex flex-col h-full overflow-hidden">
@@ -707,8 +718,56 @@ const EngagementManager: React.FC<EngagementManagerProps> = ({ currentUser, sett
                       </select>
                     </div>
                   </div>
+
+                  <div className="space-y-2 pt-2">
+                    <label className="text-[10px] font-black uppercase text-slate-400 tracking-widest px-1">Imagem Principal (Opcional)</label>
+                    <div className="flex gap-3 items-center">
+                      <input
+                        type="text"
+                        className="flex-1 p-3 bg-slate-100 dark:bg-slate-800 rounded-xl border-none font-bold text-slate-800 dark:text-slate-200 text-xs"
+                        placeholder="https://link-da-imagem.com/img.png"
+                        value={editingCampaign?.imageUrl || ''}
+                        onChange={e => setEditingCampaign({ ...editingCampaign, imageUrl: e.target.value })}
+                      />
+                      
+                      <div className="flex gap-2">
+                        <button
+                          type="button"
+                          onClick={() => campaignImageFileInputRef.current?.click()}
+                          className="p-3 bg-blue-600 text-white rounded-xl shadow-lg shadow-blue-200 dark:shadow-blue-900/40 transition-all active:scale-95 flex items-center justify-center"
+                          title="Upload de Imagem"
+                        >
+                          <Upload className="w-4 h-4" />
+                        </button>
+
+                        {editingCampaign?.imageUrl && (
+                          <button
+                            type="button"
+                            onClick={() => {
+                              showAlert('Confirmar Exclusão', 'Deseja remover a imagem desta campanha?', 'DANGER', () => {
+                                setEditingCampaign({ ...editingCampaign, imageUrl: '' });
+                                setAlertConfig(prev => ({ ...prev, isOpen: false }));
+                              }, () => setAlertConfig(prev => ({ ...prev, isOpen: false })));
+                            }}
+                            className="p-3 bg-rose-50 dark:bg-rose-900/20 text-rose-500 rounded-xl border border-rose-100 dark:border-rose-800 transition-all active:scale-95 flex items-center justify-center"
+                            title="Remover Imagem"
+                          >
+                            <Trash2 className="w-4 h-4" />
+                          </button>
+                        )}
+                      </div>
+                      
+                      {editingCampaign?.imageUrl && (
+                        <div className="w-12 h-12 rounded-xl bg-white dark:bg-slate-900 p-1 shadow-sm overflow-hidden border border-slate-100 dark:border-slate-800 shrink-0">
+                          <img src={editingCampaign?.imageUrl} alt="Preview" className="w-full h-full object-cover rounded-lg" />
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                  <input type="file" ref={campaignImageFileInputRef} className="hidden" accept="image/*" onChange={handleCampaignImageUpload} />
                 </>
               )}
+
 
               <button
                 type="submit"
