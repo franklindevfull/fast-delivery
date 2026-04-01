@@ -1698,19 +1698,48 @@ const POS: React.FC<POSProps> = ({ currentUser }) => {
               </div>
             )}
 
-            <button
-              onClick={() => {
-                if (!activeCashSession) {
-                  return showAlert("Caixa Fechado", "Você deve abrir o caixa antes de realizar recebimentos.", "DANGER");
-                }
-                handleFinalize();
-              }}
-              disabled={cart.length === 0 || (saleType === SaleType.TABLE && !tableNumberInput)}
-              className={`w-full text-white font-black py-4 xl:py-5 rounded-xl xl:rounded-2xl shadow-xl uppercase text-[10px] tracking-widest transition-all active:scale-95 disabled:opacity-30 disabled:cursor-not-allowed ${((saleType === SaleType.COUNTER && !editingOrderId) || (saleType === SaleType.OWN_DELIVERY && !isReceivingFiado)) ? 'bg-orange-500 hover:bg-orange-600' : 'bg-blue-600 hover:bg-blue-700'
-                }`}
-            >
-              {((saleType === SaleType.COUNTER && !editingOrderId) || (saleType === SaleType.OWN_DELIVERY && !isReceivingFiado)) ? 'Enviar p/ Produção' : 'Finalizar e Receber'}
-            </button>
+            {((saleType === SaleType.COUNTER && !editingOrderId) || (saleType === SaleType.OWN_DELIVERY && !isReceivingFiado)) ? (
+              <div className="flex gap-2">
+                <button
+                  onClick={() => {
+                    if (!activeCashSession) {
+                      return showAlert("Caixa Fechado", "Você deve abrir o caixa antes de realizar recebimentos.", "DANGER");
+                    }
+                    handleFinalize();
+                  }}
+                  disabled={cart.length === 0}
+                  className={`flex-[2] bg-orange-500 hover:bg-orange-600 text-white font-black py-4 xl:py-5 rounded-xl xl:rounded-2xl shadow-xl uppercase text-[10px] tracking-widest transition-all active:scale-95 disabled:opacity-30 disabled:cursor-not-allowed`}
+                >
+                  Enviar p/ Produção
+                </button>
+                {saleType === SaleType.OWN_DELIVERY && (
+                  <button
+                    onClick={() => {
+                      const isEmpty = cart.length === 0 && !selectedClient && !tableNumberInput && !editingOrderId && !isReceivingFiado;
+                      clearState();
+                      if (!isEmpty) addToast({ title: "LIMPO", message: "Checkout do Delivery limpo com sucesso.", type: "SUCCESS" });
+                    }}
+                    disabled={cart.length === 0 && !selectedClient}
+                    className="flex-1 bg-slate-100 hover:bg-slate-200 text-slate-500 font-black py-4 xl:py-5 rounded-xl xl:rounded-2xl shadow-sm uppercase text-[9px] xl:text-[10px] tracking-widest transition-all active:scale-95 disabled:opacity-30 disabled:cursor-not-allowed"
+                  >
+                    Limpar
+                  </button>
+                )}
+              </div>
+            ) : (
+              <button
+                onClick={() => {
+                  if (!activeCashSession) {
+                    return showAlert("Caixa Fechado", "Você deve abrir o caixa antes de realizar recebimentos.", "DANGER");
+                  }
+                  handleFinalize();
+                }}
+                disabled={cart.length === 0 || (saleType === SaleType.TABLE && !tableNumberInput)}
+                className={`w-full bg-blue-600 hover:bg-blue-700 text-white font-black py-4 xl:py-5 rounded-xl xl:rounded-2xl shadow-xl uppercase text-[10px] tracking-widest transition-all active:scale-95 disabled:opacity-30 disabled:cursor-not-allowed`}
+              >
+                Finalizar e Receber
+              </button>
+            )}
 
             {editingOrderId && (
               <button onClick={() => {
@@ -1886,8 +1915,8 @@ const POS: React.FC<POSProps> = ({ currentUser }) => {
             </div>
 
             {/* Visual Modern Summary */}
-            <div className="bg-white dark:bg-slate-900 w-[450px] max-w-[95vw] rounded-[2.5rem] shadow-2xl overflow-hidden border border-slate-100 dark:border-slate-800 flex flex-col max-h-[90vh] relative no-print">
-              <div className="p-6 border-b border-slate-50 dark:border-slate-800 shrink-0 relative bg-slate-50/50 dark:bg-slate-800/50">
+            <div className="bg-white dark:bg-slate-900 w-[450px] max-w-[95vw] rounded-[2.5rem] shadow-2xl border border-slate-100 dark:border-slate-800 flex flex-col max-h-[90vh] relative no-print animate-in zoom-in duration-300">
+              <div className="p-4 border-b border-slate-50 dark:border-slate-800 shrink-0 relative bg-slate-50/50 dark:bg-slate-800/50">
                 <button
                   onClick={() => setPrintingOrder(null)}
                   className="absolute right-4 top-4 w-8 h-8 flex items-center justify-center bg-white dark:bg-slate-800 rounded-full text-slate-400 dark:text-slate-500 hover:bg-red-50 dark:hover:bg-red-900/30 hover:text-red-500 dark:hover:text-red-400 transition-all font-black text-lg z-20 shadow-sm"
@@ -1895,33 +1924,33 @@ const POS: React.FC<POSProps> = ({ currentUser }) => {
                   ×
                 </button>
                 <div className="text-center">
-                  <div className="w-14 h-14 bg-emerald-100 dark:bg-emerald-900/20 rounded-2xl flex items-center justify-center mx-auto mb-4 text-2xl shadow-inner animate-bounce-subtle">✅</div>
+                  <div className="w-12 h-12 bg-emerald-100 dark:bg-emerald-900/20 rounded-2xl flex items-center justify-center mx-auto mb-2 text-2xl shadow-inner animate-bounce-subtle">✅</div>
                   <h2 className="text-xl font-black text-slate-800 dark:text-white uppercase tracking-tighter">Venda Finalizada</h2>
                   <p className="text-[10px] font-bold text-slate-400 dark:text-slate-500 uppercase tracking-widest mt-0.5">Resumo detalhado da transação</p>
                 </div>
               </div>
 
-              <div className="flex-1 overflow-y-auto p-6 space-y-6 custom-scrollbar">
+              <div className="flex-1 overflow-y-auto p-4 space-y-4 custom-scrollbar">
                 {/* IDENTIFICATION */}
                 <div className="space-y-3">
                   <div className="flex items-center gap-2 border-l-4 border-blue-600 pl-3">
                     <h3 className="text-xs font-black text-slate-800 dark:text-white uppercase tracking-widest">Identificação</h3>
                   </div>
-                  <div className="grid grid-cols-2 gap-4 bg-slate-50 dark:bg-slate-800/50 p-4 rounded-3xl border border-slate-100 dark:border-slate-700">
+                  <div className="grid grid-cols-2 gap-3 bg-slate-50 dark:bg-slate-800/50 p-3 rounded-3xl border border-slate-100 dark:border-slate-700">
                     <div>
-                      <p className="text-[8px] font-black text-slate-400 uppercase tracking-widest mb-1">Cliente</p>
+                      <p className="text-[8px] font-black text-slate-400 uppercase tracking-widest mb-0.5">Cliente</p>
                       <p className="text-[11px] font-black text-slate-700 dark:text-slate-200 uppercase">{printingOrder.clientName || 'Não Identificado'}</p>
                     </div>
                     <div>
-                      <p className="text-[8px] font-black text-slate-400 uppercase tracking-widest mb-1">Mesa / Pedido</p>
+                      <p className="text-[8px] font-black text-slate-400 uppercase tracking-widest mb-0.5">Mesa / Pedido</p>
                       <p className="text-[11px] font-black text-slate-700 dark:text-slate-200 uppercase">{printingOrder.tableNumber ? `Mesa ${printingOrder.tableNumber}` : printingOrder.id.substring(0, 8)}</p>
                     </div>
                     <div>
-                      <p className="text-[8px] font-black text-slate-400 uppercase tracking-widest mb-1">Data</p>
+                      <p className="text-[8px] font-black text-slate-400 uppercase tracking-widest mb-0.5">Data</p>
                       <p className="text-[11px] font-black text-slate-700 dark:text-slate-200 uppercase">{new Date(printingOrder.createdAt).toLocaleDateString('pt-BR')}</p>
                     </div>
                     <div>
-                      <p className="text-[8px] font-black text-slate-400 uppercase tracking-widest mb-1">Horário</p>
+                      <p className="text-[8px] font-black text-slate-400 uppercase tracking-widest mb-0.5">Horário</p>
                       <p className="text-[11px] font-black text-slate-700 dark:text-slate-200 uppercase">{new Date(printingOrder.createdAt).toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' })}</p>
                     </div>
                   </div>
@@ -1932,7 +1961,7 @@ const POS: React.FC<POSProps> = ({ currentUser }) => {
                   <div className="flex items-center gap-2 border-l-4 border-indigo-600 pl-3">
                     <h3 className="text-xs font-black text-slate-800 dark:text-white uppercase tracking-widest">Itens Consumidos</h3>
                   </div>
-                  <div className="bg-slate-50 dark:bg-slate-800/50 rounded-3xl p-6 border border-slate-100 dark:border-slate-700 space-y-2 font-receipt shadow-inner max-h-40 overflow-y-auto custom-scrollbar">
+                  <div className="bg-slate-50 dark:bg-slate-800/50 rounded-3xl p-4 border border-slate-100 dark:border-slate-700 space-y-2 font-receipt shadow-inner max-h-40 overflow-y-auto custom-scrollbar">
                     {groupedPrintingItems.map(([id, data]) => (
                       <div key={id} className="flex justify-between border-b border-dashed border-slate-200 dark:border-slate-700 pb-2">
                         <span className="text-[10px] font-black text-slate-600 dark:text-slate-400 uppercase max-w-[70%]">{data.quantity}x {data.product?.name}</span>
@@ -1947,7 +1976,7 @@ const POS: React.FC<POSProps> = ({ currentUser }) => {
                   <div className="flex items-center gap-2 border-l-4 border-emerald-600 pl-3">
                     <h3 className="text-xs font-black text-slate-800 dark:text-white uppercase tracking-widest">Resumo Financeiro</h3>
                   </div>
-                  <div className="bg-emerald-50 dark:bg-emerald-900/10 rounded-3xl p-6 border border-emerald-100/50 dark:border-emerald-500/10 space-y-2">
+                  <div className="bg-emerald-50 dark:bg-emerald-900/10 rounded-3xl p-4 border border-emerald-100/50 dark:border-emerald-500/10 space-y-2">
                     <div className="flex justify-between">
                       <span className="text-[10px] font-bold text-emerald-600/60 uppercase">Subtotal</span>
                       <span className="text-[10px] font-black text-emerald-700 dark:text-emerald-400">R$ {(printingOrder.total - (printingOrder.appliedServiceFee || 0)).toFixed(2)}</span>
@@ -1966,7 +1995,7 @@ const POS: React.FC<POSProps> = ({ currentUser }) => {
                 </div>
               </div>
 
-              <div className="p-6 bg-slate-50/50 dark:bg-slate-800/50 border-t border-slate-100 dark:border-slate-800 grid grid-cols-2 gap-3 transition-all no-print">
+              <div className="p-4 bg-slate-50/50 dark:bg-slate-800/50 border-t border-slate-100 dark:border-slate-800 grid grid-cols-2 gap-3 transition-all no-print">
                 <button
                   onClick={() => setPrintingOrder(null)}
                   className="py-4 bg-slate-200 dark:bg-slate-800 text-slate-700 dark:text-slate-200 rounded-2xl font-black uppercase text-[10px] tracking-widest hover:bg-slate-300 dark:hover:bg-slate-700 transition-all border border-slate-300 dark:border-slate-700 active:scale-95 flex items-center justify-center gap-2 no-print"
