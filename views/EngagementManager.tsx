@@ -101,7 +101,7 @@ const EngagementManager: React.FC<EngagementManagerProps> = ({ currentUser, sett
       } catch (error: any) {
         addToast({ title: 'Erro', message: error.message, type: 'DANGER' });
       }
-    });
+    }, () => setAlertConfig(prev => ({ ...prev, isOpen: false })));
   };
 
   const handleSaveCoupon = async (e: React.FormEvent) => {
