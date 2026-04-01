@@ -55,6 +55,29 @@ const Home: React.FC = () => {
 
 
     useEffect(() => {
+        async function fetchNotifications(clientId: string) {
+            try {
+                const res = await api.getNotifications(clientId);
+                // Calcula não lidos
+                const readCampaigns: string[] = JSON.parse(localStorage.getItem('delivery_app_read_campaigns') || '[]');
+                const readCoupons: string[] = JSON.parse(localStorage.getItem('delivery_app_read_coupons') || '[]');
+
+                let unreadCount = 0;
+                res.campaigns.forEach(c => { if (!readCampaigns.includes(c.id)) unreadCount++; });
+                res.coupons.forEach(c => { if (!readCoupons.includes(c.id)) unreadCount++; });
+                
+                setUnreadNotificationsCount(unreadCount);
+
+                // Highlight In-App Modal (Só mostra a 1ª In-App não lida por vez)
+                const unreadInAppCampaign = res.campaigns.find(c => !readCampaigns.includes(c.id) && (c.type === 'IN_APP' || c.type === 'BOTH'));
+                if (unreadInAppCampaign) {
+                    setHighlightCampaign(unreadInAppCampaign);
+                }
+            } catch (e) {
+                console.error('Error fetching unread notifications:', e);
+            }
+        }
+
         const clientStr = localStorage.getItem('delivery_app_client');
         if (clientStr) {
             try {
@@ -82,29 +105,6 @@ const Home: React.FC = () => {
                 console.error(e);
             } finally {
                 setIsLoading(false);
-            }
-        };
-
-        const fetchNotifications = async (clientId: string) => {
-            try {
-                const res = await api.getNotifications(clientId);
-                // Calcula não lidos
-                const readCampaigns: string[] = JSON.parse(localStorage.getItem('delivery_app_read_campaigns') || '[]');
-                const readCoupons: string[] = JSON.parse(localStorage.getItem('delivery_app_read_coupons') || '[]');
-
-                let unreadCount = 0;
-                res.campaigns.forEach(c => { if (!readCampaigns.includes(c.id)) unreadCount++; });
-                res.coupons.forEach(c => { if (!readCoupons.includes(c.id)) unreadCount++; });
-                
-                setUnreadNotificationsCount(unreadCount);
-
-                // Highlight In-App Modal (Só mostra a 1ª In-App não lida por vez)
-                const unreadInAppCampaign = res.campaigns.find(c => !readCampaigns.includes(c.id) && (c.type === 'IN_APP' || c.type === 'BOTH'));
-                if (unreadInAppCampaign) {
-                    setHighlightCampaign(unreadInAppCampaign);
-                }
-            } catch (e) {
-                console.error('Error fetching unread notifications:', e);
             }
         };
 
