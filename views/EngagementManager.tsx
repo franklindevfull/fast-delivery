@@ -292,254 +292,273 @@ const EngagementManager: React.FC<EngagementManagerProps> = ({ currentUser, sett
             ))}
           </div>
         ) : activeTab === 'profile' ? (
-          <div className="max-w-2xl mx-auto w-full bg-slate-50 dark:bg-slate-800/50 p-8 rounded-3xl border border-slate-100 dark:border-slate-800">
-            <h3 className="text-lg font-black text-slate-800 dark:text-white mb-6 uppercase tracking-tight">Informações de Contato & Layout</h3>
-            <form onSubmit={handleSaveSettings} className="space-y-6">
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                <div className="space-y-2">
-                  <label className="text-[10px] font-black uppercase text-slate-400 tracking-widest px-1">Telefone Principal</label>
-                  <input
-                    type="text"
-                    className="w-full p-4 bg-white dark:bg-slate-900 rounded-2xl border-none shadow-sm font-bold text-slate-700 dark:text-slate-200"
-                    placeholder="(00) 00000-0000"
-                    value={settings.phone || ''}
-                    onChange={e => setSettings({ ...settings, phone: e.target.value })}
-                  />
+          <div className="w-full space-y-8 px-2 md:px-6 pb-8">
+            <form onSubmit={handleSaveSettings} className="space-y-8 divide-y divide-slate-100 dark:divide-slate-800">
+              
+              {/* Informações de Contato */}
+              <div className="flex flex-col xl:flex-row gap-6 xl:gap-12 pt-4">
+                <div className="xl:w-1/3 space-y-1">
+                  <h3 className="text-sm font-black text-slate-800 dark:text-white uppercase tracking-tight">Informações de Contato</h3>
+                  <p className="text-xs text-slate-500 dark:text-slate-400">Insira os telefones e redes sociais para que os clientes da sua loja consigam encontrá-lo com facilidade.</p>
                 </div>
-                <div className="space-y-2">
-                  <label className="text-[10px] font-black uppercase text-slate-400 tracking-widest px-1">Website</label>
-                  <input
-                    type="text"
-                    className="w-full p-4 bg-white dark:bg-slate-900 rounded-2xl border-none shadow-sm font-bold text-slate-700 dark:text-slate-200"
-                    placeholder="www.sualoja.com.br"
-                    value={settings.website || ''}
-                    onChange={e => setSettings({ ...settings, website: e.target.value })}
-                  />
-                </div>
-              </div>
-
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                <div className="space-y-2">
-                  <label className="text-[10px] font-black uppercase text-slate-400 tracking-widest px-1">Facebook (Username)</label>
-                  <input
-                    type="text"
-                    className="w-full p-4 bg-white dark:bg-slate-900 rounded-2xl border-none shadow-sm font-bold text-slate-700 dark:text-slate-200"
-                    placeholder="sualoja"
-                    value={settings.facebook || ''}
-                    onChange={e => setSettings({ ...settings, facebook: e.target.value })}
-                  />
-                </div>
-                <div className="space-y-2">
-                  <label className="text-[10px] font-black uppercase text-slate-400 tracking-widest px-1">Instagram (Username)</label>
-                  <input
-                    type="text"
-                    className="w-full p-4 bg-white dark:bg-slate-900 rounded-2xl border-none shadow-sm font-bold text-slate-700 dark:text-slate-200"
-                    placeholder="sualoja"
-                    value={settings.instagram || ''}
-                    onChange={e => setSettings({ ...settings, instagram: e.target.value })}
-                  />
-                </div>
-              </div>
-
-              <div className="space-y-2">
-                <label className="text-[10px] font-black uppercase text-slate-400 tracking-widest px-1">Logotipo da Campanha</label>
-                <div className="flex gap-3 items-center">
-                  <input
-                    type="text"
-                    className="flex-1 p-4 bg-white dark:bg-slate-900 rounded-2xl border-none shadow-sm font-bold text-slate-800 dark:text-slate-200 text-sm"
-                    placeholder="https://link-da-imagem.com/logo.png"
-                    value={settings.campaignLogoUrl || ''}
-                    onChange={e => setSettings({ ...settings, campaignLogoUrl: e.target.value })}
-                  />
-                  
-                  <div className="flex gap-2">
-                    <button
-                      type="button"
-                      onClick={() => logoFileInputRef.current?.click()}
-                      className="p-4 bg-blue-600 text-white rounded-2xl shadow-lg shadow-blue-200 dark:shadow-blue-900/40 transition-all active:scale-95 flex items-center justify-center"
-                      title="Upload de Imagem"
-                    >
-                      <Upload className="w-5 h-5" />
-                    </button>
-
-                    {settings.campaignLogoUrl && (
-                      <button
-                        type="button"
-                        onClick={() => {
-                          showAlert('Confirmar Exclusão', 'Deseja remover a imagem do logotipo?', 'DANGER', () => {
-                            setSettings({ ...settings, campaignLogoUrl: '' });
-                            setAlertConfig(prev => ({ ...prev, isOpen: false }));
-                          }, () => setAlertConfig(prev => ({ ...prev, isOpen: false })));
-                        }}
-                        className="p-4 bg-rose-50 dark:bg-rose-900/20 text-rose-500 rounded-2xl border border-rose-100 dark:border-rose-800 transition-all active:scale-95 flex items-center justify-center"
-                        title="Remover Imagem"
-                      >
-                        <Trash2 className="w-5 h-5" />
-                      </button>
-                    )}
+                
+                <div className="xl:w-2/3 grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div className="space-y-2">
+                    <label className="text-[10px] font-black uppercase text-slate-400 tracking-widest px-1">Telefone Principal</label>
+                    <input
+                      type="text"
+                      className="w-full p-4 pl-5 bg-slate-50 dark:bg-slate-800/50 rounded-2xl border border-slate-100 dark:border-slate-800 focus:bg-white dark:focus:bg-slate-900 transition-all font-bold text-slate-700 dark:text-slate-200"
+                      placeholder="(00) 00000-0000"
+                      value={settings.phone || ''}
+                      onChange={e => setSettings({ ...settings, phone: e.target.value })}
+                    />
                   </div>
-                  
-                  {settings.campaignLogoUrl && (
-                    <div className="w-14 h-14 rounded-2xl bg-white dark:bg-slate-900 p-1 shadow-sm overflow-hidden border border-slate-100 dark:border-slate-800 shrink-0">
-                      <img src={settings.campaignLogoUrl} alt="Preview" className="w-full h-full object-contain" />
-                    </div>
-                  )}
-                </div>
-                <p className="text-[9px] text-slate-400 font-bold uppercase mt-1 px-1 tracking-tighter">Essa imagem aparecerá no topo do menu lateral do app de delivery.</p>
-              </div>
-
-              <div className="space-y-2">
-                <label className="text-[10px] font-black uppercase text-slate-400 tracking-widest px-1">Banner de Propaganda 1 (Home)</label>
-                <div className="flex gap-3 items-center">
-                  <input
-                    type="text"
-                    className="flex-1 p-4 bg-white dark:bg-slate-900 rounded-2xl border-none shadow-sm font-bold text-slate-800 dark:text-slate-200 text-sm"
-                    placeholder="https://link-da-imagem.com/banner.png"
-                    value={settings.appBannerUrl || ''}
-                    onChange={e => setSettings({ ...settings, appBannerUrl: e.target.value })}
-                  />
-                  
-                  <div className="flex gap-2">
-                    <button
-                      type="button"
-                      onClick={() => bannerFileInputRef.current?.click()}
-                      className="p-4 bg-blue-600 text-white rounded-2xl shadow-lg shadow-blue-200 dark:shadow-blue-900/40 transition-all active:scale-95 flex items-center justify-center"
-                      title="Upload de Imagem"
-                    >
-                      <Upload className="w-5 h-5" />
-                    </button>
-
-                    {settings.appBannerUrl && (
-                      <button
-                        type="button"
-                        onClick={() => {
-                          showAlert('Confirmar Exclusão', 'Deseja remover a imagem de propaganda 1?', 'DANGER', () => {
-                            setSettings({ ...settings, appBannerUrl: '' });
-                            setAlertConfig(prev => ({ ...prev, isOpen: false }));
-                          }, () => setAlertConfig(prev => ({ ...prev, isOpen: false })));
-                        }}
-                        className="p-4 bg-rose-50 dark:bg-rose-900/20 text-rose-500 rounded-2xl border border-rose-100 dark:border-rose-800 transition-all active:scale-95 flex items-center justify-center"
-                        title="Remover Imagem"
-                      >
-                        <Trash2 className="w-5 h-5" />
-                      </button>
-                    )}
+                  <div className="space-y-2">
+                    <label className="text-[10px] font-black uppercase text-slate-400 tracking-widest px-1">Website</label>
+                    <input
+                      type="text"
+                      className="w-full p-4 pl-5 bg-slate-50 dark:bg-slate-800/50 rounded-2xl border border-slate-100 dark:border-slate-800 focus:bg-white dark:focus:bg-slate-900 transition-all font-bold text-slate-700 dark:text-slate-200"
+                      placeholder="www.sualoja.com.br"
+                      value={settings.website || ''}
+                      onChange={e => setSettings({ ...settings, website: e.target.value })}
+                    />
                   </div>
-                  
-                  {settings.appBannerUrl && (
-                    <div className="w-14 h-14 rounded-2xl bg-white dark:bg-slate-900 p-1 shadow-sm overflow-hidden border border-slate-100 dark:border-slate-800 shrink-0">
-                      <img src={settings.appBannerUrl} alt="Preview" className="w-full h-full object-contain" />
-                    </div>
-                  )}
-                </div>
-              </div>
-
-              <div className="space-y-2">
-                <label className="text-[10px] font-black uppercase text-slate-400 tracking-widest px-1">Banner de Propaganda 2 (Home)</label>
-                <div className="flex gap-3 items-center">
-                  <input
-                    type="text"
-                    className="flex-1 p-4 bg-white dark:bg-slate-900 rounded-2xl border-none shadow-sm font-bold text-slate-800 dark:text-slate-200 text-sm"
-                    placeholder="https://link-da-imagem.com/banner.png"
-                    value={settings.appBannerUrl2 || ''}
-                    onChange={e => setSettings({ ...settings, appBannerUrl2: e.target.value })}
-                  />
-                  
-                  <div className="flex gap-2">
-                    <button
-                      type="button"
-                      onClick={() => bannerFileInputRef2.current?.click()}
-                      className="p-4 bg-blue-600 text-white rounded-2xl shadow-lg shadow-blue-200 dark:shadow-blue-900/40 transition-all active:scale-95 flex items-center justify-center"
-                      title="Upload de Imagem"
-                    >
-                      <Upload className="w-5 h-5" />
-                    </button>
-
-                    {settings.appBannerUrl2 && (
-                      <button
-                        type="button"
-                        onClick={() => {
-                          showAlert('Confirmar Exclusão', 'Deseja remover a imagem de propaganda 2?', 'DANGER', () => {
-                            setSettings({ ...settings, appBannerUrl2: '' });
-                            setAlertConfig(prev => ({ ...prev, isOpen: false }));
-                          }, () => setAlertConfig(prev => ({ ...prev, isOpen: false })));
-                        }}
-                        className="p-4 bg-rose-50 dark:bg-rose-900/20 text-rose-500 rounded-2xl border border-rose-100 dark:border-rose-800 transition-all active:scale-95 flex items-center justify-center"
-                        title="Remover Imagem"
-                      >
-                        <Trash2 className="w-5 h-5" />
-                      </button>
-                    )}
+                  <div className="space-y-2">
+                    <label className="text-[10px] font-black uppercase text-slate-400 tracking-widest px-1">Facebook (Username)</label>
+                    <input
+                      type="text"
+                      className="w-full p-4 pl-5 bg-slate-50 dark:bg-slate-800/50 rounded-2xl border border-slate-100 dark:border-slate-800 focus:bg-white dark:focus:bg-slate-900 transition-all font-bold text-slate-700 dark:text-slate-200"
+                      placeholder="sualoja"
+                      value={settings.facebook || ''}
+                      onChange={e => setSettings({ ...settings, facebook: e.target.value })}
+                    />
                   </div>
-                  
-                  {settings.appBannerUrl2 && (
-                    <div className="w-14 h-14 rounded-2xl bg-white dark:bg-slate-900 p-1 shadow-sm overflow-hidden border border-slate-100 dark:border-slate-800 shrink-0">
-                      <img src={settings.appBannerUrl2} alt="Preview" className="w-full h-full object-contain" />
-                    </div>
-                  )}
-                </div>
-              </div>
-
-              <div className="space-y-2">
-                <label className="text-[10px] font-black uppercase text-slate-400 tracking-widest px-1">Banner de Propaganda 3 (Home)</label>
-                <div className="flex gap-3 items-center">
-                  <input
-                    type="text"
-                    className="flex-1 p-4 bg-white dark:bg-slate-900 rounded-2xl border-none shadow-sm font-bold text-slate-800 dark:text-slate-200 text-sm"
-                    placeholder="https://link-da-imagem.com/banner.png"
-                    value={settings.appBannerUrl3 || ''}
-                    onChange={e => setSettings({ ...settings, appBannerUrl3: e.target.value })}
-                  />
-                  
-                  <div className="flex gap-2">
-                    <button
-                      type="button"
-                      onClick={() => bannerFileInputRef3.current?.click()}
-                      className="p-4 bg-blue-600 text-white rounded-2xl shadow-lg shadow-blue-200 dark:shadow-blue-900/40 transition-all active:scale-95 flex items-center justify-center"
-                      title="Upload de Imagem"
-                    >
-                      <Upload className="w-5 h-5" />
-                    </button>
-
-                    {settings.appBannerUrl3 && (
-                      <button
-                        type="button"
-                        onClick={() => {
-                          showAlert('Confirmar Exclusão', 'Deseja remover a imagem de propaganda 3?', 'DANGER', () => {
-                            setSettings({ ...settings, appBannerUrl3: '' });
-                            setAlertConfig(prev => ({ ...prev, isOpen: false }));
-                          }, () => setAlertConfig(prev => ({ ...prev, isOpen: false })));
-                        }}
-                        className="p-4 bg-rose-50 dark:bg-rose-900/20 text-rose-500 rounded-2xl border border-rose-100 dark:border-rose-800 transition-all active:scale-95 flex items-center justify-center"
-                        title="Remover Imagem"
-                      >
-                        <Trash2 className="w-5 h-5" />
-                      </button>
-                    )}
+                  <div className="space-y-2">
+                    <label className="text-[10px] font-black uppercase text-slate-400 tracking-widest px-1">Instagram (Username)</label>
+                    <input
+                      type="text"
+                      className="w-full p-4 pl-5 bg-slate-50 dark:bg-slate-800/50 rounded-2xl border border-slate-100 dark:border-slate-800 focus:bg-white dark:focus:bg-slate-900 transition-all font-bold text-slate-700 dark:text-slate-200"
+                      placeholder="sualoja"
+                      value={settings.instagram || ''}
+                      onChange={e => setSettings({ ...settings, instagram: e.target.value })}
+                    />
                   </div>
-                  
-                  {settings.appBannerUrl3 && (
-                    <div className="w-14 h-14 rounded-2xl bg-white dark:bg-slate-900 p-1 shadow-sm overflow-hidden border border-slate-100 dark:border-slate-800 shrink-0">
-                      <img src={settings.appBannerUrl3} alt="Preview" className="w-full h-full object-contain" />
-                    </div>
-                  )}
                 </div>
-                <p className="text-[9px] text-slate-400 font-bold uppercase mt-1 px-1 tracking-tighter">Essas imagens aparecerão em carrossel na tela inicial do app quando o cardápio estiver oculto.</p>
               </div>
 
+              {/* Logotipo */}
+              <div className="flex flex-col xl:flex-row gap-6 xl:gap-12 pt-8">
+                <div className="xl:w-1/3 space-y-1">
+                  <h3 className="text-sm font-black text-slate-800 dark:text-white uppercase tracking-tight">Identidade Visual</h3>
+                  <p className="text-xs text-slate-500 dark:text-slate-400">Essa imagem aparecerá no topo do menu lateral do seu app de delivery.</p>
+                </div>
+                
+                <div className="xl:w-2/3 space-y-4">
+                  <div className="space-y-2">
+                    <label className="text-[10px] font-black uppercase text-slate-400 tracking-widest px-1">Logotipo da Campanha / Menu</label>
+                    <div className="flex flex-col md:flex-row gap-3">
+                      <div className="flex-1 flex bg-slate-50 dark:bg-slate-800/50 rounded-2xl border border-slate-100 dark:border-slate-800 items-center overflow-hidden focus-within:bg-white dark:focus-within:bg-slate-900 transition-all">
+                        <input
+                          type="text"
+                          className="flex-1 p-4 bg-transparent border-none font-bold text-slate-800 dark:text-slate-200 text-sm focus:ring-0"
+                          placeholder="https://link-da-imagem.com/logo.png"
+                          value={settings.campaignLogoUrl || ''}
+                          onChange={e => setSettings({ ...settings, campaignLogoUrl: e.target.value })}
+                        />
+                        <button
+                          type="button"
+                          onClick={() => logoFileInputRef.current?.click()}
+                          className="px-6 h-full bg-blue-600 text-white font-bold text-xs uppercase tracking-wider flex items-center justify-center gap-2 hover:bg-blue-700 transition-all"
+                        >
+                          <Upload className="w-4 h-4" />
+                          UPLOAD
+                        </button>
+                      </div>
+
+                      {settings.campaignLogoUrl && (
+                        <div className="flex items-center gap-3 bg-slate-50 dark:bg-slate-800/50 p-2 rounded-2xl border border-slate-100 dark:border-slate-800 shrink-0">
+                          <div className="w-12 h-12 bg-white dark:bg-slate-900 rounded-xl overflow-hidden shadow-sm shrink-0 border border-slate-100 dark:border-slate-800">
+                            <img src={settings.campaignLogoUrl} alt="Preview" className="w-full h-full object-contain" />
+                          </div>
+                          <button
+                            type="button"
+                            onClick={() => {
+                              showAlert('Confirmar Exclusão', 'Deseja remover a imagem do logotipo?', 'DANGER', () => {
+                                setSettings({ ...settings, campaignLogoUrl: '' });
+                                setAlertConfig(prev => ({ ...prev, isOpen: false }));
+                              }, () => setAlertConfig(prev => ({ ...prev, isOpen: false })));
+                            }}
+                            className="p-3 text-rose-500 hover:bg-rose-50 dark:hover:bg-rose-900/20 rounded-xl transition-all h-full"
+                            title="Remover Imagem"
+                          >
+                            <Trash2 className="w-5 h-5" />
+                          </button>
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              {/* Banners Carrossel */}
+              <div className="flex flex-col xl:flex-row gap-6 xl:gap-12 pt-8">
+                <div className="xl:w-1/3 space-y-1">
+                  <h3 className="text-sm font-black text-slate-800 dark:text-white uppercase tracking-tight">Banners da Tela Inicial</h3>
+                  <p className="text-xs text-slate-500 dark:text-slate-400">Essas imagens aparecerão em formato de carrossel assim que o cliente abrir seu aplicativo.</p>
+                </div>
+                
+                <div className="xl:w-2/3 space-y-6">
+                  {/* Banner 1 */}
+                  <div className="space-y-2">
+                    <label className="text-[10px] font-black uppercase text-slate-400 tracking-widest px-1">Banner de Propaganda 1</label>
+                    <div className="flex flex-col md:flex-row gap-3">
+                      <div className="flex-1 flex bg-slate-50 dark:bg-slate-800/50 rounded-2xl border border-slate-100 dark:border-slate-800 items-center overflow-hidden focus-within:bg-white dark:focus-within:bg-slate-900 transition-all">
+                        <input
+                          type="text"
+                          className="flex-1 p-4 bg-transparent border-none font-bold text-slate-800 dark:text-slate-200 text-sm focus:ring-0"
+                          placeholder="Link ou Base64"
+                          value={settings.appBannerUrl || ''}
+                          onChange={e => setSettings({ ...settings, appBannerUrl: e.target.value })}
+                        />
+                        <button
+                          type="button"
+                          onClick={() => bannerFileInputRef.current?.click()}
+                          className="px-6 h-full bg-blue-600 text-white font-bold text-xs uppercase tracking-wider flex items-center justify-center gap-2 hover:bg-blue-700 transition-all"
+                        >
+                          <Upload className="w-4 h-4" />
+                          UPLOAD
+                        </button>
+                      </div>
+
+                      {settings.appBannerUrl && (
+                        <div className="flex items-center gap-3 bg-slate-50 dark:bg-slate-800/50 p-2 rounded-2xl border border-slate-100 dark:border-slate-800 shrink-0">
+                          <div className="w-12 h-12 bg-white dark:bg-slate-900 rounded-xl overflow-hidden shadow-sm shrink-0 border border-slate-100 dark:border-slate-800">
+                            <img src={settings.appBannerUrl} alt="Preview" className="w-full h-full object-cover" />
+                          </div>
+                          <button
+                            type="button"
+                            onClick={() => {
+                              showAlert('Confirmar Exclusão', 'Deseja remover a imagem de propaganda 1?', 'DANGER', () => {
+                                setSettings({ ...settings, appBannerUrl: '' });
+                                setAlertConfig(prev => ({ ...prev, isOpen: false }));
+                              }, () => setAlertConfig(prev => ({ ...prev, isOpen: false })));
+                            }}
+                            className="p-3 text-rose-500 hover:bg-rose-50 dark:hover:bg-rose-900/20 rounded-xl transition-all h-full"
+                          >
+                            <Trash2 className="w-5 h-5" />
+                          </button>
+                        </div>
+                      )}
+                    </div>
+                  </div>
+
+                  {/* Banner 2 */}
+                  <div className="space-y-2">
+                    <label className="text-[10px] font-black uppercase text-slate-400 tracking-widest px-1">Banner de Propaganda 2</label>
+                    <div className="flex flex-col md:flex-row gap-3">
+                      <div className="flex-1 flex bg-slate-50 dark:bg-slate-800/50 rounded-2xl border border-slate-100 dark:border-slate-800 items-center overflow-hidden focus-within:bg-white dark:focus-within:bg-slate-900 transition-all">
+                        <input
+                          type="text"
+                          className="flex-1 p-4 bg-transparent border-none font-bold text-slate-800 dark:text-slate-200 text-sm focus:ring-0"
+                          placeholder="Link ou Base64"
+                          value={settings.appBannerUrl2 || ''}
+                          onChange={e => setSettings({ ...settings, appBannerUrl2: e.target.value })}
+                        />
+                        <button
+                          type="button"
+                          onClick={() => bannerFileInputRef2.current?.click()}
+                          className="px-6 h-full bg-blue-600 text-white font-bold text-xs uppercase tracking-wider flex items-center justify-center gap-2 hover:bg-blue-700 transition-all"
+                        >
+                          <Upload className="w-4 h-4" />
+                          UPLOAD
+                        </button>
+                      </div>
+
+                      {settings.appBannerUrl2 && (
+                        <div className="flex items-center gap-3 bg-slate-50 dark:bg-slate-800/50 p-2 rounded-2xl border border-slate-100 dark:border-slate-800 shrink-0">
+                          <div className="w-12 h-12 bg-white dark:bg-slate-900 rounded-xl overflow-hidden shadow-sm shrink-0 border border-slate-100 dark:border-slate-800">
+                            <img src={settings.appBannerUrl2} alt="Preview" className="w-full h-full object-cover" />
+                          </div>
+                          <button
+                            type="button"
+                            onClick={() => {
+                              showAlert('Confirmar Exclusão', 'Deseja remover a imagem de propaganda 2?', 'DANGER', () => {
+                                setSettings({ ...settings, appBannerUrl2: '' });
+                                setAlertConfig(prev => ({ ...prev, isOpen: false }));
+                              }, () => setAlertConfig(prev => ({ ...prev, isOpen: false })));
+                            }}
+                            className="p-3 text-rose-500 hover:bg-rose-50 dark:hover:bg-rose-900/20 rounded-xl transition-all h-full"
+                          >
+                            <Trash2 className="w-5 h-5" />
+                          </button>
+                        </div>
+                      )}
+                    </div>
+                  </div>
+
+                  {/* Banner 3 */}
+                  <div className="space-y-2">
+                    <label className="text-[10px] font-black uppercase text-slate-400 tracking-widest px-1">Banner de Propaganda 3</label>
+                    <div className="flex flex-col md:flex-row gap-3">
+                      <div className="flex-1 flex bg-slate-50 dark:bg-slate-800/50 rounded-2xl border border-slate-100 dark:border-slate-800 items-center overflow-hidden focus-within:bg-white dark:focus-within:bg-slate-900 transition-all">
+                        <input
+                          type="text"
+                          className="flex-1 p-4 bg-transparent border-none font-bold text-slate-800 dark:text-slate-200 text-sm focus:ring-0"
+                          placeholder="Link ou Base64"
+                          value={settings.appBannerUrl3 || ''}
+                          onChange={e => setSettings({ ...settings, appBannerUrl3: e.target.value })}
+                        />
+                        <button
+                          type="button"
+                          onClick={() => bannerFileInputRef3.current?.click()}
+                          className="px-6 h-full bg-blue-600 text-white font-bold text-xs uppercase tracking-wider flex items-center justify-center gap-2 hover:bg-blue-700 transition-all"
+                        >
+                          <Upload className="w-4 h-4" />
+                          UPLOAD
+                        </button>
+                      </div>
+
+                      {settings.appBannerUrl3 && (
+                        <div className="flex items-center gap-3 bg-slate-50 dark:bg-slate-800/50 p-2 rounded-2xl border border-slate-100 dark:border-slate-800 shrink-0">
+                          <div className="w-12 h-12 bg-white dark:bg-slate-900 rounded-xl overflow-hidden shadow-sm shrink-0 border border-slate-100 dark:border-slate-800">
+                            <img src={settings.appBannerUrl3} alt="Preview" className="w-full h-full object-cover" />
+                          </div>
+                          <button
+                            type="button"
+                            onClick={() => {
+                              showAlert('Confirmar Exclusão', 'Deseja remover a imagem de propaganda 3?', 'DANGER', () => {
+                                setSettings({ ...settings, appBannerUrl3: '' });
+                                setAlertConfig(prev => ({ ...prev, isOpen: false }));
+                              }, () => setAlertConfig(prev => ({ ...prev, isOpen: false })));
+                            }}
+                            className="p-3 text-rose-500 hover:bg-rose-50 dark:hover:bg-rose-900/20 rounded-xl transition-all h-full"
+                          >
+                            <Trash2 className="w-5 h-5" />
+                          </button>
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              {/* Botão de Salvar */}
+              <div className="pt-8 mb-8 pb-8 flex justify-end">
+                <button
+                  type="submit"
+                  disabled={isSubmitting}
+                  className="px-12 py-4 bg-emerald-500 hover:bg-emerald-600 text-white rounded-2xl font-black text-sm uppercase tracking-widest shadow-xl shadow-emerald-200 dark:shadow-emerald-900/20 transition-all active:scale-95 flex items-center justify-center gap-3"
+                >
+                  {isSubmitting ? <div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin" /> : <Check className="w-5 h-5" />}
+                  Salvar Perfil da Loja
+                </button>
+              </div>
+
+              {/* File Inputs Recondidos */}
               <input type="file" ref={logoFileInputRef} className="hidden" accept="image/*" onChange={handleLogoUpload} />
               <input type="file" ref={bannerFileInputRef} className="hidden" accept="image/*" onChange={handleBannerUpload} />
               <input type="file" ref={bannerFileInputRef2} className="hidden" accept="image/*" onChange={handleBannerUpload2} />
               <input type="file" ref={bannerFileInputRef3} className="hidden" accept="image/*" onChange={handleBannerUpload3} />
-
-              <button
-                type="submit"
-                disabled={isSubmitting}
-                className="w-full bg-emerald-500 hover:bg-emerald-600 text-white py-4 rounded-2xl font-black text-xs uppercase tracking-widest shadow-lg shadow-emerald-200 dark:shadow-emerald-900/20 transition-all active:scale-95 flex items-center justify-center gap-3 mt-4"
-              >
-                {isSubmitting ? <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" /> : <Check className="w-4 h-4" />}
-                Salvar Perfil da Loja
-              </button>
             </form>
           </div>
         ) : (
