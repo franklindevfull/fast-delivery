@@ -3,7 +3,7 @@ import { Coupon, Campaign, User, BusinessSettings } from '../types';
 import { db } from '../services/db';
 import { useToast } from '../hooks/useToast';
 import CustomAlert from '../components/CustomAlert';
-import { Plus, Ticket, Megaphone, Trash2, Send, Check, X, Calendar, Info, Percent, DollarSign, Truck, Upload } from 'lucide-react';
+import { Plus, Ticket, Megaphone, Trash2, Send, Check, X, Calendar, Info, Percent, DollarSign, Edit, Upload } from 'lucide-react';
 
 interface EngagementManagerProps {
   currentUser: User;
@@ -279,7 +279,7 @@ const EngagementManager: React.FC<EngagementManagerProps> = ({ currentUser, sett
                     onClick={() => { setEditingCoupon(coupon); setIsModalOpen(true); }}
                     className="p-2 text-slate-400 hover:text-blue-500 hover:bg-blue-50 dark:hover:bg-slate-700 rounded-lg transition-all"
                   >
-                    <Plus className="w-4 h-4 rotate-45" />
+                    <Edit className="w-4 h-4" />
                   </button>
                   <button
                     onClick={() => handleDeleteCoupon(coupon.id)}
@@ -555,7 +555,7 @@ const EngagementManager: React.FC<EngagementManagerProps> = ({ currentUser, sett
                 </div>
                 <div className="flex flex-col items-end gap-2">
                   <div className={`px-2 py-1 rounded-md text-[10px] font-black uppercase ${campaign.status === 'SENT' ? 'bg-emerald-100 text-emerald-600' : 'bg-amber-100 text-amber-600'}`}>
-                    {campaign.status}
+                    {campaign.status === 'SENT' ? 'ENVIADO' : campaign.status === 'DRAFT' ? 'RASCUNHO' : campaign.status}
                   </div>
                   <div className="flex gap-2">
                     {campaign.status !== 'SENT' && (
@@ -628,9 +628,10 @@ const EngagementManager: React.FC<EngagementManagerProps> = ({ currentUser, sett
                       <div className="relative">
                         <input
                           type="number"
+                          placeholder="0"
                           className="w-full p-3 bg-slate-100 dark:bg-slate-800 rounded-xl border-none font-bold pl-8 text-slate-800 dark:text-white"
-                          value={editingCoupon?.value}
-                          onChange={e => setEditingCoupon({ ...editingCoupon, value: Number(e.target.value) })}
+                          value={editingCoupon?.value === 0 ? '' : editingCoupon?.value}
+                          onChange={e => setEditingCoupon({ ...editingCoupon, value: e.target.value ? Number(e.target.value) : 0 })}
                         />
                         <div className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400">
                           {editingCoupon?.type === 'PERCENTAGE' ? <Percent className="w-4 h-4" /> : <DollarSign className="w-4 h-4" />}
@@ -641,9 +642,10 @@ const EngagementManager: React.FC<EngagementManagerProps> = ({ currentUser, sett
                       <label className="text-[10px] font-black uppercase text-slate-400">Pedido Mínimo</label>
                       <input
                         type="number"
+                        placeholder="0"
                         className="w-full p-3 bg-slate-100 dark:bg-slate-800 rounded-xl border-none font-bold text-slate-800 dark:text-white"
-                        value={editingCoupon?.minOrderValue}
-                        onChange={e => setEditingCoupon({ ...editingCoupon, minOrderValue: Number(e.target.value) })}
+                        value={editingCoupon?.minOrderValue === 0 ? '' : editingCoupon?.minOrderValue}
+                        onChange={e => setEditingCoupon({ ...editingCoupon, minOrderValue: e.target.value ? Number(e.target.value) : 0 })}
                       />
                     </div>
                   </div>
