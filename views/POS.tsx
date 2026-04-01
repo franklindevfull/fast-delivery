@@ -846,6 +846,11 @@ const POS: React.FC<POSProps> = ({ currentUser }) => {
       if (currentPaymentAmount !== targetAmount) {
         setCurrentPaymentAmount(targetAmount);
       }
+
+      // Pre-fill receivedAmount if it's empty and there's a remaining balance
+      if (paymentData.receivedAmount === '' && remaining > 0) {
+        setPaymentData(prev => ({ ...prev, receivedAmount: targetAmount }));
+      }
     } else {
       // Guard clauses to prevent infinite loop since 'payments' is a dependency
       if (payments.length > 0) setPayments([]);
@@ -977,9 +982,9 @@ const POS: React.FC<POSProps> = ({ currentUser }) => {
                     <div>
                       <label className="text-[8px] font-black text-slate-400 dark:text-slate-500 uppercase tracking-widest ml-1">Valor do Pagamento (R$)</label>
                       <input
-                        type="number"
-                        step="0.01"
-                        className="w-full mt-0.5 p-3 bg-slate-50 dark:bg-slate-800 border-2 border-slate-100 dark:border-slate-700 rounded-2xl text-lg font-black outline-none focus:border-blue-500 transition-all text-blue-700 dark:text-blue-400"
+                        type="text"
+                        readOnly
+                        className="w-full mt-0.5 p-3 bg-slate-50 dark:bg-slate-800 border-2 border-slate-100 dark:border-slate-700 rounded-2xl text-lg font-black outline-none focus:border-blue-500 transition-all text-blue-700 dark:text-blue-400 cursor-default"
                         value={currentPaymentAmount}
                         onChange={e => setCurrentPaymentAmount(e.target.value)}
                       />
