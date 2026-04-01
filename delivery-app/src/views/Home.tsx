@@ -43,6 +43,8 @@ const Home: React.FC = () => {
     const [showProfileQuickModal, setShowProfileQuickModal] = useState(false);
     const [showChangePasswordModal, setShowChangePasswordModal] = useState(false);
     const [showNotificationCenter, setShowNotificationCenter] = useState(false);
+    const [unreadNotificationsCount, setUnreadNotificationsCount] = useState(0);
+    const [highlightCampaign, setHighlightCampaign] = useState<any | null>(null);
 
     // Biometric States
     const [isBiometricLoading, setIsBiometricLoading] = useState(false);
@@ -58,11 +60,12 @@ const Home: React.FC = () => {
             try {
                 const data = JSON.parse(clientStr);
                 setClient(data);
+                // Dispara a busca local imediatamente após achar o client
+                fetchNotifications(data.id);
             } catch (e) {
                 console.error("Error parsing client data", e);
             }
         }
-
         const fetchInitialData = async () => {
             try {
                 const [p, status, s] = await Promise.all([
@@ -79,6 +82,29 @@ const Home: React.FC = () => {
                 console.error(e);
             } finally {
                 setIsLoading(false);
+            }
+        };
+
+        const fetchNotifications = async (clientId: string) => {
+            try {
+                const res = await api.getNotifications(clientId);
+                // Calcula não lidos
+                const readCampaigns: string[] = JSON.parse(localStorage.getItem('delivery_app_read_campaigns') || '[]');
+                const readCoupons: string[] = JSON.parse(localStorage.getItem('delivery_app_read_coupons') || '[]');
+
+                let unreadCount = 0;
+                res.campaigns.forEach(c => { if (!readCampaigns.includes(c.id)) unreadCount++; });
+                res.coupons.forEach(c => { if (!readCoupons.includes(c.id)) unreadCount++; });
+                
+                setUnreadNotificationsCount(unreadCount);
+
+                // Highlight In-App Modal (Só mostra a 1ª In-App não lida por vez)
+                const unreadInAppCampaign = res.campaigns.find(c => !readCampaigns.includes(c.id) && (c.type === 'IN_APP' || c.type === 'BOTH'));
+                if (unreadInAppCampaign) {
+                    setHighlightCampaign(unreadInAppCampaign);
+                }
+            } catch (e) {
+                console.error('Error fetching unread notifications:', e);
             }
         };
 
@@ -227,9 +253,14 @@ const Home: React.FC = () => {
                             
                             <button
                                 onClick={() => setShowNotificationCenter(true)}
-                                className="w-10 h-10 bg-white dark:bg-slate-800 rounded-xl flex items-center justify-center text-slate-500 dark:text-slate-400 hover:text-indigo-600 dark:hover:text-indigo-400 transition-all shadow-sm border border-slate-100 dark:border-slate-700 active:scale-95"
+                                className="w-10 h-10 bg-white dark:bg-slate-800 rounded-xl flex items-center justify-center text-slate-500 dark:text-slate-400 hover:text-indigo-600 dark:hover:text-indigo-400 transition-all shadow-sm border border-slate-100 dark:border-slate-700 active:scale-95 relative"
                             >
                                 <Icons.Bell className="w-4 h-4" />
+                                {unreadNotificationsCount > 0 && (
+                                    <span className="absolute -top-1.5 -right-1.5 min-w-[18px] h-[18px] bg-rose-500 text-white text-[10px] font-black uppercase flex items-center justify-center rounded-full border-2 border-white dark:border-slate-900 px-1 shadow-sm">
+                                        {unreadNotificationsCount}
+                                    </span>
+                                )}
                             </button>
 
                             <button 
@@ -513,7 +544,56 @@ const Home: React.FC = () => {
                     isOpen={showNotificationCenter}
                     onClose={() => setShowNotificationCenter(false)}
                     clientId={client.id}
+                    onAllRead={() => {
+                        // Resets the counter and saves everything to local storage
+                        setUnreadNotificationsCount(0);
+                        api.getNotifications(client.id).then(res => {
+                            const readCamp = JSON.parse(localStorage.getItem('delivery_app_read_campaigns') || '[]');
+                            const readCoup = JSON.parse(localStorage.getItem('delivery_app_read_coupons') || '[]');
+                            res.campaigns.forEach(c => { if (!readCamp.includes(c.id)) readCamp.push(c.id); });
+                            res.coupons.forEach(c => { if (!readCoup.includes(c.id)) readCoup.push(c.id); });
+                            localStorage.setItem('delivery_app_read_campaigns', JSON.stringify(readCamp));
+                            localStorage.setItem('delivery_app_read_coupons', JSON.stringify(readCoup));
+                        });
+                    }}
                 />
+            )}
+
+            {/* Highlight Central Modal para Campanhas In-App não lidas */}
+            {highlightCampaign && (
+                <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-[150] flex items-center justify-center p-4 animate-in fade-in duration-300">
+                    <div className="bg-white dark:bg-slate-900 rounded-[2rem] shadow-2xl max-w-sm w-full overflow-hidden flex flex-col animate-in zoom-in-95 duration-500">
+                        {highlightCampaign.imageUrl && (
+                            <div className="relative w-full h-56 bg-slate-100 dark:bg-slate-800">
+                                <img src={highlightCampaign.imageUrl} alt={highlightCampaign.title} className="w-full h-full object-cover" />
+                            </div>
+                        )}
+                        <div className={`p-6 ${!highlightCampaign.imageUrl ? 'pt-8' : ''} text-center`}>
+                            <h2 className="text-2xl font-black text-slate-800 dark:text-white tracking-tight leading-tight mb-3">
+                                {highlightCampaign.title}
+                            </h2>
+                            <p className="text-slate-600 dark:text-slate-400 text-[15px] font-medium leading-relaxed whitespace-pre-wrap">
+                                {highlightCampaign.message}
+                            </p>
+                            
+                            <button
+                                onClick={() => {
+                                    // Mark as read
+                                    const readCamp = JSON.parse(localStorage.getItem('delivery_app_read_campaigns') || '[]');
+                                    if (!readCamp.includes(highlightCampaign.id)) {
+                                        readCamp.push(highlightCampaign.id);
+                                        localStorage.setItem('delivery_app_read_campaigns', JSON.stringify(readCamp));
+                                        setUnreadNotificationsCount(prev => Math.max(0, prev - 1));
+                                    }
+                                    setHighlightCampaign(null);
+                                }}
+                                className="mt-8 w-full bg-indigo-600 hover:bg-indigo-500 text-white py-4 rounded-2xl font-black uppercase tracking-widest transition-all shadow-xl shadow-indigo-200 dark:shadow-none active:scale-95"
+                            >
+                                Entendi
+                            </button>
+                        </div>
+                    </div>
+                </div>
             )}
 
             {/* Biometric Validation Overlay */}
