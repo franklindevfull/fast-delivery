@@ -1,5 +1,10 @@
-/// <reference types="react" />
 import React from 'react';
+import { 
+  ChefHat, 
+  HandPlatter, 
+  MessageSquareMore, 
+  LayoutDashboard 
+} from 'lucide-react';
 
 export const COLORS = {
   primary: '#0f172a',
@@ -34,16 +39,8 @@ export const formatImageUrl = (url: string | undefined): string => {
 };
 
 export const Icons = {
-  Dashboard: (props: any) => (
-    <svg xmlns="http://www.w3.org/2000/svg" className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" {...props}>
-      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2V6zM14 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2V6zM4 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2v-2zM14 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2v-2z" />
-    </svg>
-  ),
-  Kitchen: (props: any) => (
-    <svg xmlns="http://www.w3.org/2000/svg" className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" {...props}>
-      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18h12v2a2 2 0 01-2 2H8a2 2 0 01-2-2v-2zm12-4a6 6 0 10-12 0v2h12v-2zM9 8a3 3 0 116 0 3 3 0 01-6 0z" />
-    </svg>
-  ),
+  Dashboard: (props: any) => <LayoutDashboard className="w-5 h-5" {...props} />,
+  Kitchen: (props: any) => <ChefHat className="w-5 h-5" {...props} />,
   POS: (props: any) => (
     <svg xmlns="http://www.w3.org/2000/svg" className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" {...props}>
       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 3h2l.4 2M7 13h10l4-8H5.4M7 13L5.4 5M7 13l-2.293 2.293c-.63.63-.184 1.707.707 1.707H17m0 0a2 2 0 100 4 2 2 0 000-4zm-8 2a2 2 0 11-4 0 2 2 0 014 0z" />
@@ -139,11 +136,7 @@ export const Icons = {
       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
     </svg>
   ),
-  Table: (props: any) => (
-    <svg xmlns="http://www.w3.org/2000/svg" className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" {...props}>
-      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2M9 11a4 4 0 100-8 4 4 0 000 8zm7-8a2 2 0 11-4 0 2 2 0 014 0" />
-    </svg>
-  ),
+  Table: (props: any) => <HandPlatter className="w-5 h-5" {...props} />,
   Search: (props: any) => (
     <svg xmlns="http://www.w3.org/2000/svg" className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" {...props}>
       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
@@ -272,9 +265,5 @@ export const Icons = {
       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M12 6v12M6 12h12" />
     </svg>
   ),
-  Megaphone: (props: any) => (
-    <svg xmlns="http://www.w3.org/2000/svg" className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" {...props}>
-      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5.882V19.23a1.76 1.76 0 01-3.417.592l-2.147-6.15M18 13a3 3 0 100-6M11 5.882l6.75 3.174a.75.75 0 010 1.368L11 13.625M11 5.882V13.625" />
-    </svg>
-  )
+  Megaphone: (props: any) => <MessageSquareMore className="w-5 h-5" {...props} />
 };
