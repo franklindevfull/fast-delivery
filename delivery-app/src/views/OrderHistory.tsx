@@ -190,11 +190,12 @@ const OrderHistory: React.FC = () => {
                                 </div>
                                     <button
                                         onClick={() => setPrintingOrder(order)}
-                                        className="mt-2 w-full flex items-center justify-center gap-2 py-3 bg-slate-100 dark:bg-slate-700 hover:bg-slate-200 dark:hover:bg-slate-600 text-slate-600 dark:text-slate-300 rounded-xl font-black uppercase text-[10px] tracking-widest transition-all"
+                                        disabled={order.status !== 'DELIVERED'}
+                                        className={`mt-2 w-full flex items-center justify-center gap-2 py-3 rounded-xl font-black uppercase text-[10px] tracking-widest transition-all ${order.status === 'DELIVERED' ? 'bg-slate-100 dark:bg-slate-700 hover:bg-slate-200 dark:hover:bg-slate-600 text-slate-600 dark:text-slate-300' : 'bg-slate-50 dark:bg-slate-800/50 text-slate-300 dark:text-slate-600 cursor-not-allowed opacity-60'}`}
                                     >
                                         {order.status === 'CANCELLED' ? (
                                             <>
-                                                <Icons.Eye className="w-4 h-4" /> Ver Pedido
+                                                <Icons.Eye className="w-4 h-4" /> Ver Pedido (Indisponível)
                                             </>
                                         ) : (
                                             <>
@@ -202,6 +203,7 @@ const OrderHistory: React.FC = () => {
                                             </>
                                         )}
                                     </button>
+
                             </div>
                         </div>
                     ))

@@ -127,33 +127,33 @@ const CompleteProfileModal: React.FC<CompleteProfileModalProps> = ({ isOpen, cli
 
     return (
         <div className="fixed inset-0 z-[1000] flex items-center justify-center p-6 bg-slate-900/60 backdrop-blur-md animate-in fade-in duration-300">
-            <div className="bg-slate-50 w-full max-w-md rounded-[2.5rem] p-8 shadow-2xl relative animate-in zoom-in-95 duration-300 border border-white">
+            <div className="bg-slate-50 dark:bg-slate-900 w-full max-w-md rounded-[2.5rem] p-8 shadow-2xl relative animate-in zoom-in-95 duration-300 border border-white dark:border-slate-800">
                 <button 
                     onClick={onClose}
-                    className="absolute right-6 top-6 w-10 h-10 bg-white rounded-full flex items-center justify-center text-slate-400 hover:text-rose-500 hover:shadow-lg transition-all active:scale-95 z-10 border border-slate-100"
+                    className="absolute right-6 top-6 w-10 h-10 bg-white dark:bg-slate-800 rounded-full flex items-center justify-center text-slate-400 dark:text-slate-500 hover:text-rose-500 hover:shadow-lg transition-all active:scale-95 z-10 border border-slate-100 dark:border-slate-700"
                 >
                     <Icons.X className="w-5 h-5" />
                 </button>
 
                 <div className="text-center mb-8">
-                    <h2 className="text-2xl font-black text-slate-800 uppercase tracking-tighter italic">Completar Cadastro</h2>
-                    <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mt-2">
+                    <h2 className="text-2xl font-black text-slate-800 dark:text-white uppercase tracking-tighter italic">Completar Cadastro</h2>
+                    <p className="text-[10px] font-black text-slate-400 dark:text-slate-500 uppercase tracking-widest mt-2">
                         Precisamos desses dados para realizar entregas
                     </p>
                 </div>
 
                 <form onSubmit={handleSave} className="space-y-5">
                     <div className="space-y-2">
-                        <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-4">WhatsApp</label>
+                        <label className="text-[10px] font-black text-slate-400 dark:text-slate-500 uppercase tracking-widest ml-4">WhatsApp</label>
                         <div className="relative group">
-                            <div className="absolute left-5 top-1/2 -translate-y-1/2 text-slate-300 group-focus-within:text-indigo-500 transition-colors">
+                            <div className="absolute left-5 top-1/2 -translate-y-1/2 text-slate-400 dark:text-slate-500 group-focus-within:text-indigo-500 transition-colors">
                                 <Icons.Phone className="w-5 h-5" />
                             </div>
                             <input
                                 type="tel"
                                 required
                                 placeholder="(00) 0 0000-0000"
-                                className="w-full pl-14 pr-4 py-4 bg-white border border-slate-100 rounded-2xl font-bold text-sm focus:ring-4 focus:ring-indigo-100 transition-all outline-none"
+                                className="w-full pl-14 pr-4 py-4 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-2xl font-bold text-sm text-slate-800 dark:text-white focus:ring-4 focus:ring-indigo-100 dark:focus:ring-indigo-900/20 transition-all outline-none placeholder:text-slate-300 dark:placeholder:text-slate-600"
                                 value={phone}
                                 onBlur={handlePhoneBlur}
                                 onChange={e => {
@@ -176,10 +176,10 @@ const CompleteProfileModal: React.FC<CompleteProfileModalProps> = ({ isOpen, cli
                     </div>
 
                     <div className="space-y-4">
-                        <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-4">Endereço de Entrega</label>
-                        <div className="bg-white rounded-[1.5rem] p-4 shadow-sm border border-slate-100 space-y-3">
+                        <label className="text-[10px] font-black text-slate-400 dark:text-slate-500 uppercase tracking-widest ml-4">Endereço de Entrega</label>
+                        <div className="bg-white dark:bg-slate-800 rounded-[1.5rem] p-4 shadow-sm border border-slate-100 dark:border-slate-700 space-y-3">
                             <div className="relative group">
-                                <div className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-300 group-focus-within:text-indigo-500 transition-colors">
+                                <div className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400 dark:text-slate-500 group-focus-within:text-indigo-500 transition-colors">
                                     <Icons.MapPin className="w-4 h-4" />
                                 </div>
                                 <input
@@ -187,7 +187,7 @@ const CompleteProfileModal: React.FC<CompleteProfileModalProps> = ({ isOpen, cli
                                     placeholder="CEP"
                                     required
                                     maxLength={10}
-                                    className="w-full pl-11 pr-3 py-3 bg-slate-50 border border-slate-100 rounded-xl font-bold text-sm outline-none focus:bg-white transition-all"
+                                    className="w-full pl-11 pr-3 py-3 bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl font-bold text-sm text-slate-700 dark:text-slate-200 outline-none focus:bg-white dark:focus:bg-slate-800 transition-all placeholder:text-slate-400 dark:placeholder:text-slate-500"
                                     value={address.cep}
                                     onBlur={handleCepBlur}
                                     onChange={e => {
@@ -201,74 +201,74 @@ const CompleteProfileModal: React.FC<CompleteProfileModalProps> = ({ isOpen, cli
                                 {isFetchingCep && <div className="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 border-2 border-indigo-500 border-t-transparent rounded-full animate-spin"></div>}
                             </div>
                             <div className="relative group">
-                                <div className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-300 group-focus-within:text-indigo-500 transition-colors">
+                                <div className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400 dark:text-slate-500 group-focus-within:text-indigo-500 transition-colors">
                                     <Icons.Map className="w-4 h-4" />
                                 </div>
                                 <input
                                     type="text"
                                     placeholder="Rua"
                                     required
-                                    className="w-full pl-11 pr-3 py-3 bg-slate-50 border border-slate-100 rounded-xl font-bold text-sm outline-none focus:bg-white transition-all"
+                                    className="w-full pl-11 pr-3 py-3 bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl font-bold text-sm text-slate-700 dark:text-slate-200 outline-none focus:bg-white dark:focus:bg-slate-800 transition-all placeholder:text-slate-400 dark:placeholder:text-slate-500"
                                     value={address.street}
                                     onChange={e => setAddress({ ...address, street: e.target.value })}
                                 />
                             </div>
                             <div className="grid grid-cols-2 gap-3">
                                 <div className="relative group">
-                                    <div className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-300 group-focus-within:text-indigo-500 transition-colors">
+                                    <div className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400 dark:text-slate-500 group-focus-within:text-indigo-500 transition-colors">
                                         <Icons.Home className="w-4 h-4" />
                                     </div>
                                     <input
                                         type="text"
                                         placeholder="Número"
                                         required
-                                        className="w-full pl-11 pr-3 py-3 bg-slate-50 border border-slate-100 rounded-xl font-bold text-sm outline-none focus:bg-white transition-all"
+                                        className="w-full pl-11 pr-3 py-3 bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl font-bold text-sm text-slate-700 dark:text-slate-200 outline-none focus:bg-white dark:focus:bg-slate-800 transition-all placeholder:text-slate-400 dark:placeholder:text-slate-500"
                                         value={address.number}
                                         onChange={e => setAddress({ ...address, number: e.target.value })}
                                     />
                                 </div>
                                 <div className="relative group">
-                                    <div className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-300 group-focus-within:text-indigo-500 transition-colors">
+                                    <div className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400 dark:text-slate-500 group-focus-within:text-indigo-500 transition-colors">
                                         <Icons.Layers className="w-4 h-4" />
                                     </div>
                                     <input
                                         type="text"
                                         placeholder="Bairro"
                                         required
-                                        className="w-full pl-11 pr-3 py-3 bg-slate-50 border border-slate-100 rounded-xl font-bold text-sm outline-none focus:bg-white transition-all"
+                                        className="w-full pl-11 pr-3 py-3 bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl font-bold text-sm text-slate-700 dark:text-slate-200 outline-none focus:bg-white dark:focus:bg-slate-800 transition-all placeholder:text-slate-400 dark:placeholder:text-slate-500"
                                         value={address.neighborhood}
                                         onChange={e => setAddress({ ...address, neighborhood: e.target.value })}
                                     />
                                 </div>
                             </div>
                             <div className="relative group">
-                                <div className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-300 group-focus-within:text-indigo-500 transition-colors">
+                                <div className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400 dark:text-slate-500 group-focus-within:text-indigo-500 transition-colors">
                                     <Icons.Info className="w-4 h-4" />
                                 </div>
                                 <input
                                     type="text"
                                     placeholder="Complemento"
-                                    className="w-full pl-11 pr-3 py-3 bg-slate-50 border border-slate-100 rounded-xl font-bold text-sm outline-none focus:bg-white transition-all"
+                                    className="w-full pl-11 pr-3 py-3 bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl font-bold text-sm text-slate-700 dark:text-slate-200 outline-none focus:bg-white dark:focus:bg-slate-800 transition-all placeholder:text-slate-400 dark:placeholder:text-slate-500"
                                     value={address.complement}
                                     onChange={e => setAddress({ ...address, complement: e.target.value })}
                                 />
                             </div>
                             <div className="grid grid-cols-3 gap-3">
                                 <div className="col-span-2 relative group">
-                                    <div className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-300 group-focus-within:text-indigo-500 transition-colors">
+                                    <div className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400 dark:text-slate-500 group-focus-within:text-indigo-500 transition-colors">
                                         <Icons.MapPin className="w-4 h-4" />
                                     </div>
                                     <input
                                         type="text"
                                         placeholder="Cidade"
                                         required
-                                        className="w-full pl-11 pr-3 py-3 bg-slate-50 border border-slate-100 rounded-xl font-bold text-sm outline-none focus:bg-white transition-all"
+                                        className="w-full pl-11 pr-3 py-3 bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl font-bold text-sm text-slate-700 dark:text-slate-200 outline-none focus:bg-white dark:focus:bg-slate-800 transition-all placeholder:text-slate-400 dark:placeholder:text-slate-500"
                                         value={address.city}
                                         onChange={e => setAddress({ ...address, city: e.target.value })}
                                     />
                                 </div>
                                 <div className="relative group">
-                                    <div className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-300 group-focus-within:text-indigo-500 transition-colors">
+                                    <div className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 dark:text-slate-500 group-focus-within:text-indigo-500 transition-colors">
                                         <Icons.Globe className="w-3 h-3" />
                                     </div>
                                     <input
@@ -276,7 +276,7 @@ const CompleteProfileModal: React.FC<CompleteProfileModalProps> = ({ isOpen, cli
                                         placeholder="UF"
                                         required
                                         maxLength={2}
-                                        className="w-full pl-9 pr-2 py-3 bg-slate-50 border border-slate-100 rounded-xl font-bold text-[10px] outline-none uppercase focus:bg-white transition-all"
+                                        className="w-full pl-9 pr-2 py-3 bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl font-bold text-[10px] text-slate-700 dark:text-slate-200 outline-none uppercase focus:bg-white dark:focus:bg-slate-800 transition-all placeholder:text-slate-400 dark:placeholder:text-slate-500"
                                         value={address.state}
                                         onChange={e => setAddress({ ...address, state: e.target.value.toUpperCase() })}
                                     />
@@ -286,7 +286,7 @@ const CompleteProfileModal: React.FC<CompleteProfileModalProps> = ({ isOpen, cli
                     </div>
 
                     {error && (
-                        <div className="bg-rose-50 text-rose-600 p-4 rounded-2xl text-[10px] font-black uppercase tracking-widest border border-rose-100 animate-in fade-in duration-300">
+                        <div className="bg-rose-50 dark:bg-rose-900/20 text-rose-600 dark:text-rose-400 p-4 rounded-2xl text-[10px] font-black uppercase tracking-widest border border-rose-100 dark:border-rose-900/30 animate-in fade-in duration-300">
                             {error}
                         </div>
                     )}

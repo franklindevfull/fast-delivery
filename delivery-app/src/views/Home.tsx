@@ -404,7 +404,7 @@ const Home: React.FC = () => {
                         </div>
                     ) : (
                         <div className="flex-1 overflow-y-auto no-scrollbar">
-                            <div className="flex flex-col gap-5 px-6 pb-6">
+                            <div className={`flex flex-col gap-5 px-6 ${items.length > 0 ? 'pb-40' : 'pb-6'}`}>
 
                             {/* Products Grid */}
                             <div className="px-6 grid grid-cols-1 gap-5 animate-in slide-in-from-bottom-4 duration-500">
