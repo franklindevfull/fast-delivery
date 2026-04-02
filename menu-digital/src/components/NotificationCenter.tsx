@@ -116,17 +116,17 @@ const NotificationCenter: React.FC<NotificationCenterProps> = ({ campaigns, coup
                                     <h3 className="text-[10px] font-black text-slate-400 uppercase tracking-[0.2em] ml-1">Especiais para você</h3>
                                     <div className="space-y-4">
                                         {campaigns.map(camp => (
-                                                <div className="p-5 space-y-2 relative overflow-hidden group">
-                                                    <div className="absolute top-4 right-4 bg-blue-500/10 text-blue-600 dark:text-blue-400 p-1.5 rounded-full z-10">
-                                                        <svg xmlns="http://www.w3.org/2000/svg" className="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M5 3v4M3 5h4M6 17v4m-2-2h4m5-16l2.286 6.857L21 12l-5.714 2.143L13 21l-2.286-6.857L5 12l5.714-2.143L13 3z" />
-                                                        </svg>
-                                                    </div>
-                                                    <h4 className="font-black text-slate-800 dark:text-white uppercase tracking-tighter text-sm leading-tight group-hover:text-blue-600 transition-colors">{camp.title}</h4>
-                                                    <p className="text-xs text-slate-500 dark:text-slate-400 leading-relaxed font-medium">{camp.message}</p>
+                                            <div key={camp.id} className="p-5 space-y-2 relative overflow-hidden group">
+                                                <div className="absolute top-4 right-4 bg-blue-500/10 text-blue-600 dark:text-blue-400 p-1.5 rounded-full z-10">
+                                                    <svg xmlns="http://www.w3.org/2000/svg" className="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M5 3v4M3 5h4M6 17v4m-2-2h4m5-16l2.286 6.857L21 12l-5.714 2.143L13 21l-2.286-6.857L5 12l5.714-2.143L13 3z" />
+                                                    </svg>
                                                 </div>
+                                                <h4 className="font-black text-slate-800 dark:text-white uppercase tracking-tighter text-sm leading-tight group-hover:text-blue-600 transition-colors">{camp.title}</h4>
+                                                <p className="text-xs text-slate-500 dark:text-slate-400 leading-relaxed font-medium">{camp.message}</p>
                                             </div>
                                         ))}
+
                                     </div>
                                 </div>
                             )}
