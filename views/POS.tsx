@@ -23,10 +23,16 @@ interface POSProps {
 const POS: React.FC<POSProps> = ({ currentUser }) => {
   const { addToast } = useToast();
   const orderPrintRef = useRef<HTMLDivElement>(null);
-  const triggerPrintOrder = useReactToPrint({ contentRef: orderPrintRef });
+  const triggerPrintOrder = useReactToPrint({ 
+    contentRef: orderPrintRef,
+    pageStyle: "@page { size: 58mm auto; margin: 0; }"
+  });
   
   const reportPrintRef = useRef<HTMLDivElement>(null);
-  const triggerPrintReport = useReactToPrint({ contentRef: reportPrintRef });
+  const triggerPrintReport = useReactToPrint({ 
+    contentRef: reportPrintRef,
+    pageStyle: "@page { size: auto; margin: 10mm; }"
+  });
   const [products, setProducts] = useState<Product[]>([]);
   const [cart, setCart] = useState<OrderItem[]>([]);
   const [saleType, setSaleType] = useState<SaleType>(SaleType.COUNTER);
@@ -102,7 +108,7 @@ const POS: React.FC<POSProps> = ({ currentUser }) => {
   const [systemPreview, setSystemPreview] = useState<{
     orphanSales: number;
   } | null>(null);
-  const [showCatalog, setShowCatalog] = useState(true);
+  const [showCatalog, setShowCatalog] = useState(false);
   const [productSearchTerm, setProductSearchTerm] = useState('');
 
   const showAlert = (title: string, message: string, type: 'INFO' | 'DANGER' | 'SUCCESS' = 'INFO') => {
@@ -1444,7 +1450,7 @@ const POS: React.FC<POSProps> = ({ currentUser }) => {
                 className={`flex items-center gap-2 px-4 py-2.5 rounded-2xl text-[10px] font-black uppercase tracking-widest transition-all ${showCatalog ? 'bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400' : 'bg-blue-600 text-white shadow-lg shadow-blue-200'}`}
               >
                 {showCatalog ? <Icons.ViewOff className="w-4 h-4" /> : <Icons.View className="w-4 h-4" />}
-                {showCatalog ? 'Ocultar Cardápio' : 'Mostrar Cardápio'}
+                {showCatalog ? 'Ocultar Cardápio' : 'Exibir Cardápio'}
               </button>
 
               {showCatalog && (
@@ -2368,7 +2374,7 @@ const POS: React.FC<POSProps> = ({ currentUser }) => {
       {
         isReviewModalOpen && reviewSession && (
           <div className="fixed inset-0 z-[200] flex items-center justify-center bg-slate-900/40 dark:bg-slate-950/60 animate-in fade-in duration-300 p-2 print:p-0 print:bg-white print:items-start print:static print:z-auto print-modal">
-            <div id="cash-closing-report" ref={reportPrintRef} className="is-receipt cupom bg-white dark:bg-slate-900 w-full max-w-[650px] border border-slate-300 dark:border-slate-800 shadow-xl flex flex-col max-h-[98vh] print:max-h-none print:h-auto print:shadow-none print:border-none print:w-full print:m-0 rounded-2xl print:rounded-none">
+            <div id="cash-closing-report" ref={reportPrintRef} className="is-a4-report bg-white dark:bg-slate-900 w-full max-w-[800px] border border-slate-200 dark:border-slate-800 shadow-xl flex flex-col max-h-[98vh] print:max-h-none print:h-auto print:shadow-none print:border-none print:w-full print:m-0 rounded-2xl print:rounded-none">
               <div className="flex-1 p-4 lg:p-6 space-y-4 overflow-y-auto print:overflow-visible custom-scrollbar">
                 {/* Formal Header */}
                 <div className="border-b border-slate-900 dark:border-slate-700 pb-2">
