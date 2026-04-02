@@ -116,19 +116,14 @@ const NotificationCenter: React.FC<NotificationCenterProps> = ({ campaigns, coup
                                     <h3 className="text-[10px] font-black text-slate-400 uppercase tracking-[0.2em] ml-1">Especiais para você</h3>
                                     <div className="space-y-4">
                                         {campaigns.map(camp => (
-                                            <div key={camp.id} className="bg-white rounded-3xl border border-slate-100 shadow-sm overflow-hidden group">
-                                                {camp.imageUrl && (
-                                                    <div className="h-32 bg-slate-100 overflow-hidden">
-                                                        <img 
-                                                            src={camp.imageUrl} 
-                                                            alt={camp.title} 
-                                                            className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-700" 
-                                                        />
+                                                <div className="p-5 space-y-2 relative overflow-hidden group">
+                                                    <div className="absolute top-4 right-4 bg-blue-500/10 text-blue-600 dark:text-blue-400 p-1.5 rounded-full z-10">
+                                                        <svg xmlns="http://www.w3.org/2000/svg" className="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M5 3v4M3 5h4M6 17v4m-2-2h4m5-16l2.286 6.857L21 12l-5.714 2.143L13 21l-2.286-6.857L5 12l5.714-2.143L13 3z" />
+                                                        </svg>
                                                     </div>
-                                                )}
-                                                <div className="p-4 space-y-1">
-                                                    <h4 className="font-bold text-slate-800">{camp.title}</h4>
-                                                    <p className="text-sm text-slate-500 leading-relaxed">{camp.message}</p>
+                                                    <h4 className="font-black text-slate-800 dark:text-white uppercase tracking-tighter text-sm leading-tight group-hover:text-blue-600 transition-colors">{camp.title}</h4>
+                                                    <p className="text-xs text-slate-500 dark:text-slate-400 leading-relaxed font-medium">{camp.message}</p>
                                                 </div>
                                             </div>
                                         ))}
@@ -144,35 +139,36 @@ const NotificationCenter: React.FC<NotificationCenterProps> = ({ campaigns, coup
                                         {coupons.map(coupon => (
                                             <div 
                                                 key={coupon.id} 
-                                                className="bg-white p-4 rounded-3xl border-2 border-dashed border-emerald-200 flex flex-col gap-3 relative overflow-hidden"
+                                                className="bg-white dark:bg-slate-900 px-5 py-6 rounded-[2rem] border-2 border-dashed border-emerald-300 dark:border-emerald-500/30 flex flex-col gap-4 relative overflow-hidden group active:scale-95 transition-all shadow-sm"
                                             >
-                                                <div className="flex items-start gap-3">
-                                                    <div className="w-10 h-10 bg-emerald-50 text-emerald-600 rounded-xl flex items-center justify-center shrink-0">
+                                                <div className="absolute -right-4 -top-4 w-20 h-20 bg-emerald-500/5 rounded-full transition-transform group-hover:scale-110"></div>
+                                                <div className="flex items-start gap-4">
+                                                    <div className="w-12 h-12 bg-emerald-50 dark:bg-emerald-900/20 text-emerald-600 dark:text-emerald-400 rounded-2xl flex items-center justify-center shrink-0 shadow-inner">
                                                         <svg xmlns="http://www.w3.org/2000/svg" className="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 5v2m0 4v2m0 4v2M5 5a2 2 0 00-2 2v3a2 2 0 110 4v3a2 2 0 002 2h14a2 2 0 002-2v-3a2 2 0 110-4V7a2 2 0 00-2-2H5z" />
+                                                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M15 5v2m0 4v2m0 4v2M5 5a2 2 0 00-2 2v3a2 2 0 110 4v3a2 2 0 002 2h14a2 2 0 002-2v-3a2 2 0 110-4V7a2 2 0 00-2-2H5z" />
                                                         </svg>
                                                     </div>
-                                                    <div className="flex-1">
-                                                        <span className="text-xs font-black text-emerald-600 uppercase tracking-widest">{coupon.code}</span>
-                                                        <p className="text-sm text-slate-600 font-medium leading-tight mt-0.5">{coupon.description}</p>
+                                                    <div className="flex-1 space-y-0.5">
+                                                        <span className="text-[10px] font-black text-emerald-600 dark:text-emerald-400 uppercase tracking-[0.2em]">{coupon.code}</span>
+                                                        <p className="text-sm text-slate-800 dark:text-white font-black uppercase tracking-tighter leading-tight mt-1">{coupon.description}</p>
                                                     </div>
                                                 </div>
                                                 <button
                                                     onClick={() => copyToClipboard(coupon.code)}
-                                                    className={`w-full py-2.5 rounded-xl border-2 border-dashed flex items-center justify-center gap-2 text-[10px] font-black uppercase tracking-widest transition-all
+                                                    className={`w-full py-3.5 rounded-2xl border-2 border-dashed flex items-center justify-center gap-2 text-[10px] font-black uppercase tracking-widest transition-all
                                                         ${copiedCode === coupon.code 
-                                                            ? 'bg-emerald-50 border-emerald-400 text-emerald-600' 
-                                                            : 'bg-slate-50 border-slate-200 text-slate-500 hover:border-emerald-300 hover:text-emerald-600'}`}
+                                                            ? 'bg-emerald-500 border-emerald-500 text-white shadow-lg shadow-emerald-500/20' 
+                                                            : 'bg-slate-50 dark:bg-slate-800 border-slate-200 dark:border-slate-700 text-slate-500 dark:text-slate-400 hover:border-emerald-400 hover:text-emerald-600 dark:hover:text-emerald-400 hover:bg-white dark:hover:bg-slate-900'}`}
                                                 >
                                                     {copiedCode === coupon.code ? (
                                                         <>
-                                                            <svg xmlns="http://www.w3.org/2000/svg" className="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                                            <svg xmlns="http://www.w3.org/2000/svg" className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                                                                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M5 13l4 4L19 7" />
                                                             </svg>
                                                             Copiado!
                                                         </>
                                                     ) : (
-                                                        'Copiar Código'
+                                                        'Copiar Cupom'
                                                     )}
                                                 </button>
                                             </div>

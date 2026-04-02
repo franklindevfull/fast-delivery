@@ -1,6 +1,11 @@
 import { Request, Response } from 'express';
 import prisma from '../prisma.js';
 
+const getSPNow = () => {
+    // Retorna a data/hora atual no fuso de São Paulo
+    return new Date(new Date().toLocaleString("en-US", { timeZone: "America/Sao_Paulo" }));
+};
+
 export const getAllCoupons = async (req: Request, res: Response) => {
     try {
         const coupons = await prisma.coupon.findMany({
@@ -104,7 +109,7 @@ export const validateCoupon = async (req: Request, res: Response) => {
             return res.status(404).json({ message: 'Cupom não encontrado ou inativo.' });
         }
 
-        const now = new Date();
+        const now = getSPNow();
         if (coupon.startDate > now) {
             return res.status(400).json({ message: 'Este cupom ainda não é válido.' });
         }

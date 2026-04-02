@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { Bell, Ticket, MessageSquare, X, Copy, Check, Megaphone } from 'lucide-react';
+import { Bell, Ticket, MessageSquare, X, Copy, Check, Megaphone, Trash2 } from 'lucide-react';
 import { api } from '../services/api';
 
 interface NotificationCenterModalProps {
@@ -17,6 +17,12 @@ const NotificationCenterModal: React.FC<NotificationCenterModalProps> = ({ isOpe
         coupons: any[],
         campaigns: any[]
     }>({ notifications: [], coupons: [], campaigns: [] });
+    const [hiddenCampaigns, setHiddenCampaigns] = useState<string[]>([]);
+
+    useEffect(() => {
+        const hidden = JSON.parse(localStorage.getItem('delivery_app_hidden_campaigns') || '[]');
+        setHiddenCampaigns(hidden);
+    }, []);
 
     useEffect(() => {
         if (isOpen && clientId) {
@@ -43,7 +49,27 @@ const NotificationCenterModal: React.FC<NotificationCenterModalProps> = ({ isOpe
         setTimeout(() => setCopiedCode(null), 2000);
     };
 
+    const handleDelete = async (notificationId: string) => {
+        try {
+            await api.deleteNotification(clientId, notificationId);
+            setData(prev => ({
+                ...prev,
+                notifications: prev.notifications.filter(n => n.id !== notificationId)
+            }));
+        } catch (error) {
+            console.error('Error deleting notification:', error);
+        }
+    };
+
+    const handleHideCampaign = (id: string) => {
+        const updated = [...hiddenCampaigns, id];
+        setHiddenCampaigns(updated);
+        localStorage.setItem('delivery_app_hidden_campaigns', JSON.stringify(updated));
+    };
+
     if (!isOpen) return null;
+
+    const visibleCampaigns = data.campaigns.filter(c => !hiddenCampaigns.includes(c.id));
 
     return (
         <div className="fixed inset-0 z-[100] flex justify-end animate-in fade-in duration-300">
@@ -70,26 +96,33 @@ const NotificationCenterModal: React.FC<NotificationCenterModalProps> = ({ isOpe
                     ) : (
                         <>
                             {/* Campaigns Section */}
-                            {data.campaigns.length > 0 && (
+                            {visibleCampaigns.length > 0 && (
                                 <div>
                                     <h3 className="text-[10px] font-black uppercase tracking-[0.2em] text-slate-400 mb-3 ml-1">Para Você</h3>
                                     <div className="space-y-3">
-                                        {data.campaigns.map(camp => (
-                                            <div key={camp.id} className="bg-white dark:bg-slate-900 rounded-[1.5rem] shadow-sm border border-slate-100 dark:border-slate-800 overflow-hidden group">
+                                        {visibleCampaigns.map(camp => (
+                                            <div key={camp.id} className="bg-white dark:bg-slate-900 rounded-[2rem] shadow-sm border border-slate-100 dark:border-slate-800 overflow-hidden group">
                                                 {camp.imageUrl && (
-                                                    <div className="w-full h-32 bg-slate-100 dark:bg-slate-800 relative overflow-hidden">
+                                                    <div className="w-full h-40 bg-slate-100 dark:bg-slate-800 relative overflow-hidden">
                                                         <img src={camp.imageUrl} alt={camp.title} className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-105" />
                                                     </div>
                                                 )}
-                                                <div className="p-4">
+                                                <div className="p-5">
                                                     <div className="flex items-start gap-3">
-                                                        <div className="mt-0.5 rounded-full p-1.5 bg-indigo-50 text-indigo-600 dark:bg-indigo-900/30 dark:text-indigo-400 shrink-0">
+                                                        <div className="mt-0.5 rounded-2xl p-2 bg-indigo-50 text-indigo-600 dark:bg-indigo-900/30 dark:text-indigo-400 shrink-0 shadow-inner">
                                                             <Megaphone className="w-4 h-4" />
                                                         </div>
                                                         <div className="flex-1 min-w-0">
-                                                            <h4 className="font-bold text-slate-800 dark:text-white text-sm mb-1">{camp.title}</h4>
+                                                            <h4 className="font-black text-slate-800 dark:text-white uppercase tracking-tighter text-sm mb-1">{camp.title}</h4>
                                                             <p className="text-xs text-slate-500 dark:text-slate-400 leading-relaxed font-medium">{camp.message}</p>
                                                         </div>
+                                                        <button 
+                                                            onClick={() => handleHideCampaign(camp.id)}
+                                                            className="p-2 hover:bg-red-50 dark:hover:bg-red-900/20 text-slate-300 hover:text-red-500 transition-colors rounded-xl active:scale-95 shrink-0"
+                                                            title="Remover"
+                                                        >
+                                                            <Trash2 className="w-3.5 h-3.5" />
+                                                        </button>
                                                     </div>
                                                 </div>
                                             </div>
@@ -104,26 +137,27 @@ const NotificationCenterModal: React.FC<NotificationCenterModalProps> = ({ isOpe
                                     <h3 className="text-[10px] font-black uppercase tracking-[0.2em] text-slate-400 mb-3 ml-1">Meus Cupons</h3>
                                     <div className="space-y-3">
                                         {data.coupons.map(coupon => (
-                                            <div key={coupon.id} className="bg-white dark:bg-slate-900 p-4 rounded-3xl shadow-sm border border-dashed border-emerald-300 dark:border-emerald-500/30 flex flex-col gap-3 relative overflow-hidden">
-                                                <div className="flex items-start gap-3">
-                                                    <div className="w-10 h-10 bg-emerald-50 dark:bg-emerald-900/20 rounded-xl flex items-center justify-center text-emerald-600 dark:text-emerald-400 shrink-0">
-                                                        <Ticket className="w-5 h-5" />
+                                            <div key={coupon.id} className="bg-white dark:bg-slate-900 p-6 rounded-[2rem] shadow-sm border-2 border-dashed border-emerald-300 dark:border-emerald-500/30 flex flex-col gap-4 relative overflow-hidden group transition-all">
+                                                <div className="absolute -right-4 -top-4 w-16 h-16 bg-emerald-500/5 rounded-full"></div>
+                                                <div className="flex items-start gap-4">
+                                                    <div className="w-12 h-12 bg-emerald-50 dark:bg-emerald-900/20 rounded-2xl flex items-center justify-center text-emerald-600 dark:text-emerald-400 shrink-0 shadow-inner">
+                                                        <Ticket className="w-6 h-6" />
                                                     </div>
                                                     <div className="flex-1">
-                                                        <span className="font-black text-emerald-600 dark:text-emerald-400 uppercase tracking-widest text-sm block leading-tight">{coupon.code}</span>
-                                                        <p className="text-[11px] text-slate-500 dark:text-slate-400 leading-tight mt-0.5 font-bold line-clamp-2">{coupon.description}</p>
+                                                        <span className="font-black text-emerald-600 dark:text-emerald-400 uppercase tracking-[0.2em] text-xs block leading-tight">{coupon.code}</span>
+                                                        <p className="text-sm text-slate-800 dark:text-white font-black uppercase tracking-tighter leading-tight mt-1 line-clamp-2">{coupon.description}</p>
                                                     </div>
                                                 </div>
                                                 
                                                 <button 
                                                     onClick={() => copyCode(coupon.code)}
-                                                    className={`w-full py-2.5 px-3 rounded-xl border-2 border-dashed flex items-center justify-center gap-2 text-xs font-black uppercase tracking-widest transition-all
+                                                    className={`w-full py-3.5 px-3 rounded-2xl border-2 border-dashed flex items-center justify-center gap-2 text-[10px] font-black uppercase tracking-widest transition-all
                                                       ${copiedCode === coupon.code 
-                                                        ? 'bg-emerald-50 border-emerald-500 text-emerald-600 dark:bg-emerald-900/30 dark:border-emerald-500/50 dark:text-emerald-400' 
-                                                        : 'bg-slate-50 border-slate-200 text-slate-500 hover:bg-emerald-50 hover:border-emerald-300 hover:text-emerald-600 dark:bg-slate-800 dark:border-slate-700 dark:text-slate-400'
+                                                        ? 'bg-emerald-500 border-emerald-500 text-white shadow-lg shadow-emerald-500/20' 
+                                                        : 'bg-slate-50 dark:bg-slate-800 border-slate-200 dark:border-slate-700 text-slate-500 dark:text-slate-400 hover:border-emerald-300 hover:text-emerald-600 dark:hover:text-emerald-400'
                                                       }`}
                                                 >
-                                                    {copiedCode === coupon.code ? <Check className="w-3.5 h-3.5" /> : <Copy className="w-3.5 h-3.5" />}
+                                                    {copiedCode === coupon.code ? <Check className="w-4 h-4" /> : <Copy className="w-4 h-4" />}
                                                     {copiedCode === coupon.code ? 'COPIADO!' : 'COPIAR CUPOM'}
                                                 </button>
                                             </div>
@@ -146,13 +180,21 @@ const NotificationCenterModal: React.FC<NotificationCenterModalProps> = ({ isOpe
                                                     <h4 className="font-bold text-slate-800 dark:text-white text-xs mb-0.5">{notif.title}</h4>
                                                     <p className="text-[11px] text-slate-500 dark:text-slate-400 leading-relaxed font-medium">{notif.message}</p>
                                                 </div>
+                                                <button 
+                                                    onClick={() => handleDelete(notif.id)}
+                                                    className="p-2 hover:bg-red-50 dark:hover:bg-red-900/20 text-slate-300 hover:text-red-500 transition-colors rounded-xl active:scale-95 shrink-0"
+                                                    title="Remover"
+                                                >
+                                                    <Trash2 className="w-3.5 h-3.5" />
+                                                </button>
                                             </div>
+
                                         ))}
                                     </div>
                                 </div>
                             )}
 
-                            {data.campaigns.length === 0 && data.coupons.length === 0 && data.notifications.length === 0 && (
+                            {visibleCampaigns.length === 0 && data.coupons.length === 0 && data.notifications.length === 0 && (
                                 <div className="h-full flex flex-col items-center justify-center text-center p-8 mt-12">
                                     <div className="w-20 h-20 bg-slate-100 dark:bg-slate-800 rounded-full flex items-center justify-center text-slate-300 dark:text-slate-600 mb-6 drop-shadow-sm">
                                         <Bell className="w-8 h-8" />

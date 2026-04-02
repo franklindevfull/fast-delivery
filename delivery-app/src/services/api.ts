@@ -129,6 +129,13 @@ class DeliveryApiService {
         }>(`/client-auth/${clientId}/notifications`);
     }
 
+    async deleteNotification(clientId: string, notificationId: string) {
+        return this.request(`/client-auth/${clientId}/notifications/${notificationId}`, {
+            method: 'DELETE'
+        });
+    }
+
+
     async checkPhone(phone: string) {
         return this.request<{ available: boolean }>(`/client-auth/check-phone/${phone}`);
     }

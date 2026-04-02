@@ -4,6 +4,10 @@ import bcrypt from 'bcryptjs';
 import jwt from 'jsonwebtoken';
 import { OAuth2Client } from 'google-auth-library';
 
+const getSPNow = () => {
+    return new Date(new Date().toLocaleString("en-US", { timeZone: "America/Sao_Paulo" }));
+};
+
 const JWT_SECRET = process.env.JWT_SECRET || 'fallback_secret_delivery_fast';
 const googleClient = new OAuth2Client(process.env.GOOGLE_CLIENT_ID);
 
@@ -362,7 +366,8 @@ export const getClientNotifications = async (req: ExpressRequest, res: ExpressRe
         });
 
         // Fetch Active Coupons
-        const now = new Date();
+        const now = getSPNow();
+
         const coupons = await prisma.coupon.findMany({
             where: {
                 active: true,
@@ -390,5 +395,22 @@ export const getClientNotifications = async (req: ExpressRequest, res: ExpressRe
     } catch (error) {
         console.error('Get Client Notifications Error:', error);
         res.status(500).json({ message: 'Erro ao buscar notificações' });
+    }
+};
+export const deleteNotification = async (req: ExpressRequest, res: ExpressResponse) => {
+    try {
+        const { id, notificationId } = req.params;
+
+        await prisma.notification.delete({
+            where: {
+                id: notificationId,
+                clientId: id
+            }
+        });
+
+        res.json({ message: 'Notificação removida com sucesso.' });
+    } catch (error) {
+        console.error('Delete Notification Error:', error);
+        res.status(500).json({ message: 'Erro ao remover notificação' });
     }
 };

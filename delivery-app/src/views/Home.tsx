@@ -11,6 +11,7 @@ import ProfilePhotoModal from '../components/ProfilePhotoModal';
 import ProfileQuickModal from '../components/ProfileQuickModal';
 import NotificationCenterModal from '../components/NotificationCenterModal';
 import ChangePasswordModal from '../components/ChangePasswordModal';
+import EngagementModal from '../components/EngagementModal';
 import { useUI } from '../UIContext';
 
 // Swiper Imports
@@ -559,41 +560,21 @@ const Home: React.FC = () => {
                 />
             )}
 
-            {/* Highlight Central Modal para Campanhas In-App não lidas */}
+            {/* Highlight Central Modal para Campanhas In-App não lidas - Modernizado */}
             {highlightCampaign && (
-                <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-[150] flex items-center justify-center p-4 animate-in fade-in duration-300">
-                    <div className="bg-white dark:bg-slate-900 rounded-[2rem] shadow-2xl max-w-sm w-full overflow-hidden flex flex-col animate-in zoom-in-95 duration-500">
-                        {highlightCampaign.imageUrl && (
-                            <div className="relative w-full h-56 bg-slate-100 dark:bg-slate-800">
-                                <img src={highlightCampaign.imageUrl} alt={highlightCampaign.title} className="w-full h-full object-cover" />
-                            </div>
-                        )}
-                        <div className={`p-6 ${!highlightCampaign.imageUrl ? 'pt-8' : ''} text-center`}>
-                            <h2 className="text-2xl font-black text-slate-800 dark:text-white tracking-tight leading-tight mb-3">
-                                {highlightCampaign.title}
-                            </h2>
-                            <p className="text-slate-600 dark:text-slate-400 text-[15px] font-medium leading-relaxed whitespace-pre-wrap">
-                                {highlightCampaign.message}
-                            </p>
-                            
-                            <button
-                                onClick={() => {
-                                    // Mark as read
-                                    const readCamp = JSON.parse(localStorage.getItem('delivery_app_read_campaigns') || '[]');
-                                    if (!readCamp.includes(highlightCampaign.id)) {
-                                        readCamp.push(highlightCampaign.id);
-                                        localStorage.setItem('delivery_app_read_campaigns', JSON.stringify(readCamp));
-                                        setUnreadNotificationsCount(prev => Math.max(0, prev - 1));
-                                    }
-                                    setHighlightCampaign(null);
-                                }}
-                                className="mt-8 w-full bg-indigo-600 hover:bg-indigo-500 text-white py-4 rounded-2xl font-black uppercase tracking-widest transition-all shadow-xl shadow-indigo-200 dark:shadow-none active:scale-95"
-                            >
-                                Entendi
-                            </button>
-                        </div>
-                    </div>
-                </div>
+                <EngagementModal 
+                    campaign={highlightCampaign}
+                    onClose={() => {
+                        // Marcar como lido e fechar
+                        const readCamp = JSON.parse(localStorage.getItem('delivery_app_read_campaigns') || '[]');
+                        if (!readCamp.includes(highlightCampaign.id)) {
+                            readCamp.push(highlightCampaign.id);
+                            localStorage.setItem('delivery_app_read_campaigns', JSON.stringify(readCamp));
+                            setUnreadNotificationsCount(prev => Math.max(0, prev - 1));
+                        }
+                        setHighlightCampaign(null);
+                    }}
+                />
             )}
 
             {/* Biometric Validation Overlay */}

@@ -47,11 +47,12 @@ export const deleteCampaign = async (req: Request, res: Response) => {
 
     try {
         const campaign = await prisma.campaign.findUnique({ where: { id: id as string } });
-        if (campaign && campaign.status === 'SENT') {
-            return res.status(400).json({ message: 'Não é possível excluir uma campanha que já foi enviada.' });
+        if (!campaign) {
+            return res.status(404).json({ message: 'Campanha não encontrada.' });
         }
 
         await prisma.campaign.delete({ where: { id: id as string } });
+
 
         if (user) {
             await prisma.auditLog.create({
@@ -91,18 +92,6 @@ export const sendCampaign = async (req: Request, res: Response) => {
             }
         });
 
-        // Trigger notifications (In-app for all clients)
-        const notifications = clients.map(client => ({
-            clientId: client.id,
-            title: campaign.title,
-            message: campaign.message,
-            isRead: false
-        }));
-
-        await prisma.notification.createMany({
-            data: notifications
-        });
-
         // Update campaign status
         await prisma.campaign.update({
             where: { id: id as string },
@@ -113,6 +102,7 @@ export const sendCampaign = async (req: Request, res: Response) => {
         });
 
         res.json({ message: `Campanha enviada para ${clients.length} clientes.` });
+
     } catch (error) {
         console.error('Send Campaign Error:', error);
         res.status(500).json({ message: 'Erro ao enviar campanha' });
