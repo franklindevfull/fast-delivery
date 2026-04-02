@@ -74,9 +74,19 @@ const Checkout: React.FC = () => {
                     api.getSettings(),
                     api.getStoreStatus()
                 ]);
-                const fee = parseFloat(s.deliveryFee.replace('R$', '').replace(',', '.').trim()) || 0;
+
+                // Robust parsing for 'R$ 10,00', '10.00', '10,00', etc.
+                const rawFee = (s.deliveryFee || '0').toString();
+                const sanitizedFee = rawFee
+                    .replace('R$', '')
+                    .replace(/\./g, '') // Remove thousands separator if any
+                    .replace(',', '.')  // Change decimal comma to dot
+                    .trim();
+
+                const fee = parseFloat(sanitizedFee) || 0;
                 setDeliveryFee(fee);
                 setStoreStatus(status as StoreStatus);
+
             } catch (err) {
                 console.error('Error fetching settings or client:', err);
             }
@@ -325,7 +335,7 @@ const Checkout: React.FC = () => {
                             </div>
                             <div className="flex justify-between items-center text-slate-500 dark:text-slate-400">
                                 <span className="text-[10px] font-black uppercase tracking-widest">Taxa de Entrega</span>
-                                <span className="text-xs font-bold">R$ {deliveryFee.toFixed(2)}</span>
+                                <span className="text-xs font-bold">{deliveryFee.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}</span>
                             </div>
                             {appliedCoupon && (
                                 <div className="flex justify-between items-center text-emerald-600 dark:text-emerald-400">

@@ -11,6 +11,7 @@ import ProfilePhotoModal from '../components/ProfilePhotoModal';
 import ProfileQuickModal from '../components/ProfileQuickModal';
 import NotificationCenterModal from '../components/NotificationCenterModal';
 import ChangePasswordModal from '../components/ChangePasswordModal';
+import EngagementModal from '../components/EngagementModal';
 import { useUI } from '../UIContext';
 
 // Swiper Imports
@@ -45,6 +46,7 @@ const Home: React.FC = () => {
     const [showNotificationCenter, setShowNotificationCenter] = useState(false);
     const [unreadNotificationsCount, setUnreadNotificationsCount] = useState(0);
     const [highlightCampaign, setHighlightCampaign] = useState<any | null>(null);
+    const [showIncompleteAlert, setShowIncompleteAlert] = useState(false);
 
     // Biometric States
     const [isBiometricLoading, setIsBiometricLoading] = useState(false);
@@ -279,7 +281,7 @@ const Home: React.FC = () => {
                     {/* App Title Center Row */}
                     <div className="flex flex-col items-center mt-2 relative z-10">
                         <h1 className="text-xl font-black text-slate-800 dark:text-white tracking-tighter uppercase whitespace-nowrap">
-                            Delivery <span className="text-indigo-500">App®</span>
+                            Delivery <span className="text-indigo-500">App</span>
                         </h1>
                         
                         {isProfileIncomplete && (
@@ -403,12 +405,20 @@ const Home: React.FC = () => {
                         </div>
                     ) : (
                         <div className="flex-1 overflow-y-auto no-scrollbar">
-                            <div className="flex flex-col gap-5 px-6 pb-6">
+                            <div className={`flex flex-col gap-5 px-6 ${items.length > 0 ? 'pb-40' : 'pb-6'}`}>
 
                             {/* Products Grid */}
                             <div className="px-6 grid grid-cols-1 gap-5 animate-in slide-in-from-bottom-4 duration-500">
                                 {filteredProducts.map(product => (
-                                        <div className={`bg-white dark:bg-slate-800 p-4 rounded-[2rem] flex gap-4 shadow-sm border ${product.maxAvailability !== undefined && product.maxAvailability <= 0 ? 'border-red-100 dark:border-red-900/50 opacity-75' : 'border-slate-100 dark:border-slate-700 hover:shadow-md hover:border-indigo-100 dark:hover:border-indigo-800 cursor-pointer group active:scale-[0.98]'} items-center transition-all relative overflow-hidden`} key={product.id}>
+                                        <div 
+                                            key={product.id}
+                                            onClick={() => {
+                                                if (isProfileIncomplete) {
+                                                    setShowIncompleteAlert(true);
+                                                }
+                                            }}
+                                            className={`bg-white dark:bg-slate-800 p-4 rounded-[2rem] flex gap-4 shadow-sm border ${product.maxAvailability !== undefined && product.maxAvailability <= 0 ? 'border-red-100 dark:border-red-900/50 opacity-75' : 'border-slate-100 dark:border-slate-700 hover:shadow-md hover:border-indigo-100 dark:hover:border-indigo-800 cursor-pointer group active:scale-[0.98]'} items-center transition-all relative overflow-hidden`}
+                                        >
                                             <div className="w-28 h-28 bg-slate-50 dark:bg-slate-900/50 rounded-2xl overflow-hidden shrink-0 relative flex items-center justify-center text-slate-300 dark:text-slate-700">
                                                 {product.imageUrl ? (
                                                     <img src={product.imageUrl} alt={product.name} className={`w-full h-full object-cover transition-transform duration-700 ${product.maxAvailability !== undefined && product.maxAvailability <= 0 ? 'grayscale' : 'group-hover:scale-110'}`} />
@@ -428,9 +438,18 @@ const Home: React.FC = () => {
                                                 <div className="flex justify-between items-center mt-3">
                                                     <span className="text-lg font-black text-slate-800 dark:text-white tracking-tighter">R$ {product.price.toFixed(2)}</span>
                                                     <button
-                                                        onClick={() => !isProfileIncomplete && storeStatus?.status !== 'offline' && (product.maxAvailability === undefined || product.maxAvailability > 0) && addToCart(product)}
-                                                        disabled={storeStatus?.status === 'offline' || isProfileIncomplete || (product.maxAvailability !== undefined && product.maxAvailability <= 0)}
-                                                        className={`w-10 h-10 rounded-xl flex items-center justify-center font-bold active:scale-90 transition-all shadow-sm ${storeStatus?.status === 'offline' || isProfileIncomplete || (product.maxAvailability !== undefined && product.maxAvailability <= 0) ? 'bg-slate-100 dark:bg-slate-700 text-slate-300 dark:text-slate-500 cursor-not-allowed' : 'bg-indigo-50 dark:bg-indigo-900/30 text-indigo-600 dark:text-indigo-400 hover:bg-indigo-600 dark:hover:bg-indigo-500 hover:text-white group-hover:shadow-indigo-200 dark:group-hover:shadow-indigo-900/40'}`}
+                                                        onClick={(e) => {
+                                                            e.stopPropagation();
+                                                            if (isProfileIncomplete) {
+                                                                setShowIncompleteAlert(true);
+                                                                return;
+                                                            }
+                                                            if (storeStatus?.status !== 'offline' && (product.maxAvailability === undefined || product.maxAvailability > 0)) {
+                                                                addToCart(product);
+                                                            }
+                                                        }}
+                                                        disabled={storeStatus?.status === 'offline' || (product.maxAvailability !== undefined && product.maxAvailability <= 0)}
+                                                        className={`w-10 h-10 rounded-xl flex items-center justify-center font-bold active:scale-90 transition-all shadow-sm ${storeStatus?.status === 'offline' || (product.maxAvailability !== undefined && product.maxAvailability <= 0) ? 'bg-slate-100 dark:bg-slate-700 text-slate-300 dark:text-slate-500 cursor-not-allowed' : 'bg-indigo-50 dark:bg-indigo-900/30 text-indigo-600 dark:text-indigo-400 hover:bg-indigo-600 dark:hover:bg-indigo-500 hover:text-white group-hover:shadow-indigo-200 dark:group-hover:shadow-indigo-900/40'}`}
                                                     >
                                                         +
                                                     </button>
@@ -559,41 +578,21 @@ const Home: React.FC = () => {
                 />
             )}
 
-            {/* Highlight Central Modal para Campanhas In-App não lidas */}
+            {/* Highlight Central Modal para Campanhas In-App não lidas - Modernizado */}
             {highlightCampaign && (
-                <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-[150] flex items-center justify-center p-4 animate-in fade-in duration-300">
-                    <div className="bg-white dark:bg-slate-900 rounded-[2rem] shadow-2xl max-w-sm w-full overflow-hidden flex flex-col animate-in zoom-in-95 duration-500">
-                        {highlightCampaign.imageUrl && (
-                            <div className="relative w-full h-56 bg-slate-100 dark:bg-slate-800">
-                                <img src={highlightCampaign.imageUrl} alt={highlightCampaign.title} className="w-full h-full object-cover" />
-                            </div>
-                        )}
-                        <div className={`p-6 ${!highlightCampaign.imageUrl ? 'pt-8' : ''} text-center`}>
-                            <h2 className="text-2xl font-black text-slate-800 dark:text-white tracking-tight leading-tight mb-3">
-                                {highlightCampaign.title}
-                            </h2>
-                            <p className="text-slate-600 dark:text-slate-400 text-[15px] font-medium leading-relaxed whitespace-pre-wrap">
-                                {highlightCampaign.message}
-                            </p>
-                            
-                            <button
-                                onClick={() => {
-                                    // Mark as read
-                                    const readCamp = JSON.parse(localStorage.getItem('delivery_app_read_campaigns') || '[]');
-                                    if (!readCamp.includes(highlightCampaign.id)) {
-                                        readCamp.push(highlightCampaign.id);
-                                        localStorage.setItem('delivery_app_read_campaigns', JSON.stringify(readCamp));
-                                        setUnreadNotificationsCount(prev => Math.max(0, prev - 1));
-                                    }
-                                    setHighlightCampaign(null);
-                                }}
-                                className="mt-8 w-full bg-indigo-600 hover:bg-indigo-500 text-white py-4 rounded-2xl font-black uppercase tracking-widest transition-all shadow-xl shadow-indigo-200 dark:shadow-none active:scale-95"
-                            >
-                                Entendi
-                            </button>
-                        </div>
-                    </div>
-                </div>
+                <EngagementModal 
+                    campaign={highlightCampaign}
+                    onClose={() => {
+                        // Marcar como lido e fechar
+                        const readCamp = JSON.parse(localStorage.getItem('delivery_app_read_campaigns') || '[]');
+                        if (!readCamp.includes(highlightCampaign.id)) {
+                            readCamp.push(highlightCampaign.id);
+                            localStorage.setItem('delivery_app_read_campaigns', JSON.stringify(readCamp));
+                            setUnreadNotificationsCount(prev => Math.max(0, prev - 1));
+                        }
+                        setHighlightCampaign(null);
+                    }}
+                />
             )}
 
             {/* Biometric Validation Overlay */}
@@ -620,6 +619,15 @@ const Home: React.FC = () => {
                 message={biometricError}
                 onConfirm={() => setBiometricError('')}
                 type="DANGER"
+            />
+
+            <CustomAlert
+                isOpen={showIncompleteAlert}
+                title="CADASTRO INCOMPLETO"
+                message="PARA REALIZAR PEDIDOS, VOCÊ PRECISA PRIMEIRO COMPLETAR SEU CADASTRO CLICANDO NA MENSAGEM '⚠️ COMPLETE SEU CADASTRO' NO TOPO DA TELA."
+                onConfirm={() => setShowIncompleteAlert(false)}
+                type="INFO"
+                confirmText="ENTENDI"
             />
         </div>
     );

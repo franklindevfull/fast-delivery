@@ -83,6 +83,31 @@
   width: 100% !important;
 }
 
+/* 
+   A4 Report Container (For Closure Reports/Laser Printers)
+*/
+.is-a4-report {
+  background-color: white;
+  color: black;
+  width: 100% !important;
+  max-width: 800px !important;
+  margin: 0 auto !important;
+  padding: 10mm !important;
+  box-sizing: border-box !important;
+  word-wrap: break-word;
+  font-family: 'Inter', sans-serif !important;
+}
+
+.dark .is-a4-report {
+  background-color: #0f172a; /* slate-900 */
+  color: white;
+}
+
+/* Ensure all text inside report is adaptive unless printing */
+.is-a4-report *:not(.no-print):not(.no-print *) {
+  color: inherit;
+}
+
 @media print {
   body {
     margin: 0 !important;
@@ -94,13 +119,30 @@
     visibility: hidden;
   }
 
-  /* 2. Standardized Thermal Receipt Container */
-  .is-receipt, .is-receipt *, .cupom, .cupom * {
+  /* 2. Enable visibility for specific report containers */
+  .is-receipt, .is-receipt *, .cupom, .cupom *, .is-a4-report, .is-a4-report * {
     visibility: visible !important;
   }
 
+  .is-a4-report {
+    display: block !important;
+    width: 100% !important;
+    margin: 0 !important;
+    padding: 10mm !important;
+    background-color: white !important;
+    color: black !important;
+    overflow: visible !important;
+    position: static !important;
+  }
+
+  /* Force black text for all descendants during print */
+  .is-a4-report * {
+    color: black !important;
+    background-color: transparent !important;
+  }
+
   /* 
-     CRITICAL: Definitive Clipping Fix
+     CRITICAL: Definitive Clipping Fix for Thermal
      Uses horizontal centering (margin: auto) instead of absolute positioning.
      This ensures the 48mm content is centered on ANY paper size.
   */
@@ -116,7 +158,7 @@
   }
 
   @page {
-    margin: 0;
-    size: 58mm auto;
+    margin: 10mm;
+    size: auto;
   }
 }
