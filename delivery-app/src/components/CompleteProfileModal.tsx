@@ -128,19 +128,21 @@ const CompleteProfileModal: React.FC<CompleteProfileModalProps> = ({ isOpen, cli
     return (
         <div className="fixed inset-0 z-[1000] flex items-center justify-center p-6 bg-slate-900/60 backdrop-blur-md animate-in fade-in duration-300">
             <div className="bg-slate-50 dark:bg-slate-900 w-full max-w-md rounded-[2.5rem] p-8 shadow-2xl relative animate-in zoom-in-95 duration-300 border border-white dark:border-slate-800">
-                <button 
-                    onClick={onClose}
-                    className="absolute right-6 top-6 w-10 h-10 bg-white dark:bg-slate-800 rounded-full flex items-center justify-center text-slate-400 dark:text-slate-500 hover:text-rose-500 hover:shadow-lg transition-all active:scale-95 z-10 border border-slate-100 dark:border-slate-700"
-                >
-                    <Icons.X className="w-5 h-5" />
-                </button>
-
-                <div className="text-center mb-8">
-                    <h2 className="text-2xl font-black text-slate-800 dark:text-white uppercase tracking-tighter italic">Completar Cadastro</h2>
-                    <p className="text-[10px] font-black text-slate-400 dark:text-slate-500 uppercase tracking-widest mt-2">
-                        Precisamos desses dados para realizar entregas
-                    </p>
+                <div className="flex items-start justify-between mb-8">
+                    <div className="flex-1 text-center pl-10">
+                        <h2 className="text-2xl font-black text-slate-800 dark:text-white uppercase tracking-tighter italic whitespace-nowrap">Completar Cadastro</h2>
+                        <p className="text-[10px] font-black text-slate-400 dark:text-slate-500 uppercase tracking-widest mt-2">
+                            Precisamos desses dados para realizar entregas
+                        </p>
+                    </div>
+                    <button 
+                        onClick={onClose}
+                        className="w-10 h-10 bg-white dark:bg-slate-800 rounded-full flex items-center justify-center text-slate-400 dark:text-slate-500 hover:text-rose-500 hover:shadow-lg transition-all active:scale-95 z-10 border border-slate-100 dark:border-slate-700 shrink-0 ml-2"
+                    >
+                        <Icons.X className="w-5 h-5" />
+                    </button>
                 </div>
+
 
                 <form onSubmit={handleSave} className="space-y-5">
                     <div className="space-y-2">
