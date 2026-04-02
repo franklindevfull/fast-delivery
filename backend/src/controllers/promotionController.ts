@@ -3,6 +3,23 @@ import prisma from '../prisma.js';
 
 export const getAllCoupons = async (req: Request, res: Response) => {
     try {
+        const now = new Date();
+        // Zero out the time to compare local day effectively with UTC midnight dates
+        const todayUtc = new Date(Date.UTC(now.getFullYear(), now.getMonth(), now.getDate()));
+        
+        // Auto-deactivate expired coupons
+        await prisma.coupon.updateMany({
+            where: {
+                active: true,
+                endDate: {
+                    lt: todayUtc
+                }
+            },
+            data: {
+                active: false
+            }
+        });
+
         const coupons = await prisma.coupon.findMany({
             orderBy: { createdAt: 'desc' }
         });
@@ -26,8 +43,17 @@ export const saveCoupon = async (req: Request, res: Response) => {
 
     if (couponData.endDate === '' || !couponData.endDate) {
         couponData.endDate = null;
+        couponData.active = true;
     } else {
         couponData.endDate = new Date(couponData.endDate);
+        const now = new Date();
+        const todayUtc = new Date(Date.UTC(now.getFullYear(), now.getMonth(), now.getDate()));
+        // If they updated the date to a valid future/present date, automatically reactivate
+        if (couponData.endDate >= todayUtc) {
+            couponData.active = true;
+        } else {
+            couponData.active = false;
+        }
     }
 
     try {

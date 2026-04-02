@@ -269,9 +269,9 @@ const EngagementManager: React.FC<EngagementManagerProps> = ({ currentUser, sett
                     <Check className="w-3 h-3 text-blue-500" />
                     Uso: {coupon.usedCount} / {coupon.usageLimit || '∞'}
                   </div>
-                  <div className="flex items-center gap-1">
+                  <div className="flex items-center gap-1 justify-end">
                     <Calendar className="w-3 h-3 text-blue-500" />
-                    Até: {coupon.endDate ? new Date(coupon.endDate).toLocaleDateString() : '∞'}
+                    Até: {coupon.endDate ? new Date(coupon.endDate).toLocaleDateString('pt-BR', { timeZone: 'UTC' }) : '∞'}
                   </div>
                 </div>
                 <div className="mt-auto pt-3 border-t border-slate-200 dark:border-slate-700 flex justify-end gap-2">
@@ -668,16 +668,16 @@ const EngagementManager: React.FC<EngagementManagerProps> = ({ currentUser, sett
                       />
                     </div>
                   </div>
+                  <div className="space-y-1">
+                    <label className="text-[10px] font-black uppercase text-slate-400">Descrição</label>
+                    <input
+                      className="w-full p-3 bg-slate-100 dark:bg-slate-800 rounded-xl border-none text-sm font-bold text-slate-800 dark:text-white"
+                      placeholder="Ex: Desconto de Boas Vindas"
+                      value={editingCoupon?.description || ''}
+                      onChange={e => setEditingCoupon({ ...editingCoupon, description: e.target.value })}
+                    />
+                  </div>
                   <div className="grid grid-cols-2 gap-4">
-                    <div className="space-y-1">
-                      <label className="text-[10px] font-black uppercase text-slate-400">Descrição</label>
-                      <input
-                        className="w-full p-3 bg-slate-100 dark:bg-slate-800 rounded-xl border-none text-sm font-bold text-slate-800 dark:text-white"
-                        placeholder="Ex: Desconto de Boas Vindas"
-                        value={editingCoupon?.description || ''}
-                        onChange={e => setEditingCoupon({ ...editingCoupon, description: e.target.value })}
-                      />
-                    </div>
                     <div className="space-y-1">
                       <label className="text-[10px] font-black uppercase text-slate-400">Validade</label>
                       <input
@@ -685,6 +685,16 @@ const EngagementManager: React.FC<EngagementManagerProps> = ({ currentUser, sett
                         className="w-full p-3 bg-slate-100 dark:bg-slate-800 rounded-xl border-none text-sm font-bold text-slate-800 dark:text-white"
                         value={editingCoupon?.endDate ? new Date(editingCoupon.endDate).toISOString().split('T')[0] : ''}
                         onChange={e => setEditingCoupon({ ...editingCoupon, endDate: e.target.value })}
+                      />
+                    </div>
+                    <div className="space-y-1">
+                      <label className="text-[10px] font-black uppercase text-slate-400">Limite de Uso</label>
+                      <input
+                        type="number"
+                        placeholder="0 = Sem Limite"
+                        className="w-full p-3 bg-slate-100 dark:bg-slate-800 rounded-xl border-none text-sm font-bold text-slate-800 dark:text-white"
+                        value={editingCoupon?.usageLimit === 0 || !editingCoupon?.usageLimit ? '' : editingCoupon?.usageLimit}
+                        onChange={e => setEditingCoupon({ ...editingCoupon, usageLimit: e.target.value ? Number(e.target.value) : null })}
                       />
                     </div>
                   </div>

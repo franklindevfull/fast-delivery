@@ -251,7 +251,7 @@ const Layout: React.FC<{ children: React.ReactNode }> = ({ children }) => {
                                                 </div>
                                                 <div className="text-right">
                                                     <div className="text-xs font-black text-slate-300 dark:text-slate-600">VÁLIDO ATÉ</div>
-                                                    <div className="text-[10px] font-bold text-slate-600 dark:text-slate-400">{coupon.endDate ? new Date(coupon.endDate).toLocaleDateString() : 'INDETERMINADO'}</div>
+                                                    <div className="text-[10px] font-bold text-slate-600 dark:text-slate-400">{coupon.endDate ? new Date(coupon.endDate).toLocaleDateString('pt-BR', { timeZone: 'UTC' }) : 'INDETERMINADO'}</div>
                                                 </div>
                                             </div>
                                         ))}
