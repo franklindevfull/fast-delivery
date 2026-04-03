@@ -107,6 +107,7 @@ export interface BusinessSettings {
   appBannerUrl?: string;
   appBannerUrl2?: string;
   appBannerUrl3?: string;
+  notificationTermsTemplate?: string;
 }
 
 export interface Waiter {
@@ -164,6 +165,8 @@ export interface Campaign {
   sentAt?: string;
   status: 'DRAFT' | 'SCHEDULED' | 'SENT' | 'CANCELLED';
   imageUrl?: string;
+  couponCode?: string;
+  termsText?: string;
   createdAt: string;
 }
 
@@ -173,6 +176,10 @@ export interface Notification {
   title: string;
   message: string;
   isRead: boolean;
+  link?: string;
+  imageUrl?: string;
+  couponCode?: string;
+  termsText?: string;
   createdAt: string;
 }
 

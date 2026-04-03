@@ -366,14 +366,15 @@ export const getClientNotifications = async (req: ExpressRequest, res: ExpressRe
         });
 
         // Fetch Active Coupons
-        const now = getSPNow();
+        const today = new Date();
+        today.setUTCHours(0, 0, 0, 0);
 
         const coupons = await prisma.coupon.findMany({
             where: {
                 active: true,
                 OR: [
                     { endDate: null },
-                    { endDate: { gte: now } }
+                    { endDate: { gte: today } }
                 ]
             },
             orderBy: { createdAt: 'desc' },

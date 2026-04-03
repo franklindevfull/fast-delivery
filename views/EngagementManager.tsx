@@ -234,7 +234,7 @@ const EngagementManager: React.FC<EngagementManagerProps> = ({ currentUser, sett
                 setEditingCoupon({ code: '', type: 'FIXED', value: 0, active: true, startDate: new Date().toISOString() });
                 setEditingCampaign(null);
               } else {
-                setEditingCampaign({ title: '', message: '', type: 'PUSH', status: 'DRAFT' });
+                setEditingCampaign({ title: '', message: '', type: 'PUSH', status: 'DRAFT', termsText: settings.notificationTermsTemplate || '' });
                 setEditingCoupon(null);
               }
               setIsModalOpen(true);
@@ -396,6 +396,26 @@ const EngagementManager: React.FC<EngagementManagerProps> = ({ currentUser, sett
                         </div>
                       )}
                     </div>
+                  </div>
+                </div>
+              </div>
+
+              {/* Termos e Condições Padrão */}
+              <div className="flex flex-col xl:flex-row gap-6 xl:gap-12 pt-8">
+                <div className="xl:w-1/3 space-y-1">
+                  <h3 className="text-sm font-black text-slate-800 dark:text-white uppercase tracking-tight">Termos e Condições</h3>
+                  <p className="text-xs text-slate-500 dark:text-slate-400">Este texto servirá como modelo padrão ao criar novas notificações de campanhas com cupons e ofertas.</p>
+                </div>
+                <div className="xl:w-2/3 space-y-4">
+                  <div className="space-y-2">
+                    <label className="text-[10px] font-black uppercase text-slate-400 tracking-widest px-1">Modelo Padrão de Termos</label>
+                    <textarea
+                      rows={6}
+                      className="w-full p-4 bg-slate-50 dark:bg-slate-800/50 rounded-2xl border border-slate-100 dark:border-slate-800 focus:bg-white dark:focus:bg-slate-900 transition-all font-bold text-slate-700 dark:text-slate-200 text-sm"
+                      placeholder="Ex: CUPOM VÁLIDO ATÉ DURAREM OS ESTOQUES. Benefício válido na loja a partir do recebimento..."
+                      value={settings.notificationTermsTemplate || ''}
+                      onChange={e => setSettings({ ...settings, notificationTermsTemplate: e.target.value })}
+                    />
                   </div>
                 </div>
               </div>
@@ -796,6 +816,44 @@ const EngagementManager: React.FC<EngagementManagerProps> = ({ currentUser, sett
                     </div>
                   </div>
                   <input type="file" ref={campaignImageFileInputRef} className="hidden" accept="image/*" onChange={handleCampaignImageUpload} />
+
+                  <div className="grid grid-cols-1 gap-4 pt-2 border-t border-slate-100 dark:border-slate-800 mt-4">
+                    <div className="space-y-1">
+                      <label className="text-[10px] font-black uppercase text-slate-400">Vincular Cupom (Opcional)</label>
+                      <select
+                        className="w-full p-3 bg-slate-100 dark:bg-slate-800 rounded-xl border-none font-bold text-slate-800 dark:text-white"
+                        value={editingCampaign?.couponCode || ''}
+                        onChange={e => setEditingCampaign({ ...editingCampaign, couponCode: e.target.value })}
+                      >
+                        <option value="">Nenhum Cupom</option>
+                        {coupons.filter(c => c.active).map(c => (
+                           <option key={c.id} value={c.code}>{c.code} - {c.description || (c.type === 'PERCENTAGE' ? `${c.value}% OFF` : `R$ ${c.value} OFF`)}</option>
+                        ))}
+                      </select>
+                    </div>
+
+                    <div className="space-y-1 pt-2">
+                       <label className="text-[10px] font-black uppercase text-slate-400 flex justify-between items-center">
+                          <span>Termos e Condições Específicos</span>
+                          {editingCampaign?.termsText !== settings.notificationTermsTemplate && settings.notificationTermsTemplate && (
+                             <button
+                                type="button"
+                                onClick={() => setEditingCampaign({...editingCampaign, termsText: settings.notificationTermsTemplate})}
+                                className="text-blue-500 hover:underline"
+                             >
+                                 Restaurar Padrão
+                             </button>
+                          )}
+                       </label>
+                       <textarea
+                         rows={4}
+                         placeholder="Insira as regras para uso deste cupom/ação..."
+                         className="w-full p-3 bg-slate-100 dark:bg-slate-800 rounded-xl border-none text-xs font-bold text-slate-600 dark:text-slate-300"
+                         value={editingCampaign?.termsText || ''}
+                         onChange={e => setEditingCampaign({ ...editingCampaign, termsText: e.target.value })}
+                       />
+                    </div>
+                  </div>
                 </>
               )}
 

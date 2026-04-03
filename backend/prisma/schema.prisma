@@ -206,6 +206,8 @@ model Campaign {
   sentAt      DateTime?
   status      String    @default("DRAFT")
   imageUrl    String?
+  couponCode  String?
+  termsText   String?
   createdAt   DateTime  @default(now())
 }
 
@@ -216,6 +218,9 @@ model Notification {
   message   String
   isRead    Boolean  @default(false)
   link      String?
+  imageUrl  String?
+  couponCode String?
+  termsText String?
   createdAt DateTime @default(now())
   client    Client   @relation(fields: [clientId], references: [id])
 }
@@ -337,6 +342,7 @@ model BusinessSettings {
   website              String?
   appBannerUrl2        String?
   appBannerUrl3        String?
+  notificationTermsTemplate String?
 }
 
 model ChatMessage {
