@@ -607,6 +607,12 @@ const EngagementManager: React.FC<EngagementManagerProps> = ({ currentUser, sett
                       </button>
                     )}
                     <button
+                      onClick={() => { setEditingCampaign(campaign); setIsModalOpen(true); }}
+                      className="p-2 text-slate-400 hover:text-blue-500 hover:bg-blue-50 dark:hover:bg-slate-700 rounded-lg transition-all"
+                    >
+                      <Edit className="w-4 h-4" />
+                    </button>
+                    <button
                       onClick={() => handleDeleteCampaign(campaign.id)}
                       className="p-2 text-slate-400 hover:text-red-500 hover:bg-red-50 dark:hover:bg-slate-700 rounded-lg transition-all"
                     >

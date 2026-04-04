@@ -48,15 +48,19 @@ const NotificationDetailsModal: React.FC<NotificationDetailsModalProps> = ({
     }
 
     return (
-        <div className="fixed inset-0 z-[150] flex justify-center items-end sm:items-center animate-in fade-in duration-300">
+        <div className="fixed inset-0 z-[150] flex justify-center items-stretch animate-in fade-in duration-300">
             <div className="absolute inset-0 bg-slate-900/60 backdrop-blur-sm" onClick={onClose}></div>
             
-            <div className="bg-white dark:bg-slate-900 w-full sm:max-w-md h-[90vh] sm:h-auto sm:max-h-[90vh] sm:rounded-[2rem] rounded-t-[2rem] shadow-2xl relative animate-in slide-in-from-bottom duration-500 overflow-hidden flex flex-col">
-                <button onClick={onClose} className="absolute right-4 top-4 z-10 p-2 bg-black/20 hover:bg-black/40 backdrop-blur-md rounded-full transition-colors text-white active:scale-95 shadow-sm">
-                    <X className="w-5 h-5" />
-                </button>
+            <div className="bg-white dark:bg-slate-900 w-full h-full shadow-2xl relative animate-in slide-in-from-bottom duration-500 overflow-hidden flex flex-col">
+                <div className="flex-1 overflow-y-auto flex flex-col relative">
+                    {/* Botão de fechar que rola junto com o conteúdo */}
+                    <button 
+                        onClick={onClose} 
+                        className="absolute right-4 top-4 z-50 w-10 h-10 flex items-center justify-center bg-black/20 hover:bg-black/40 backdrop-blur-md rounded-full transition-all text-white active:scale-95 shadow-sm border border-white/10"
+                    >
+                        <X className="w-5 h-5" />
+                    </button>
 
-                <div className="flex-1 overflow-y-auto flex flex-col">
                     {imageUrl && (
                         <div className="w-full relative shrink-0">
                             <div className="w-full aspect-[4/3] bg-slate-100 dark:bg-slate-800">

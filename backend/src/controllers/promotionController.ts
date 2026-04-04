@@ -6,23 +6,43 @@ const getSPNow = () => {
     return new Date(new Date().toLocaleString("en-US", { timeZone: "America/Sao_Paulo" }));
 };
 
+const getSPTodayUtc = () => {
+    // Retorna a data de hoje (meia-noite UTC) baseada no fuso de São Paulo
+    const now = new Date();
+    const spDateStr = now.toLocaleString("en-US", { 
+        timeZone: "America/Sao_Paulo", 
+        year: 'numeric', 
+        month: 'numeric', 
+        day: 'numeric' 
+    });
+    const [month, day, year] = spDateStr.split('/');
+    return new Date(Date.UTC(Number(year), Number(month) - 1, Number(day)));
+};
+
 export const getAllCoupons = async (req: Request, res: Response) => {
     try {
-        const now = new Date();
-        // Zero out the time to compare local day effectively with UTC midnight dates
-        const todayUtc = new Date(Date.UTC(now.getFullYear(), now.getMonth(), now.getDate()));
+        const todayUtc = getSPTodayUtc();
         
         // Auto-deactivate expired coupons
         await prisma.coupon.updateMany({
             where: {
                 active: true,
-                endDate: {
-                    lt: todayUtc
-                }
+                endDate: { lt: todayUtc }
             },
-            data: {
-                active: false
-            }
+            data: { active: false }
+        });
+
+        // Auto-reactivate coupons that are within the validity range 
+        // (fixes premature deactivation from timezone issues)
+        await prisma.coupon.updateMany({
+            where: {
+                active: false,
+                OR: [
+                    { endDate: { gte: todayUtc } },
+                    { endDate: null }
+                ]
+            },
+            data: { active: true }
         });
 
         const coupons = await prisma.coupon.findMany({
@@ -51,8 +71,7 @@ export const saveCoupon = async (req: Request, res: Response) => {
         couponData.active = true;
     } else {
         couponData.endDate = new Date(couponData.endDate);
-        const now = new Date();
-        const todayUtc = new Date(Date.UTC(now.getFullYear(), now.getMonth(), now.getDate()));
+        const todayUtc = getSPTodayUtc();
         // If they updated the date to a valid future/present date, automatically reactivate
         if (couponData.endDate >= todayUtc) {
             couponData.active = true;
@@ -99,7 +118,10 @@ export const deleteCoupon = async (req: Request, res: Response) => {
         if (coupon && coupon.usedCount > 0) {
             await prisma.coupon.update({
                 where: { id: id as string },
-                data: { active: false }
+                data: { 
+                    active: false,
+                    endDate: new Date(2000, 0, 1) // Set a past date to prevent auto-reactivation
+                }
             });
             return res.json({ message: 'Cupom desativado (já possui histórico de uso).' });
         }

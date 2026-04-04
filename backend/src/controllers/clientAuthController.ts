@@ -8,6 +8,18 @@ const getSPNow = () => {
     return new Date(new Date().toLocaleString("en-US", { timeZone: "America/Sao_Paulo" }));
 };
 
+const getSPTodayUtc = () => {
+    const now = new Date();
+    const spDateStr = now.toLocaleString("en-US", { 
+        timeZone: "America/Sao_Paulo", 
+        year: 'numeric', 
+        month: 'numeric', 
+        day: 'numeric' 
+    });
+    const [month, day, year] = spDateStr.split('/');
+    return new Date(Date.UTC(Number(year), Number(month) - 1, Number(day)));
+};
+
 const JWT_SECRET = process.env.JWT_SECRET || 'fallback_secret_delivery_fast';
 const googleClient = new OAuth2Client(process.env.GOOGLE_CLIENT_ID);
 
@@ -366,15 +378,35 @@ export const getClientNotifications = async (req: ExpressRequest, res: ExpressRe
         });
 
         // Fetch Active Coupons
-        const today = new Date();
-        today.setUTCHours(0, 0, 0, 0);
+        const todayUtc = getSPTodayUtc();
+
+        // Auto-deactivate expired coupons
+        await prisma.coupon.updateMany({
+            where: {
+                active: true,
+                endDate: { lt: todayUtc }
+            },
+            data: { active: false }
+        });
+
+        // Auto-reactivate valid coupons (fixes premature deactivation issues)
+        await prisma.coupon.updateMany({
+            where: {
+                active: false,
+                OR: [
+                    { endDate: { gte: todayUtc } },
+                    { endDate: null }
+                ]
+            },
+            data: { active: true }
+        });
 
         const coupons = await prisma.coupon.findMany({
             where: {
                 active: true,
                 OR: [
                     { endDate: null },
-                    { endDate: { gte: today } }
+                    { endDate: { gte: todayUtc } }
                 ]
             },
             orderBy: { createdAt: 'desc' },
@@ -383,7 +415,10 @@ export const getClientNotifications = async (req: ExpressRequest, res: ExpressRe
 
         // Fetch Sent Campaigns
         const campaigns = await prisma.campaign.findMany({
-            where: { status: 'SENT' },
+            where: { 
+                status: 'SENT',
+                type: { in: ['IN_APP', 'BOTH'] }
+            },
             orderBy: { sentAt: 'desc' },
             take: 10
         });
