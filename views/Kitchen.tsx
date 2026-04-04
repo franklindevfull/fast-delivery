@@ -51,7 +51,7 @@ const Kitchen: React.FC = () => {
   }, [viewTab]);
 
   const refreshData = async (isFirstLoad: boolean) => {
-    if (isFirstLoad) setIsLoading(true);
+    setIsLoading(true);
     try {
       const allOrders = await db.getOrders();
       const allProducts = await db.getProducts();
@@ -60,12 +60,12 @@ const Kitchen: React.FC = () => {
       const settings = await db.getSettings();
 
       const now = new Date();
-      const twentyFourHoursAgo = new Date(now.getTime() - 24 * 60 * 60 * 1000);
+      // Filtro de 07 dias: mantém pedidos da última semana na memória do frontend
+      const sevenDaysAgo = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
 
-      // Filtro de 24 horas: mantém apenas pedidos recentes na memória do frontend
       const recentOrders = allOrders.filter(o => {
           const orderDate = new Date(o.createdAt);
-          return orderDate >= twentyFourHoursAgo;
+          return orderDate >= sevenDaysAgo;
       });
 
       // Filtro inteligente: Pedidos ativos (não finalizados ou cancelados) QUE POSSUEM itens em preparo
@@ -186,10 +186,33 @@ const Kitchen: React.FC = () => {
   };
 
   return (
-    <div className="h-full flex flex-col space-y-6 rounded-[2rem] p-2 transition-all duration-300 relative" onClick={() => { if (isAlerting) dismissAlert(); }}>
-      <div className="flex gap-6 shrink-0">
-        <button onClick={() => setViewTab('FILA')} className={`pb-4 text-xl font-black uppercase transition-all ${viewTab === 'FILA' ? 'text-blue-600 border-b-4 border-blue-600' : 'text-slate-400 dark:text-slate-500 hover:text-slate-600 dark:hover:text-slate-300'}`}>Fila de Produção</button>
-        <button onClick={() => setViewTab('HISTORICO')} className={`pb-4 text-xl font-black uppercase transition-all ${viewTab === 'HISTORICO' ? 'text-blue-600 border-b-4 border-blue-600' : 'text-slate-400 dark:text-slate-500 hover:text-slate-600 dark:hover:text-slate-300'}`}>Histórico de Itens</button>
+    <div className="h-full flex flex-col space-y-6 rounded-[2rem] p-6 transition-all duration-300 relative" onClick={() => { if (isAlerting) dismissAlert(); }}>
+      {isLoading && (
+        <div className="absolute top-0 left-6 right-6 h-1 bg-indigo-100/20 overflow-hidden z-20 rounded-full">
+          <div className="h-full bg-indigo-600 animate-[loading_2s_infinite]"></div>
+        </div>
+      )}
+      <style>{`
+        @keyframes loading {
+          0% { transform: translateX(-100%); }
+          100% { transform: translateX(100%); }
+        }
+      `}</style>
+      <div className="flex flex-col md:flex-row md:items-center gap-4 md:gap-6 mb-8 no-print shrink-0 mt-2">
+        <div className="flex items-center gap-4 bg-white dark:bg-slate-900 p-1.5 md:p-2 rounded-2xl md:rounded-full w-full md:w-max shadow-sm border border-slate-100 dark:border-slate-800 overflow-x-auto hide-scrollbar">
+          <button
+            onClick={() => setViewTab('FILA')}
+            className={`flex-1 md:flex-none px-6 md:px-8 py-3 md:py-3.5 rounded-xl md:rounded-full text-[10px] md:text-[11px] font-black uppercase tracking-widest transition-all whitespace-nowrap ${viewTab === 'FILA' ? 'bg-slate-900 dark:bg-blue-600 text-white shadow-xl' : 'text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-800'}`}
+          >
+            Fila de Produção
+          </button>
+          <button
+            onClick={() => setViewTab('HISTORICO')}
+            className={`flex-1 md:flex-none px-6 md:px-8 py-3 md:py-3.5 rounded-xl md:rounded-full text-[10px] md:text-[11px] font-black uppercase tracking-widest transition-all whitespace-nowrap ${viewTab === 'HISTORICO' ? 'bg-slate-900 dark:bg-blue-600 text-white shadow-xl' : 'text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-800'}`}
+          >
+            Histórico de Produção
+          </button>
+        </div>
       </div>
 
       <div className="flex-1 min-h-0 overflow-hidden">

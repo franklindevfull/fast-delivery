@@ -264,7 +264,7 @@ const DeliveryOrders: React.FC<DeliveryOrdersProps> = ({ currentUser }) => {
     return (
         <div className="p-6 h-full flex flex-col bg-slate-50 dark:bg-slate-950 relative">
             {isLoading && (
-                <div className="absolute top-0 left-0 w-full h-1 bg-indigo-100 overflow-hidden z-50">
+                <div className="absolute top-0 left-6 right-6 h-1 bg-indigo-100/20 overflow-hidden z-20 rounded-full">
                     <div className="h-full bg-indigo-600 animate-[loading_2s_infinite]"></div>
                 </div>
             )}

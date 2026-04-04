@@ -629,17 +629,31 @@ const EngagementManager: React.FC<EngagementManagerProps> = ({ currentUser, sett
       {/* Modal */}
       {isModalOpen && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-sm">
-          <div className="bg-white dark:bg-slate-900 rounded-[2.5rem] shadow-2xl w-full max-w-lg overflow-hidden border border-slate-100 dark:border-slate-800">
-            <div className="p-6 border-b border-slate-100 dark:border-slate-800 flex justify-between items-center">
-              <h3 className="text-xl font-black text-slate-800 dark:text-white">
+          <div className="bg-white dark:bg-slate-950 rounded-[2.5rem] shadow-2xl w-full max-w-lg overflow-hidden border border-slate-100 dark:border-slate-900">
+            <div className="p-6 border-b border-slate-100 dark:border-slate-900 flex justify-between items-center bg-white dark:bg-slate-950 sticky top-0 z-20">
+              <h3 className="text-xl font-black text-slate-800 dark:text-white uppercase tracking-tighter">
                 {activeTab === 'coupons' ? (editingCoupon?.id ? 'Editar Cupom' : 'Novo Cupom') : (editingCampaign?.id ? 'Editar Campanha' : 'Nova Campanha')}
               </h3>
-              <button onClick={() => setIsModalOpen(false)} className="p-2 text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-full">
-                <X className="w-6 h-6" />
-              </button>
+              <div className="flex items-center gap-3">
+                <button
+                  form="engagement-form"
+                  type="submit"
+                  disabled={isSubmitting}
+                  className="p-3 bg-emerald-500 hover:bg-emerald-600 text-white rounded-full shadow-lg shadow-emerald-500/20 transition-all active:scale-95 group"
+                >
+                  {isSubmitting ? (
+                    <div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin" />
+                  ) : (
+                    <Check className="w-5 h-5 group-hover:scale-110 transition-transform" />
+                  )}
+                </button>
+                <button onClick={() => setIsModalOpen(false)} className="p-2 text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-900 rounded-full transition-colors">
+                  <X className="w-6 h-6" />
+                </button>
+              </div>
             </div>
 
-            <form onSubmit={activeTab === 'coupons' ? handleSaveCoupon : handleSaveCampaign} className="p-6 space-y-4">
+            <form id="engagement-form" onSubmit={activeTab === 'coupons' ? handleSaveCoupon : handleSaveCampaign} className="p-6 space-y-4">
               {activeTab === 'coupons' ? (
                 <>
                   <div className="grid grid-cols-2 gap-4">
@@ -649,7 +663,7 @@ const EngagementManager: React.FC<EngagementManagerProps> = ({ currentUser, sett
                         type="text"
                         required
                         placeholder="EX: PIZZA10"
-                        className="w-full p-3 bg-slate-100 dark:bg-slate-800 rounded-xl border-none font-bold uppercase text-slate-800 dark:text-white"
+                        className="w-full p-3.5 bg-slate-100 dark:bg-slate-900/60 rounded-xl border-none font-bold uppercase text-slate-800 dark:text-white"
                         value={editingCoupon?.code}
                         onChange={e => setEditingCoupon({ ...editingCoupon, code: e.target.value.toUpperCase() })}
                       />
@@ -657,7 +671,7 @@ const EngagementManager: React.FC<EngagementManagerProps> = ({ currentUser, sett
                     <div className="space-y-1">
                       <label className="text-[10px] font-black uppercase text-slate-400">Tipo</label>
                       <select
-                        className="w-full p-3 bg-slate-100 dark:bg-slate-800 rounded-xl border-none font-bold text-slate-800 dark:text-white"
+                        className="w-full p-3.5 bg-slate-100 dark:bg-slate-900/60 rounded-xl border-none font-bold text-slate-800 dark:text-white"
                         value={editingCoupon?.type}
                         onChange={e => setEditingCoupon({ ...editingCoupon, type: e.target.value as any })}
                       >
@@ -674,7 +688,7 @@ const EngagementManager: React.FC<EngagementManagerProps> = ({ currentUser, sett
                         <input
                           type="number"
                           placeholder="0"
-                          className="w-full p-3 bg-slate-100 dark:bg-slate-800 rounded-xl border-none font-bold pl-8 text-slate-800 dark:text-white"
+                          className="w-full p-3.5 bg-slate-100 dark:bg-slate-900/60 rounded-xl border-none font-bold pl-8 text-slate-800 dark:text-white"
                           value={editingCoupon?.value === 0 ? '' : editingCoupon?.value}
                           onChange={e => setEditingCoupon({ ...editingCoupon, value: e.target.value ? Number(e.target.value) : 0 })}
                         />
@@ -688,7 +702,7 @@ const EngagementManager: React.FC<EngagementManagerProps> = ({ currentUser, sett
                       <input
                         type="number"
                         placeholder="0"
-                        className="w-full p-3 bg-slate-100 dark:bg-slate-800 rounded-xl border-none font-bold text-slate-800 dark:text-white"
+                        className="w-full p-3.5 bg-slate-100 dark:bg-slate-900/60 rounded-xl border-none font-bold text-slate-800 dark:text-white"
                         value={editingCoupon?.minOrderValue === 0 ? '' : editingCoupon?.minOrderValue}
                         onChange={e => setEditingCoupon({ ...editingCoupon, minOrderValue: e.target.value ? Number(e.target.value) : 0 })}
                       />
@@ -697,7 +711,7 @@ const EngagementManager: React.FC<EngagementManagerProps> = ({ currentUser, sett
                   <div className="space-y-1">
                     <label className="text-[10px] font-black uppercase text-slate-400">Descrição</label>
                     <input
-                      className="w-full p-3 bg-slate-100 dark:bg-slate-800 rounded-xl border-none text-sm font-bold text-slate-800 dark:text-white"
+                      className="w-full p-3.5 bg-slate-100 dark:bg-slate-900/60 rounded-xl border-none text-sm font-bold text-slate-800 dark:text-white"
                       placeholder="Ex: Desconto de Boas Vindas"
                       value={editingCoupon?.description || ''}
                       onChange={e => setEditingCoupon({ ...editingCoupon, description: e.target.value })}
@@ -708,7 +722,7 @@ const EngagementManager: React.FC<EngagementManagerProps> = ({ currentUser, sett
                       <label className="text-[10px] font-black uppercase text-slate-400">Validade</label>
                       <input
                         type="date"
-                        className="w-full p-3 bg-slate-100 dark:bg-slate-800 rounded-xl border-none text-sm font-bold text-slate-800 dark:text-white"
+                        className="w-full p-3.5 bg-slate-100 dark:bg-slate-900/60 rounded-xl border-none text-sm font-bold text-slate-800 dark:text-white"
                         value={editingCoupon?.endDate ? new Date(editingCoupon.endDate).toISOString().split('T')[0] : ''}
                         onChange={e => setEditingCoupon({ ...editingCoupon, endDate: e.target.value })}
                       />
@@ -718,7 +732,7 @@ const EngagementManager: React.FC<EngagementManagerProps> = ({ currentUser, sett
                       <input
                         type="number"
                         placeholder="0 = Sem Limite"
-                        className="w-full p-3 bg-slate-100 dark:bg-slate-800 rounded-xl border-none text-sm font-bold text-slate-800 dark:text-white"
+                        className="w-full p-3.5 bg-slate-100 dark:bg-slate-900/60 rounded-xl border-none text-sm font-bold text-slate-800 dark:text-white"
                         value={editingCoupon?.usageLimit === 0 || !editingCoupon?.usageLimit ? '' : editingCoupon?.usageLimit}
                         onChange={e => setEditingCoupon({ ...editingCoupon, usageLimit: e.target.value ? Number(e.target.value) : null })}
                       />
@@ -733,7 +747,7 @@ const EngagementManager: React.FC<EngagementManagerProps> = ({ currentUser, sett
                       type="text"
                       required
                       placeholder="Ex: Novidade no Cardápio!"
-                      className="w-full p-3 bg-slate-100 dark:bg-slate-800 rounded-xl border-none font-bold text-slate-800 dark:text-white"
+                      className="w-full p-3.5 bg-slate-100 dark:bg-slate-900/60 rounded-xl border-none font-bold text-slate-800 dark:text-white"
                       value={editingCampaign?.title}
                       onChange={e => setEditingCampaign({ ...editingCampaign, title: e.target.value })}
                     />
@@ -744,7 +758,7 @@ const EngagementManager: React.FC<EngagementManagerProps> = ({ currentUser, sett
                       required
                       rows={4}
                       placeholder="Escreva a mensagem que os clientes receberão..."
-                      className="w-full p-3 bg-slate-100 dark:bg-slate-800 rounded-xl border-none text-sm font-bold text-slate-800 dark:text-white"
+                      className="w-full p-3.5 bg-slate-100 dark:bg-slate-900/60 rounded-xl border-none text-sm font-bold text-slate-800 dark:text-white"
                       value={editingCampaign?.message}
                       onChange={e => setEditingCampaign({ ...editingCampaign, message: e.target.value })}
                     />
@@ -753,7 +767,7 @@ const EngagementManager: React.FC<EngagementManagerProps> = ({ currentUser, sett
                     <div className="space-y-1">
                       <label className="text-[10px] font-black uppercase text-slate-400">Canal</label>
                       <select
-                        className="w-full p-3 bg-slate-100 dark:bg-slate-800 rounded-xl border-none font-bold text-slate-800 dark:text-white"
+                        className="w-full p-3.5 bg-slate-100 dark:bg-slate-900/60 rounded-xl border-none font-bold text-slate-800 dark:text-white"
                         value={editingCampaign?.type}
                         onChange={e => setEditingCampaign({ ...editingCampaign, type: e.target.value as any })}
                       >
@@ -765,7 +779,7 @@ const EngagementManager: React.FC<EngagementManagerProps> = ({ currentUser, sett
                     <div className="space-y-1">
                       <label className="text-[10px] font-black uppercase text-slate-400">Segmento</label>
                       <select
-                        className="w-full p-3 bg-slate-100 dark:bg-slate-800 rounded-xl border-none font-bold text-slate-800 dark:text-white"
+                        className="w-full p-3.5 bg-slate-100 dark:bg-slate-900/60 rounded-xl border-none font-bold text-slate-800 dark:text-white"
                         value={editingCampaign?.segment}
                         onChange={e => setEditingCampaign({ ...editingCampaign, segment: e.target.value })}
                       >
@@ -781,7 +795,7 @@ const EngagementManager: React.FC<EngagementManagerProps> = ({ currentUser, sett
                     <div className="flex gap-3 items-center">
                       <input
                         type="text"
-                        className="flex-1 p-3 bg-slate-100 dark:bg-slate-800 rounded-xl border-none font-bold text-slate-800 dark:text-slate-200 text-xs"
+                        className="flex-1 p-3.5 bg-slate-100 dark:bg-slate-900/60 rounded-xl border-none font-bold text-slate-800 dark:text-slate-200 text-xs"
                         placeholder="https://link-da-imagem.com/img.png"
                         value={editingCampaign?.imageUrl || ''}
                         onChange={e => setEditingCampaign({ ...editingCampaign, imageUrl: e.target.value })}
@@ -827,7 +841,7 @@ const EngagementManager: React.FC<EngagementManagerProps> = ({ currentUser, sett
                     <div className="space-y-1">
                       <label className="text-[10px] font-black uppercase text-slate-400">Vincular Cupom (Opcional)</label>
                       <select
-                        className="w-full p-3 bg-slate-100 dark:bg-slate-800 rounded-xl border-none font-bold text-slate-800 dark:text-white"
+                        className="w-full p-3.5 bg-slate-100 dark:bg-slate-900/60 rounded-xl border-none font-bold text-slate-800 dark:text-white"
                         value={editingCampaign?.couponCode || ''}
                         onChange={e => setEditingCampaign({ ...editingCampaign, couponCode: e.target.value })}
                       >
@@ -854,7 +868,7 @@ const EngagementManager: React.FC<EngagementManagerProps> = ({ currentUser, sett
                        <textarea
                          rows={4}
                          placeholder="Insira as regras para uso deste cupom/ação..."
-                         className="w-full p-3 bg-slate-100 dark:bg-slate-800 rounded-xl border-none text-xs font-bold text-slate-600 dark:text-slate-300"
+                         className="w-full p-3.5 bg-slate-100 dark:bg-slate-900/60 rounded-xl border-none text-xs font-bold text-slate-600 dark:text-slate-300"
                          value={editingCampaign?.termsText || ''}
                          onChange={e => setEditingCampaign({ ...editingCampaign, termsText: e.target.value })}
                        />
@@ -864,20 +878,7 @@ const EngagementManager: React.FC<EngagementManagerProps> = ({ currentUser, sett
               )}
 
 
-              <button
-                type="submit"
-                disabled={isSubmitting}
-                className="w-full bg-blue-600 hover:bg-blue-700 text-white py-4 rounded-2xl font-black text-sm uppercase tracking-widest shadow-xl shadow-blue-200 dark:shadow-blue-900/20 transition-all active:scale-95 flex items-center justify-center gap-2"
-              >
-                {isSubmitting ? (
-                  <div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin" />
-                ) : (
-                  <>
-                    <Check className="w-5 h-5" />
-                    Salvar Dados
-                  </>
-                )}
-              </button>
+              <div className="pt-4" />
             </form>
           </div>
         </div>

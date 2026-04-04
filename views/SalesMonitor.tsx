@@ -209,13 +209,13 @@ const SalesMonitor: React.FC = () => {
             <p className="text-[10px] text-slate-400 dark:text-slate-500 font-bold uppercase tracking-widest">Acompanhamento de status e finalizações em tempo real</p>
           </div>
         </div>
+        {isLoading && (
+          <div className="absolute top-0 left-4 sm:left-8 right-4 sm:right-8 h-1 bg-indigo-100/20 overflow-hidden z-20 rounded-full mt-4">
+            <div className="h-full bg-indigo-600 animate-[loading_2s_infinite]"></div>
+          </div>
+        )}
         <div className="flex-1 overflow-auto p-4 sm:p-8 bg-slate-50/30 dark:bg-slate-900/50">
           <div className="bg-white dark:bg-slate-900 rounded-[2.5rem] shadow-sm border border-slate-100 dark:border-slate-800 flex flex-col h-full overflow-hidden animate-in fade-in duration-500 relative">
-            {isLoading && (
-              <div className="absolute top-0 left-0 w-full h-1 bg-indigo-100 dark:bg-indigo-900/40 overflow-hidden z-50">
-                <div className="h-full bg-indigo-600 dark:bg-indigo-500 animate-[loading_2s_infinite]"></div>
-              </div>
-            )}
             <style>{`
                 @keyframes loading {
                     0% { transform: translateX(-100%); }
@@ -230,6 +230,7 @@ const SalesMonitor: React.FC = () => {
                     <th className="px-8 py-5 text-[10px] font-black text-slate-400 dark:text-slate-500 uppercase tracking-widest">Cliente / Mesa</th>
                     <th className="px-8 py-5 text-[10px] font-black text-slate-400 dark:text-slate-500 uppercase tracking-widest">Itens</th>
                     <th className="px-8 py-5 text-[10px] font-black text-slate-400 dark:text-slate-500 uppercase tracking-widest text-right">Total</th>
+                    <th className="px-8 py-5 text-[10px] font-black text-slate-400 dark:text-slate-500 uppercase tracking-widest text-center">Ação</th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-slate-50 dark:divide-slate-800">

@@ -216,10 +216,10 @@ const Logistics: React.FC = () => {
   }, [printingOrder, products]);
 
   return (
-    <div className="flex flex-col h-full gap-6 relative">
+    <div className="p-6 h-full flex flex-col bg-slate-50 dark:bg-slate-950 relative">
       {isLoading && (
-        <div className="absolute top-0 left-0 w-full h-1 bg-indigo-100 dark:bg-blue-900/20 overflow-hidden z-50">
-          <div className="h-full bg-indigo-600 dark:bg-blue-600 animate-[loading_2s_infinite]"></div>
+        <div className="absolute top-0 left-6 right-6 h-1 bg-indigo-100/20 overflow-hidden z-20 rounded-full">
+          <div className="h-full bg-indigo-600 animate-[loading_2s_infinite]"></div>
         </div>
       )}
       <style>{`
@@ -229,32 +229,36 @@ const Logistics: React.FC = () => {
                 }
             `}</style>
       <BlinkCSS />
-      <div className="flex items-center gap-4 bg-white dark:bg-slate-900 p-2 rounded-3xl w-max shadow-sm border border-slate-100 dark:border-slate-800 flex-shrink-0">
-        <button
-          onClick={() => setActiveTab('PENDING')}
-          className={`px-6 py-3 rounded-2xl text-[11px] font-black uppercase tracking-widest transition-all ${activeTab === 'PENDING' ? 'bg-slate-900 dark:bg-blue-600 text-white shadow-xl' : 'text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-800'}`}
-        >
-          Entregas
-        </button>
-        <button
-          onClick={() => setActiveTab('HISTORY')}
-          className={`px-6 py-3 rounded-2xl text-[11px] font-black uppercase tracking-widest transition-all ${activeTab === 'HISTORY' ? 'bg-slate-900 dark:bg-blue-600 text-white shadow-xl' : 'text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-800'}`}
-        >
-          Histórico
-        </button>
-        <button
-          onClick={() => setActiveTab('CHAT')}
-          className={`px-6 py-3 rounded-2xl text-[11px] font-black uppercase tracking-widest transition-all relative ${activeTab === 'CHAT' ? 'bg-slate-900 dark:bg-blue-600 text-white shadow-xl' : 'text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-800'}`}
-        >
-          Chat Entregadores
-          {unreadDrivers.size > 0 && <span className="absolute -top-1 -right-1 w-3 h-3 bg-rose-500 rounded-full animate-pulse shadow-sm border-2 border-white dark:border-slate-800" />}
-        </button>
+      <div className="flex flex-col md:flex-row md:items-center gap-4 md:gap-6 mb-8 no-print shrink-0">
+        <div className="flex items-center gap-4 bg-white dark:bg-slate-900 p-1.5 md:p-2 rounded-2xl md:rounded-full w-full md:w-max shadow-sm border border-slate-100 dark:border-slate-800 overflow-x-auto hide-scrollbar">
+          <button
+            onClick={() => setActiveTab('PENDING')}
+            className={`flex-1 md:flex-none px-6 md:px-8 py-3 md:py-3.5 rounded-xl md:rounded-full text-[10px] md:text-[11px] font-black uppercase tracking-widest transition-all whitespace-nowrap ${activeTab === 'PENDING' ? 'bg-slate-900 dark:bg-blue-600 text-white shadow-xl' : 'text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-800'}`}
+          >
+            Entregas
+          </button>
+          <button
+            onClick={() => setActiveTab('HISTORY')}
+            className={`flex-1 md:flex-none px-6 md:px-8 py-3 md:py-3.5 rounded-xl md:rounded-full text-[10px] md:text-[11px] font-black uppercase tracking-widest transition-all whitespace-nowrap ${activeTab === 'HISTORY' ? 'bg-slate-900 dark:bg-blue-600 text-white shadow-xl' : 'text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-800'}`}
+          >
+            Histórico
+          </button>
+          <button
+            onClick={() => setActiveTab('CHAT')}
+            className={`flex-1 md:flex-none px-6 md:px-8 py-3 md:py-3.5 rounded-xl md:rounded-full text-[10px] md:text-[11px] font-black uppercase tracking-widest transition-all relative whitespace-nowrap ${activeTab === 'CHAT' ? 'bg-slate-900 dark:bg-blue-600 text-white shadow-xl' : 'text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-800'}`}
+          >
+            Chat
+            {unreadDrivers.size > 0 && <span className="absolute -top-1 -right-1 w-3 h-3 bg-rose-500 rounded-full border-2 border-white dark:border-slate-800 animate-pulse shadow-sm" />}
+          </button>
+        </div>
       </div>
 
       {activeTab === 'PENDING' ? (
-        <div className="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-3 gap-6 overflow-y-auto pb-8 flex-1 flex flex-col">
-          {readyOrders.length > 0 ? readyOrders.map(order => (
-            <div key={order.id} className="bg-white dark:bg-slate-900 p-6 rounded-3xl shadow-sm border border-slate-100 dark:border-slate-800 flex flex-col gap-4 group hover:shadow-xl transition-all h-max">
+        <div className="flex-1 overflow-y-auto pr-2 custom-scrollbar flex flex-col">
+          {readyOrders.length > 0 ? (
+            <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6">
+              {readyOrders.map(order => (
+                <div key={order.id} className="bg-white dark:bg-slate-900 p-5 md:p-6 rounded-3xl md:rounded-[2.5rem] border border-slate-100 dark:border-slate-800 shadow-sm flex flex-col hover:shadow-xl transition-all h-max">
               <div className="flex justify-between items-start">
                 <div>
                   <h4 className="font-black text-slate-800 dark:text-white uppercase text-lg">{order.id.split('-')[1] || order.id}</h4>
@@ -339,10 +343,14 @@ const Logistics: React.FC = () => {
                 </div>
               )}
             </div>
-          )) : (
-            <div className="col-span-full py-20 text-center bg-white dark:bg-slate-900 rounded-3xl border-2 border-dashed border-slate-100 dark:border-slate-800 flex-1 h-full flex flex-col items-center justify-center">
-              <svg xmlns="http://www.w3.org/2000/svg" className="h-12 w-12 mx-auto text-slate-200 dark:text-slate-800 mb-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
-              <p className="text-slate-400 dark:text-slate-600 font-bold uppercase tracking-widest text-xs">Sem entregas pendentes no momento...</p>
+          ))}
+          </div>
+          ) : (
+            <div className="w-full h-full flex-1 bg-white dark:bg-slate-900 p-20 rounded-[3rem] border-2 border-dashed border-slate-100 dark:border-slate-800 flex flex-col items-center justify-center text-center animate-in fade-in zoom-in duration-500">
+              <div className="w-20 h-20 bg-slate-50 dark:bg-slate-800/50 rounded-full flex items-center justify-center mb-6 shadow-inner">
+                <Icons.Clock className="w-10 h-10 text-slate-200 dark:text-slate-700" />
+              </div>
+              <p className="text-[10px] font-black text-slate-300 dark:text-slate-600 uppercase tracking-[0.2em]">Sem entregas pendentes no momento...</p>
             </div>
           )}
         </div>
