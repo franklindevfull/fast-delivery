@@ -11,6 +11,7 @@ const mapOrderResponse = (order: any) => {
             ...item,
             uid: item.id, // Ensure frontend gets 'uid'
             observations: item.observations || null,
+            skipKitchen: !!item.skipKitchen,
             tableSessionId: item.tableSessionId || null
         }))
     };
@@ -459,6 +460,7 @@ export const saveOrder = async (req: Request, res: Response) => {
                             price: (item.price && !isNaN(parseFloat(item.price.toString()))) ? parseFloat(item.price.toString()) : 0,
                             isReady: !!item.isReady,
                             readyAt: (item.readyAt && !isNaN(Date.parse(item.readyAt))) ? new Date(item.readyAt) : null,
+                            skipKitchen: !!item.skipKitchen,
                             observations: item.observations || null,
                             tableSessionId: (newStatus === 'DELIVERED') ? null : ((item.tableSessionId && !isNaN(parseInt(item.tableSessionId.toString()))) ? parseInt(item.tableSessionId.toString()) : null)
                         }))
@@ -505,6 +507,7 @@ export const saveOrder = async (req: Request, res: Response) => {
                             price: (item.price && !isNaN(parseFloat(item.price.toString()))) ? parseFloat(item.price.toString()) : 0,
                             isReady: !!item.isReady,
                             readyAt: (item.readyAt && !isNaN(Date.parse(item.readyAt))) ? new Date(item.readyAt) : null,
+                            skipKitchen: !!item.skipKitchen,
                             observations: item.observations || null,
                             tableSessionId: (newStatus === 'DELIVERED') ? null : ((item.tableSessionId && !isNaN(parseInt(item.tableSessionId.toString()))) ? parseInt(item.tableSessionId.toString()) : null)
                         }))

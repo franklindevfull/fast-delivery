@@ -377,7 +377,7 @@ const Receivables: React.FC<ReceivablesProps> = ({ currentUser, setActiveTab }) 
                                 <p className="text-[10px] text-slate-400 dark:text-slate-500 font-bold uppercase tracking-widest mt-1">Pedido ID: #{selectedOrder.id.split('-')[1] || selectedOrder.id.substring(0, 8)}</p>
                             </div>
                             <button onClick={() => setIsDetailsModalOpen(false)} className="p-4 bg-slate-50 dark:bg-slate-800 text-slate-400 dark:text-slate-500 rounded-2xl hover:bg-slate-100 dark:hover:bg-slate-700 transition-all">
-                                <Icons.Dashboard />
+                                <Icons.X />
                             </button>
                         </div>
 
@@ -450,7 +450,7 @@ const Receivables: React.FC<ReceivablesProps> = ({ currentUser, setActiveTab }) 
                                 <p className="text-[10px] text-slate-400 dark:text-slate-500 font-bold uppercase tracking-widest mt-1">Ajuste os itens consumidos (Estoque e valor automático)</p>
                             </div>
                             <button onClick={() => setIsEditItemsOpen(false)} className="p-4 bg-slate-50 dark:bg-slate-800 text-slate-400 dark:text-slate-500 rounded-2xl hover:bg-slate-100 dark:hover:bg-slate-700 transition-all">
-                                <Icons.Dashboard />
+                                <Icons.X />
                             </button>
                         </div>
 
@@ -544,21 +544,21 @@ const Receivables: React.FC<ReceivablesProps> = ({ currentUser, setActiveTab }) 
                                 );
                             })}
                         </div>
-                        {printingOrder.appliedServiceFee && printingOrder.appliedServiceFee > 0 && (
+                        {printingOrder.appliedServiceFee > 0 && (
                             <div className="flex justify-between items-center border-t border-dashed pt-4 mb-2 text-[10px] uppercase font-black">
                                 <span>Taxa Serviço:</span>
                                 <span>R$ {printingOrder.appliedServiceFee.toFixed(2)}</span>
                             </div>
                         )}
-                        {printingOrder.deliveryFee && printingOrder.deliveryFee > 0 && (
+                        {printingOrder.deliveryFee > 0 && (
                             <div className="flex justify-between items-center text-[10px] uppercase font-black mb-2">
                                 <span>Taxa Entrega:</span>
                                 <span>R$ {printingOrder.deliveryFee.toFixed(2)}</span>
                             </div>
                         )}
-                        <div className="flex justify-between items-end border-t border-dashed pt-4 mb-6">
-                            <span className="font-black text-[9px] uppercase tracking-widest">TOTAL DEVEDOR:</span>
-                            <span className="text-2xl font-black">R$ {printingOrder.total.toFixed(2)}</span>
+                        <div className="flex justify-between items-center border-t border-dashed pt-4 mb-6">
+                            <span className="font-black text-[10px] uppercase tracking-tighter">TOTAL DEVEDOR:</span>
+                            <span className="text-lg font-black whitespace-nowrap">R$ {printingOrder.total.toFixed(2)}</span>
                         </div>
 
                         <div className="grid grid-cols-2 gap-4 no-print mt-6">

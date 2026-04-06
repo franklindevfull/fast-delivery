@@ -215,9 +215,10 @@ export interface OrderItem {
   productId: string;
   quantity: number;
   price: number;
-  isReady?: boolean;
-  readyAt?: string;
-  observations?: string;
+  isReady: boolean;
+  readyAt?: string | null;
+  skipKitchen?: boolean;
+  observations?: string | null;
 }
 
 export interface TableSession {

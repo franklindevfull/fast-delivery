@@ -73,6 +73,7 @@ const Kitchen: React.FC = () => {
         o.status !== OrderStatus.CANCELLED &&
         o.status !== OrderStatus.DELIVERED &&
         o.items.length > 0 &&
+        o.items.some(it => !it.isReady && !it.skipKitchen) && // Only orders with pending non-skipped items
         !(o.isOriginDeliveryApp && o.status === OrderStatus.PENDING)
       );
 
@@ -264,7 +265,7 @@ const Kitchen: React.FC = () => {
                       </p>
                     </div>
                     <div className="space-y-2 overflow-y-auto pr-1 custom-scrollbar max-h-[350px] md:max-h-[450px]">
-                      {order.items.filter(it => !it.isReady).map((item) => {
+                      {order.items.filter(it => !it.isReady && !it.skipKitchen).map((item) => {
                         const product = products.find(p => p.id === item.productId);
                         const isSelected = (selectedItems[order.id] || []).includes(item.uid);
 

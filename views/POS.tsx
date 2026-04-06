@@ -54,6 +54,7 @@ const POS: React.FC<POSProps> = ({ currentUser }) => {
   const [editingOrderId, setEditingOrderId] = useState<string | null>(null);
   const [selectedProductForCart, setSelectedProductForCart] = useState<Product | null>(null);
   const [cartObservation, setCartObservation] = useState('');
+  const [skipKitchen, setSkipKitchen] = useState(false);
 
   const [pendingTables, setPendingTables] = useState<TableSession[]>([]);
   const [pendingCounterOrders, setPendingCounterOrders] = useState<Order[]>([]);
@@ -215,11 +216,13 @@ const POS: React.FC<POSProps> = ({ currentUser }) => {
       quantity: 1,
       price: product.price,
       isReady: false,
+      skipKitchen: skipKitchen,
       observations: cartObservation || ''
     }]);
 
     setSelectedProductForCart(null);
     setCartObservation('');
+    setSkipKitchen(false);
   };
 
   const loadTableSession = async (sess: TableSession) => {
@@ -229,6 +232,7 @@ const POS: React.FC<POSProps> = ({ currentUser }) => {
     setTableNumber(sess.tableNumber);
     setTableNumberInput(sess.tableNumber.toString());
     setEditingOrderId(null);
+    setIsReceivingFiado(null);
 
     const tableOrder = orders.find(o => o.id === `TABLE-${sess.tableNumber}`);
     setCurrentOrderStatus(tableOrder?.status || OrderStatus.PENDING);
@@ -249,6 +253,7 @@ const POS: React.FC<POSProps> = ({ currentUser }) => {
     setCart(order.items);
     setSaleType(SaleType.COUNTER);
     setEditingOrderId(order.id);
+    setIsReceivingFiado(null);
     setCurrentOrderStatus(order.status);
     setTableNumber('');
     setTableNumberInput('');
@@ -562,9 +567,11 @@ const POS: React.FC<POSProps> = ({ currentUser }) => {
       clientPhone: finalPhone,
       clientEmail: finalEmail,
       clientDocument: finalDocument,
-      items: [...cart],
+      items: cart.map(it => ({ ...it, isReady: it.skipKitchen ? true : it.isReady })),
       total: cartTotal,
-      status: (isCounterSale && !editingOrderId) || isDelivery ? OrderStatus.PREPARING : OrderStatus.DELIVERED,
+      status: ((isCounterSale && !editingOrderId) || isDelivery) 
+        ? (cart.every(it => it.skipKitchen || it.isReady) ? OrderStatus.READY : OrderStatus.PREPARING) 
+        : OrderStatus.DELIVERED,
       type: saleType,
       createdAt: existingOrderId ? orders.find(o => o.id === existingOrderId)?.createdAt || new Date().toISOString() : new Date().toISOString(),
       paymentMethod: payments.map(p => p.method).join(' + '),
@@ -592,6 +599,8 @@ const POS: React.FC<POSProps> = ({ currentUser }) => {
 
     if (orderData.status === OrderStatus.PREPARING) {
       addToast({ title: "SUCESSO", message: "Pedido enviado para a cozinha.", type: "SUCCESS" });
+    } else if (orderData.status === OrderStatus.READY) {
+      addToast({ title: "ITEM PRONTO", message: "O item ignorou a cozinha e já está disponível para recebimento.", type: "SUCCESS" });
     } else {
       setIsNfceVisual(emitNfce);
       setPrintingOrder(orderData);
@@ -799,6 +808,26 @@ const POS: React.FC<POSProps> = ({ currentUser }) => {
     } catch (e: any) {
       showAlert("Erro", e.message || "Erro ao reabrir o caixa", "DANGER");
     }
+  };
+
+  const handleCancelOrder = async (order: Order) => {
+    showConfirm(
+      "Cancelar Pedido",
+      `Deseja realmente CANCELAR o pedido "${order.id}" de ${order.clientName}? Esta ação é irreversível.`,
+      async () => {
+        try {
+          await db.updateOrderStatus(order.id, OrderStatus.CANCELLED, currentUser!);
+          addToast({ title: "CANCELADO", message: "Pedido cancelado com sucesso.", type: "SUCCESS" });
+          if (editingOrderId === order.id) {
+            clearState();
+          }
+          await refreshAllData();
+        } catch (err: any) {
+          showAlert("Erro", err.message || "Erro ao cancelar pedido.", "DANGER");
+        }
+      },
+      "DANGER"
+    );
   };
 
   const getFriendlySaleType = (type: SaleType | string) => {
@@ -1046,7 +1075,7 @@ const POS: React.FC<POSProps> = ({ currentUser }) => {
                               {p.method === 'DINHEIRO' ? <Icons.Dashboard className="w-3.5 h-3.5" /> : <Icons.CreditCard className="w-3.5 h-3.5" />}
                             </div>
                             <div>
-                              <p className="text-[9px] font-black text-slate-800 dark:text-white uppercase tracking-tight">{p.method}</p>
+                              <p className="text-[9px] font-black text-slate-800 dark:text-white uppercase tracking-tight">{p.method === 'FIADO' ? 'CREDIÁRIO' : p.method}</p>
                               {p.receivedAmount !== undefined && (
                                 <div className="flex items-center gap-2">
                                   <p className="text-[9px] text-slate-400 dark:text-slate-500 font-medium uppercase">Recebido: R$ {p.receivedAmount.toFixed(2)}</p>
@@ -1317,10 +1346,20 @@ const POS: React.FC<POSProps> = ({ currentUser }) => {
                         clearState();
                         if (!isEmpty) addToast({ title: "LIMPO", message: "Seleção do balcão removida.", type: "SUCCESS" });
                       }}
-                      className="w-8 h-8 flex items-center justify-center bg-slate-50 text-slate-400 rounded-xl hover:bg-slate-200 hover:text-slate-600 transition-all shadow-sm"
+                      className="w-8 h-8 flex items-center justify-center bg-slate-50 text-slate-400 rounded-xl hover:bg-slate-200 hover:text-slate-600 transition-all shadow-sm mr-2"
                       title="Limpar Seleção"
                     >
                       -
+                    </button>
+                    <button
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        handleCancelOrder(o);
+                      }}
+                      className="w-8 h-8 flex items-center justify-center bg-red-50 text-red-400 rounded-xl hover:bg-red-200 hover:text-red-600 transition-all shadow-sm"
+                      title="Cancelar Pedido"
+                    >
+                      <Icons.Delete size={14} />
                     </button>
                   </div>
                   <div className="cursor-pointer" onClick={() => loadCounterOrder(o)}>
@@ -1607,15 +1646,46 @@ const POS: React.FC<POSProps> = ({ currentUser }) => {
                   <p className="font-black uppercase text-slate-800 dark:text-white">{data.product?.name || '...'}</p>
                   <p className="text-slate-400 dark:text-slate-500 font-bold">{data.quantity} x R$ {data.price.toFixed(2)}</p>
                 </div>
-                {!editingOrderId && !isReceivingFiado && (
+                {!isReceivingFiado && (
                   <button onClick={() => {
-                    setCart(prev => {
-                      const idx = prev.findLastIndex(it => it.productId === id);
-                      if (idx === -1) return prev;
-                      const next = [...prev];
-                      next.splice(idx, 1);
-                      return next;
-                    });
+                    if (editingOrderId) {
+                      showConfirm(
+                        "Estorno de Item",
+                        `Deseja realmente estornar (remover) o item "${data.product?.name}" deste pedido?`,
+                        () => {
+                          setCart(prev => {
+                            // findLastIndex fallback for older browsers
+                            let idx = -1;
+                            for (let i = prev.length - 1; i >= 0; i--) {
+                              if (prev[i].productId === id) {
+                                idx = i;
+                                break;
+                              }
+                            }
+                            if (idx === -1) return prev;
+                            const next = [...prev];
+                            next.splice(idx, 1);
+                            return next;
+                          });
+                        },
+                        "DANGER"
+                      );
+                    } else {
+                      setCart(prev => {
+                        // findLastIndex fallback
+                        let idx = -1;
+                        for (let i = prev.length - 1; i >= 0; i--) {
+                          if (prev[i].productId === id) {
+                            idx = i;
+                            break;
+                          }
+                        }
+                        if (idx === -1) return prev;
+                        const next = [...prev];
+                        next.splice(idx, 1);
+                        return next;
+                      });
+                    }
                   }} className="text-red-300 font-black px-2 hover:text-red-500 transition-colors" title="Remover 1 Unid.">×</button>
                 )}
               </div>
@@ -1793,6 +1863,21 @@ const POS: React.FC<POSProps> = ({ currentUser }) => {
                   <label className="text-[10px] font-black text-slate-500 dark:text-slate-400 uppercase tracking-widest mb-2 block">Deseja adicionar alguma observação?</label>
                   <input autoFocus type="text" placeholder="Ex: Sem sal, bem passado..." value={cartObservation} onChange={(e) => setCartObservation(e.target.value)} onKeyDown={(e) => e.key === 'Enter' && confirmAddToCart()} className="w-full p-4 bg-slate-100 dark:bg-slate-800 rounded-2xl border-none focus:ring-2 focus:ring-blue-600 font-bold text-sm outline-none placeholder:font-normal dark:text-white" maxLength={60} />
                 </div>
+                {(saleType === SaleType.COUNTER || saleType === SaleType.OWN_DELIVERY) && (
+                  <div className="flex items-center justify-between px-1 bg-blue-50/50 dark:bg-blue-900/20 p-3 rounded-2xl border border-blue-100/50 dark:border-blue-500/20">
+                    <div>
+                      <span className="text-[10px] font-black text-blue-700 dark:text-blue-400 uppercase tracking-widest block">Não enviar para cozinha</span>
+                      <span className="text-[8px] font-bold text-blue-500/60 uppercase">O item irá direto para Pronto</span>
+                    </div>
+                    <button
+                      type="button"
+                      className={`w-10 h-6 rounded-full transition-all relative ${skipKitchen ? 'bg-blue-600' : 'bg-slate-300 dark:bg-slate-700'}`}
+                      onClick={() => setSkipKitchen(!skipKitchen)}
+                    >
+                      <div className={`absolute top-1 w-4 h-4 rounded-full bg-white transition-all ${skipKitchen ? 'left-5' : 'left-1'}`}></div>
+                    </button>
+                  </div>
+                )}
                 <div className="flex gap-2">
                   <button onClick={() => setSelectedProductForCart(null)} className="flex-1 py-4 font-black text-[10px] uppercase text-slate-400 dark:text-slate-500 hover:text-slate-600 dark:hover:text-slate-400 transition-colors">Cancelar</button>
                   <button onClick={confirmAddToCart} className="flex-1 py-4 bg-blue-600 hover:bg-blue-700 text-white rounded-xl font-black text-[10px] uppercase shadow-xl hover:shadow-blue-200 dark:shadow-none transition-all active:scale-95">Adicionar ✓</button>
@@ -1850,7 +1935,7 @@ const POS: React.FC<POSProps> = ({ currentUser }) => {
                       <span>{printingOrder.total.toFixed(2)}</span>
                     </div>
                     <div className="flex justify-between">
-                      <span className="uppercase">{printingOrder.paymentMethod || 'OUTROS'}</span>
+                      <span className="uppercase">{(printingOrder.paymentMethod || 'OUTROS').replace(/FIADO/g, 'CREDIÁRIO')}</span>
                       <span>{printingOrder.total.toFixed(2)}</span>
                     </div>
                   </div>
@@ -1890,7 +1975,7 @@ const POS: React.FC<POSProps> = ({ currentUser }) => {
                       <span>{new Date(printingOrder.createdAt).toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' })}</span>
                     </div>
                     <p>CLIENTE: {(printingOrder.clientName || 'NÃO IDENTIFICADO').toUpperCase()}</p>
-                    <p>PAGTO: {(printingOrder.paymentMethod || 'PENDENTE').toUpperCase()}</p>
+                    <p>PAGTO: {(printingOrder.paymentMethod || 'PENDENTE').replace(/FIADO/g, 'CREDIÁRIO').toUpperCase()}</p>
                     
                     {/* Condicional de Endereço: Só se for Delivery */}
                     {(['DELIVERY', 'OWN_DELIVERY', 'THIRD_PARTY'].includes(printingOrder.type?.toUpperCase() || '')) && printingOrder.clientAddress && (
@@ -1914,7 +1999,7 @@ const POS: React.FC<POSProps> = ({ currentUser }) => {
                       <span>SUBTOTAL:</span>
                       <span>R$ {(printingOrder.total - (printingOrder.appliedServiceFee || 0)).toFixed(2)}</span>
                     </div>
-                    {printingOrder.appliedServiceFee && printingOrder.appliedServiceFee > 0 && (
+                    {printingOrder.appliedServiceFee !== undefined && printingOrder.appliedServiceFee > 0 && (
                       <div className="flex justify-between items-center text-[9px] font-bold uppercase">
                         <span>TAXA SERVICO:</span>
                         <span>R$ {printingOrder.appliedServiceFee.toFixed(2)}</span>
