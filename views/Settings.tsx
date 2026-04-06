@@ -562,7 +562,7 @@ const UserManagementInternal: React.FC = () => {
         { id: 'logistics', label: 'Logística' },
         { id: 'waiter', label: 'App Garçom' },
         { id: 'driver', label: 'Entregador' },
-        { id: 'receivables', label: 'Recebimentos (Fiado)' },
+        { id: 'receivables', label: 'Recebimentos (Crediário)' },
         { id: 'engagement', label: 'Engajamento & Promoções' },
         { id: 'reports', label: 'Relatórios' },
         { id: 'settings', label: 'Configurações' }

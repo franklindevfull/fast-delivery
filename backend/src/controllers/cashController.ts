@@ -11,6 +11,11 @@ export const getActiveCashSession = async (req: Request, res: Response) => {
 export const openCashSession = async (req: Request, res: Response) => {
     const { initialBalance, user } = req.body;
 
+    const balance = parseFloat(initialBalance);
+    if (isNaN(balance)) {
+        return res.status(400).json({ message: 'O saldo inicial é obrigatório e deve ser um número válido.' });
+    }
+
     const active = await prisma.cashSession.findFirst({
         where: { status: 'OPEN' }
     });
@@ -27,7 +32,7 @@ export const openCashSession = async (req: Request, res: Response) => {
         data: {
             openedBy: user.id,
             openedByName: user.name,
-            initialBalance: parseFloat(initialBalance),
+            initialBalance: balance,
             status: 'OPEN'
         }
     });
@@ -37,12 +42,13 @@ export const openCashSession = async (req: Request, res: Response) => {
             userId: user.id,
             userName: user.name,
             action: 'OPEN_CASH',
-            details: `Usuário abriu o caixa com saldo inicial de R$ ${parseFloat(initialBalance).toFixed(2)}`
+            details: `Usuário abriu o caixa com saldo inicial de R$ ${balance.toFixed(2)}`
         }
     });
 
     res.json(session);
 };
+
 
 const calculateSessionTotals = async (openedAt: Date) => {
     // Get the last closed session to determine the start of the orphan window

@@ -29,7 +29,7 @@ const UserManagement: React.FC = () => {
     { id: 'inventory', label: 'Estoque / Cardápio' },
     { id: 'delivery-orders', label: 'App Delivery (Pedidos)' },
     { id: 'logistics', label: 'Logística' },
-    { id: 'receivables', label: 'Recebimentos (Fiado)' },
+    { id: 'receivables', label: 'Recebimentos (Crediário)' },
     { id: 'reports', label: 'Relatórios' },
     { id: 'waiter', label: 'App Garçom' },
     { id: 'settings', label: 'Configurações' }

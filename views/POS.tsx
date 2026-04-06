@@ -198,7 +198,7 @@ const POS: React.FC<POSProps> = ({ currentUser }) => {
 
     if (isReceivingFiado) {
       setSelectedProductForCart(null);
-      return showAlert("Ação Bloqueada", "Não é permitido adicionar ou excluir itens em um título de recebimento (Fiado). Utilize o módulo Recebimentos para ajustes.", "DANGER");
+      return showAlert("Ação Bloqueada", "Não é permitido adicionar ou excluir itens em um título de recebimento (Crediário). Utilize o módulo Recebimentos para ajustes.", "DANGER");
     }
 
     if (saleType === SaleType.TABLE && tableNumberInput) {
@@ -654,8 +654,16 @@ const POS: React.FC<POSProps> = ({ currentUser }) => {
   };
 
   const handleOpenCash = async () => {
+    if (!initialBalanceInput || initialBalanceInput.trim() === '') {
+      return addToast({ title: "Valor Necessário", message: "Por favor, informe o saldo inicial para abrir o caixa. Caso comece zerado, informe 0.", type: "DANGER" });
+    }
+
+    const balance = parseFloat(initialBalanceInput.replace(',', '.'));
+    if (isNaN(balance)) {
+      return addToast({ title: "Valor Inválido", message: "O saldo inicial informado não é um número válido.", type: "DANGER" });
+    }
+
     try {
-      const balance = parseFloat(initialBalanceInput.replace(',', '.'));
       const session = await db.openCashSession(balance, currentUser);
       setActiveCashSession(session);
       setIsOpeningModalOpen(false);
@@ -664,6 +672,7 @@ const POS: React.FC<POSProps> = ({ currentUser }) => {
       showAlert("Erro", e.message || "Erro ao abrir o caixa", "DANGER");
     }
   };
+
 
   const handleSystemPreview = async () => {
     if (!currentUser.permissions.includes('admin') && !currentUser.permissions.includes('settings')) {
@@ -970,7 +979,7 @@ const POS: React.FC<POSProps> = ({ currentUser }) => {
                       { id: 'PIX', label: 'PIX', icon: Icons.QrCode },
                       { id: 'CRÉDITO', label: 'Crédito', icon: Icons.CreditCard },
                       { id: 'DÉBITO', label: 'Débito', icon: Icons.CreditCard },
-                      { id: 'FIADO', label: 'Fiado', icon: Icons.User }
+                      { id: 'FIADO', label: 'Crediário', icon: Icons.User }
                     ].map(method => (
                       <button
                         key={method.id}
@@ -1320,7 +1329,7 @@ const POS: React.FC<POSProps> = ({ currentUser }) => {
                 </div>
               ))}
 
-              {/* Receivables (Fiado) */}
+              {/* Receivables (Crediário) */}
               {pendingReceivables.length > 0 && pendingReceivables.map(r => (
                 <div
                   key={`receivable-${r.id}`}
@@ -2492,7 +2501,7 @@ const POS: React.FC<POSProps> = ({ currentUser }) => {
                     <div className="grid grid-cols-2 gap-3">
                       {(reviewSession.systemFiado || 0) > 0 && (
                         <div className="flex justify-between items-center bg-white dark:bg-slate-900 px-4 py-2 rounded-xl border border-slate-200 dark:border-slate-800">
-                          <span className="text-[10px] font-semibold text-slate-600 dark:text-slate-400 uppercase">Vendas a Prazo (FIADO)</span>
+                          <span className="text-[10px] font-semibold text-slate-600 dark:text-slate-400 uppercase">Vendas no Crediário</span>
                           <span className="text-sm font-bold text-slate-800 dark:text-white">R$ {reviewSession.systemFiado!.toFixed(2)}</span>
                         </div>
                       )}
@@ -2615,7 +2624,7 @@ const POS: React.FC<POSProps> = ({ currentUser }) => {
                     </div>
                     <div className="grid grid-cols-1 gap-4">
                       <div className="space-y-2">
-                        <label className="text-[9px] font-black text-slate-400 uppercase tracking-widest">Corrigir Outros (Permuta/Fiado)</label>
+                        <label className="text-[9px] font-black text-slate-400 uppercase tracking-widest">Corrigir Outros (Permuta/Crediário)</label>
                         <input
                           type="text"
                           className="w-full bg-white/10 border border-white/20 p-4 rounded-2xl font-black text-center text-emerald-400 focus:bg-white/20 transition-all outline-none"

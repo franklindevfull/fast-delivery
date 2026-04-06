@@ -376,7 +376,7 @@ const Reports: React.FC<ReportsProps> = ({ currentUser }) => {
             page.drawText(`PIX: R$ ${totalPix.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}`, { x: 50, y, size: 10, font });
             if (totalFiado > 0) {
                 y -= 15;
-                page.drawText(`Vendas a Prazo (FIADO): R$ ${totalFiado.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}`, { x: 50, y, size: 10, font });
+                page.drawText(`Vendas no Crediário: R$ ${totalFiado.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}`, { x: 50, y, size: 10, font });
             }
             if (totalOutros > 0) {
                 y -= 15;
@@ -403,9 +403,9 @@ const Reports: React.FC<ReportsProps> = ({ currentUser }) => {
             page.drawText(`Falta de Caixa (Diferenças Negativas): R$ ${totalFalta.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}`, { x: 50, y, size: 10, font, color: rgb(0.8, 0, 0) });
 
             y -= 25;
-            page.drawText('RECEBIMENTOS DE DÉBITOS (FIADO)', { x: 50, y, size: 12, font: fontBold });
+            page.drawText('RECEBIMENTOS DE DÉBITOS (CREDIÁRIO)', { x: 50, y, size: 12, font: fontBold });
             y -= 20;
-            page.drawText(`Total Recebido de Fiado no Período: R$ ${totalFiadoReceived.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}`, { x: 50, y, size: 10, font: fontBold, color: rgb(0, 0, 0.5) });
+            page.drawText(`Total Recebido em Crediário no Período: R$ ${totalFiadoReceived.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}`, { x: 50, y, size: 10, font: fontBold, color: rgb(0, 0, 0.5) });
 
             y -= 40;
             // Table Header
@@ -744,7 +744,7 @@ const Reports: React.FC<ReportsProps> = ({ currentUser }) => {
             let y = height - 50;
 
             // Header
-            page.drawText('RELATÓRIO DE RECEBÍVEIS (FIADO)', { x: 50, y, size: 18, font: fontBold });
+            page.drawText('RELATÓRIO DE RECEBÍVEIS (CREDIÁRIO)', { x: 50, y, size: 18, font: fontBold });
             y -= 25;
             page.drawText(businessSettings.name, { x: 50, y, size: 12, font: fontBold });
             y -= 15;
@@ -871,8 +871,8 @@ const Reports: React.FC<ReportsProps> = ({ currentUser }) => {
                 if (s.status === 'CLOSED') {
                     y -= 5;
                     page.drawRectangle({ x: 60, y: y - 25, width: 480, height: 25, color: rgb(0.98, 0.98, 0.98) });
-                    page.drawText(`Relatado: Dinheiro: R$ ${(s.reportedCash || 0).toFixed(2)} | Pix: R$ ${(s.reportedPix || 0).toFixed(2)} | Crédito: R$ ${(s.reportedCredit || 0).toFixed(2)} | Débito: R$ ${(s.reportedDebit || 0).toFixed(2)} | Fiado: R$ ${(s.reportedFiado || 0).toFixed(2)} | Outros: R$ ${(s.reportedOthers || 0).toFixed(2)}`, { x: 70, y: y - 10, size: 5.5, font });
-                    page.drawText(`Sistema: Dinheiro: R$ ${(s.systemCash || 0).toFixed(2)} | Pix: R$ ${(s.systemPix || 0).toFixed(2)} | Crédito: R$ ${(s.systemCredit || 0).toFixed(2)} | Débito: R$ ${(s.systemDebit || 0).toFixed(2)} | Fiado: R$ ${(s.systemFiado || 0).toFixed(2)} | Outros: R$ ${(s.systemOthers || 0).toFixed(2)}`, { x: 70, y: y - 20, size: 5.5, font });
+                    page.drawText(`Relatado: Dinheiro: R$ ${(s.reportedCash || 0).toFixed(2)} | Pix: R$ ${(s.reportedPix || 0).toFixed(2)} | Crédito: R$ ${(s.reportedCredit || 0).toFixed(2)} | Débito: R$ ${(s.reportedDebit || 0).toFixed(2)} | Crediário: R$ ${(s.reportedFiado || 0).toFixed(2)} | Outros: R$ ${(s.reportedOthers || 0).toFixed(2)}`, { x: 70, y: y - 10, size: 5.5, font });
++                    page.drawText(`Sistema: Dinheiro: R$ ${(s.systemCash || 0).toFixed(2)} | Pix: R$ ${(s.systemPix || 0).toFixed(2)} | Crédito: R$ ${(s.systemCredit || 0).toFixed(2)} | Débito: R$ ${(s.systemDebit || 0).toFixed(2)} | Crediário: R$ ${(s.systemFiado || 0).toFixed(2)} | Outros: R$ ${(s.systemOthers || 0).toFixed(2)}`, { x: 70, y: y - 20, size: 5.5, font });
                     y -= 35;
                 }
             }
@@ -1540,7 +1540,7 @@ const Reports: React.FC<ReportsProps> = ({ currentUser }) => {
                                                 />
                                             </div>
                                             <div className="space-y-2">
-                                                <label className="text-[10px] font-black text-blue-400 uppercase tracking-widest ml-1">Receb. Fiado (R$)</label>
+                                                <label className="text-[10px] font-black text-blue-400 uppercase tracking-widest ml-1">Receb. Crediário (R$)</label>
                                                 <input
                                                     type="text"
                                                     value={editingSession.reportedFiado || 0}

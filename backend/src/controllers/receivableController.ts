@@ -176,7 +176,7 @@ export const receivePayment = async (req: Request, res: Response) => {
                         userId: user.id,
                         userName: user.name,
                         action: 'RECEBIMENTO_FIADO',
-                        details: `Baixa de fiado R$ ${amount.toFixed(2)} do cliente ${(receivable as any).client?.name || 'N/A'} em ${paymentMethod}`
+                        details: `Baixa de crediário R$ ${amount.toFixed(2)} do cliente ${(receivable as any).client?.name || 'N/A'} em ${paymentMethod}`
                     }
                 });
             }

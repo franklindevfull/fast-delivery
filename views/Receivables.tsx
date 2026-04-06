@@ -174,7 +174,7 @@ const Receivables: React.FC<ReceivablesProps> = ({ currentUser, setActiveTab }) 
             refreshData();
             addToast({
                 title: "SUCESSO",
-                message: "Itens do pedido e valor do fiado atualizados com sucesso.",
+                message: "Itens do pedido e valor do crediário atualizados com sucesso.",
                 type: "SUCCESS"
             });
         } catch (err: any) {
@@ -248,7 +248,7 @@ const Receivables: React.FC<ReceivablesProps> = ({ currentUser, setActiveTab }) 
             <div className="p-8 border-b border-slate-50 dark:border-slate-800 bg-slate-50/50 dark:bg-slate-900/50 flex flex-col md:flex-row justify-between items-center gap-6">
                 <div>
                     <h3 className="text-2xl font-black text-slate-800 dark:text-white uppercase tracking-tighter">Gestão de Recebimentos</h3>
-                    <p className="text-[10px] text-slate-400 dark:text-slate-500 font-bold uppercase tracking-widest mt-1">Controle de clientes fiado e contas a receber</p>
+                    <p className="text-[10px] text-slate-400 dark:text-slate-500 font-bold uppercase tracking-widest mt-1">Controle de clientes em crediário e contas a receber</p>
                 </div>
 
                 <div className="flex flex-1 max-w-xl gap-4 w-full">
@@ -412,7 +412,7 @@ const Receivables: React.FC<ReceivablesProps> = ({ currentUser, setActiveTab }) 
                                     </div>
                                 )}
                                 <div className="flex justify-between items-center bg-slate-900 dark:bg-blue-600 text-white p-6 rounded-[2rem] shadow-xl shadow-slate-200 dark:shadow-blue-900/40">
-                                    <span className="text-xs font-black uppercase tracking-widest">Total do Fiado:</span>
+                                    <span className="text-xs font-black uppercase tracking-widest">Total no Crediário:</span>
                                     <span className="text-2xl font-black">R$ {selectedOrder.total.toFixed(2)}</span>
                                 </div>
                             </div>
@@ -501,7 +501,7 @@ const Receivables: React.FC<ReceivablesProps> = ({ currentUser, setActiveTab }) 
 
                                 <div className="mt-8 pt-6 border-t border-white/10 space-y-4">
                                     <div className="flex justify-between items-center">
-                                        <span className="text-[10px] font-black text-white/40 uppercase tracking-widest">Novo Total do Fiado:</span>
+                                        <span className="text-[10px] font-black text-white/40 uppercase tracking-widest">Novo Total no Crediário:</span>
                                         <span className="text-2xl font-black text-white">R$ {calculateTotal().toFixed(2)}</span>
                                     </div>
                                     <button
@@ -523,7 +523,7 @@ const Receivables: React.FC<ReceivablesProps> = ({ currentUser, setActiveTab }) 
                     <div ref={contentRef} className="is-receipt cupom animate-in zoom-in duration-200">
                         <div className="text-center mb-6 border-b border-dashed pb-4">
                             <h2 className="font-black text-xs uppercase tracking-tighter">{businessSettings.name}</h2>
-                            <p className="text-[8px] font-bold mt-1 uppercase">Extrato de Consumo (Fiado)</p>
+                            <p className="text-[8px] font-bold mt-1 uppercase">Extrato de Consumo (Crediário)</p>
                         </div>
                         <div className="space-y-1 mb-4 text-[10px] bg-slate-50 p-2 rounded-lg border border-slate-100">
                             <p className="text-[8px] font-black text-slate-400 uppercase mb-1">Dados do Cliente</p>

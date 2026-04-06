@@ -118,7 +118,7 @@ const SalesMonitor: React.FC = () => {
               <option value="PIX">PIX</option>
               <option value="CRÉDITO">Crédito</option>
               <option value="DÉBITO">Débito</option>
-              <option value="FIADO">Fiado</option>
+              <option value="FIADO">Crediário</option>
               <option value="PIX + DINHEIRO">PIX + Dinheiro</option>
               <option value="CRÉDITO + DINHEIRO">Crédito + Dinheiro</option>
               <option value="DÉBITO + DINHEIRO">Débito + Dinheiro</option>

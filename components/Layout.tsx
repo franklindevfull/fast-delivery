@@ -45,7 +45,7 @@ const Layout: React.FC<LayoutProps> = ({ children, activeTab, setActiveTab, curr
     { id: 'inventory', label: 'Estoque / Cardápio', icon: Icons.Inventory },
     { id: 'delivery-orders', label: 'App Delivery (Pedidos)', icon: Icons.Smartphone },
     { id: 'logistics', label: 'Logística', icon: Icons.Logistics },
-    { id: 'receivables', label: 'Recebimentos (Fiado)', icon: Icons.Receivables },
+    { id: 'receivables', label: 'Recebimentos (Crediário)', icon: Icons.Receivables },
     { id: 'reports', label: 'Relatórios', icon: Icons.Print },
     { id: 'engagement', label: 'Engajamento & Promoções', icon: Icons.Megaphone },
     { id: 'settings', label: 'Configurações', icon: Icons.Settings },
