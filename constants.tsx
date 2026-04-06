@@ -3,7 +3,9 @@ import {
   ChefHat, 
   HandPlatter, 
   MessageSquareMore, 
-  LayoutDashboard 
+  LayoutDashboard,
+  BanknoteArrowUp,
+  BanknoteArrowDown
 } from 'lucide-react';
 
 export const COLORS = {
@@ -230,6 +232,8 @@ export const Icons = {
       <path d="M12.5 2C10.57 2 9 3.57 9 5.5c0 .35.05.69.15 1H5v2h14V6.5h-4.15c.1-.31.15-.65.15-1 0-1.93-1.57-3.5-3.5-3.5zm0 2c.83 0 1.5.67 1.5 1.5S13.33 7 12.5 7 11 6.33 11 5.5 11.67 4 12.5 4zM5 10v1c0 4.42 3.58 8 8 8s8-3.58 8-8v-1H5zm8 6c-3.31 0-6-2.69-6-6h12c0 3.31-2.69 6-6 6zm1-4.5c0-.83-.67-1.5-1.5-1.5s-1.5.67-1.5 1.5.67 1.5 1.5 1.5 1.5-.67 1.5-1.5z" />
     </svg>
   ),
+  BanknoteArrowUp: (props: any) => <BanknoteArrowUp className="w-5 h-5" {...props} />,
+  BanknoteArrowDown: (props: any) => <BanknoteArrowDown className="w-5 h-5" {...props} />,
   Sun: (props: any) => (
     <svg xmlns="http://www.w3.org/2000/svg" className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" {...props}>
       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 3v1m0 16v1m9-9h-1M4 12H3m15.364 6.364l-.707-.707M6.343 6.343l-.707-.707m12.728 0l-.707.707M6.343 17.657l-.707.707M16 12a4 4 0 11-8 0 4 4 0 018 0z" />

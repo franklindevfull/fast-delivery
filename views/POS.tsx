@@ -54,6 +54,7 @@ const POS: React.FC<POSProps> = ({ currentUser }) => {
   const [editingOrderId, setEditingOrderId] = useState<string | null>(null);
   const [selectedProductForCart, setSelectedProductForCart] = useState<Product | null>(null);
   const [cartObservation, setCartObservation] = useState('');
+  const [cartQuantity, setCartQuantity] = useState(1);
   const [skipKitchen, setSkipKitchen] = useState(false);
 
   const [pendingTables, setPendingTables] = useState<TableSession[]>([]);
@@ -213,7 +214,7 @@ const POS: React.FC<POSProps> = ({ currentUser }) => {
     setCart(prev => [...prev, {
       uid: `item-${Date.now()}-${Math.random().toString(36).substr(2, 4)}`,
       productId: product.id,
-      quantity: 1,
+      quantity: cartQuantity,
       price: product.price,
       isReady: false,
       skipKitchen: skipKitchen,
@@ -222,6 +223,7 @@ const POS: React.FC<POSProps> = ({ currentUser }) => {
 
     setSelectedProductForCart(null);
     setCartObservation('');
+    setCartQuantity(1);
     setSkipKitchen(false);
   };
 
@@ -1411,7 +1413,7 @@ const POS: React.FC<POSProps> = ({ currentUser }) => {
           <div className="bg-white dark:bg-slate-900 p-5 rounded-[2.5rem] border border-slate-100 dark:border-slate-800 shadow-xl shadow-slate-100/50 dark:shadow-none flex flex-col gap-4 relative overflow-hidden group">
             <div className={`flex flex-col items-center justify-center p-6 rounded-[2rem] transition-all duration-500 border-2 ${activeCashSession ? 'bg-emerald-50/50 dark:bg-emerald-500/10 border-emerald-100 dark:border-emerald-500/20 shadow-inner' : 'bg-red-50/50 dark:bg-red-500/10 border-red-100 dark:border-red-500/20 shadow-inner'}`}>
               <div className={`w-16 h-16 rounded-2xl flex items-center justify-center mb-4 transition-all duration-500 ${activeCashSession ? 'bg-emerald-500 text-white shadow-lg shadow-emerald-200 animate-pulse' : 'bg-red-500 text-white shadow-lg shadow-red-200'}`}>
-                <Icons.MoneyBag className="w-8 h-8" />
+                {activeCashSession ? <Icons.BanknoteArrowUp className="w-8 h-8" /> : <Icons.BanknoteArrowDown className="w-8 h-8" />}
               </div>
 
               <div className="text-center">
@@ -1540,7 +1542,7 @@ const POS: React.FC<POSProps> = ({ currentUser }) => {
               {products
                 .filter(p => (activeCategory === 'Todos' || p.category === activeCategory) && (p.name.toLowerCase().includes(productSearchTerm.toLowerCase())))
                 .map(product => (
-                  <button key={product.id} onClick={() => { setSelectedProductForCart(product); setCartObservation(''); }} className="bg-white dark:bg-slate-900 p-4 rounded-3xl shadow-sm border border-slate-50 dark:border-slate-800 hover:border-blue-300 dark:hover:border-blue-500 hover:scale-[1.02] transition-all text-left group">
+                  <button key={product.id} onClick={() => { setSelectedProductForCart(product); setCartObservation(''); setCartQuantity(1); }} className="bg-white dark:bg-slate-900 p-4 rounded-3xl shadow-sm border border-slate-50 dark:border-slate-800 hover:border-blue-300 dark:hover:border-blue-500 hover:scale-[1.02] transition-all text-left group">
                     <div className="w-full h-32 bg-slate-50 dark:bg-slate-800 rounded-2xl mb-3 flex items-center justify-center overflow-hidden">
                       <img src={formatImageUrl(product.imageUrl)} onError={e => e.currentTarget.src = PLACEHOLDER_FOOD_IMAGE} className="max-h-full object-contain group-hover:scale-110 transition-transform" />
                     </div>
@@ -1857,14 +1859,39 @@ const POS: React.FC<POSProps> = ({ currentUser }) => {
           <div className="fixed inset-0 z-[60] flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-sm animate-in zoom-in duration-200">
             <div className="bg-white dark:bg-slate-900 rounded-[2rem] shadow-2xl p-8 w-full max-w-sm border border-white/20 dark:border-slate-800">
               <h3 className="text-lg font-black text-slate-800 dark:text-white uppercase mb-2 tracking-tighter text-center">Adicionar ao Carrinho</h3>
-              <p className="text-center text-[10px] font-bold text-slate-400 dark:text-slate-500 uppercase mb-6">{selectedProductForCart.name}</p>
+              <p className="text-center text-[10px] font-bold text-slate-400 dark:text-slate-500 uppercase mb-4">{selectedProductForCart.name}</p>
+              
+              {/* Seletor de Quantidade */}
+              <div className="flex flex-col items-center justify-center p-3 bg-slate-50 dark:bg-slate-800 rounded-[1.5rem] border border-slate-100 dark:border-slate-700 mb-4 group/qt">
+                <p className="text-[10px] font-black text-slate-400 dark:text-slate-500 uppercase tracking-widest mb-2">Defina a Quantidade</p>
+                <div className="flex items-center gap-4">
+                  <button 
+                    onClick={() => setCartQuantity(prev => Math.max(1, prev - 1))}
+                    className="w-10 h-10 bg-white dark:bg-slate-700 hover:bg-red-50 dark:hover:bg-red-900/30 text-slate-400 dark:text-slate-500 hover:text-red-500 dark:hover:text-red-400 rounded-xl flex items-center justify-center font-black text-xl transition-all shadow-sm active:scale-90"
+                  >
+                    -
+                  </button>
+                  <span className="text-3xl font-black text-slate-800 dark:text-white tracking-tighter w-10 text-center select-none group-hover/qt:scale-110 transition-transform">{cartQuantity}</span>
+                  <button 
+                    onClick={() => setCartQuantity(prev => prev + 1)}
+                    className="w-10 h-10 bg-white dark:bg-slate-700 hover:bg-blue-50 dark:hover:bg-blue-900/30 text-slate-400 dark:text-slate-500 hover:text-blue-500 dark:hover:text-blue-400 rounded-xl flex items-center justify-center font-black text-xl transition-all shadow-sm active:scale-90"
+                  >
+                    +
+                  </button>
+                </div>
+                <div className="mt-3 pt-2 border-t border-slate-200/50 dark:border-slate-700/50 w-full text-center">
+                  <p className="text-[9px] font-bold text-slate-400 dark:text-slate-500 uppercase">Subtotal do Item</p>
+                  <p className="text-base font-black text-blue-600 dark:text-blue-400">R$ {(selectedProductForCart.price * cartQuantity).toFixed(2)}</p>
+                </div>
+              </div>
+
               <div className="space-y-6">
                 <div>
                   <label className="text-[10px] font-black text-slate-500 dark:text-slate-400 uppercase tracking-widest mb-2 block">Deseja adicionar alguma observação?</label>
                   <input autoFocus type="text" placeholder="Ex: Sem sal, bem passado..." value={cartObservation} onChange={(e) => setCartObservation(e.target.value)} onKeyDown={(e) => e.key === 'Enter' && confirmAddToCart()} className="w-full p-4 bg-slate-100 dark:bg-slate-800 rounded-2xl border-none focus:ring-2 focus:ring-blue-600 font-bold text-sm outline-none placeholder:font-normal dark:text-white" maxLength={60} />
                 </div>
                 {(saleType === SaleType.COUNTER || saleType === SaleType.OWN_DELIVERY) && (
-                  <div className="flex items-center justify-between px-1 bg-blue-50/50 dark:bg-blue-900/20 p-3 rounded-2xl border border-blue-100/50 dark:border-blue-500/20">
+                  <div className="flex items-center justify-between p-5 bg-blue-50/50 dark:bg-blue-900/20 rounded-2xl border border-blue-100/50 dark:border-blue-500/20">
                     <div>
                       <span className="text-[10px] font-black text-blue-700 dark:text-blue-400 uppercase tracking-widest block">Não enviar para cozinha</span>
                       <span className="text-[8px] font-bold text-blue-500/60 uppercase">O item irá direto para Pronto</span>

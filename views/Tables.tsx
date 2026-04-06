@@ -42,8 +42,9 @@ const Tables: React.FC<TablesProps> = ({ currentUser }) => {
 
   const [showConsumptionTicket, setShowConsumptionTicket] = useState(false);
   const [selectedWaiterId, setSelectedWaiterId] = useState<string>('');
-  const [selectedProductForLaunch, setSelectedProductForLaunch] = useState<Product | null>(null);
   const [modalObservation, setModalObservation] = useState('');
+  const [modalQuantity, setModalQuantity] = useState(1);
+  const [selectedProductForLaunch, setSelectedProductForLaunch] = useState<Product | null>(null);
 
 
   const [clientSearch, setClientSearch] = useState('');
@@ -228,6 +229,7 @@ const Tables: React.FC<TablesProps> = ({ currentUser }) => {
     // Fechar a tela de "Lançar Item" imediatamente
     setSelectedProductForLaunch(null);
     setModalObservation('');
+    setModalQuantity(1);
 
     console.log('Attempting to launch product:', product.name, 'to table:', selectedTable);
     if (selectedTable === null) return;
@@ -262,7 +264,7 @@ const Tables: React.FC<TablesProps> = ({ currentUser }) => {
     }
     */
 
-    const validation = await db.validateStockForOrder([{ productId: product.id, quantity: 1 }]);
+    const validation = await db.validateStockForOrder([{ productId: product.id, quantity: modalQuantity }]);
     if (!validation.valid) {
       console.warn('Launch blocked: Out of stock', validation.message);
       return addToast({ title: "SEM ESTOQUE", message: validation.message || "Produto sem estoque.", type: "DANGER" });
@@ -272,7 +274,7 @@ const Tables: React.FC<TablesProps> = ({ currentUser }) => {
     const newItem: OrderItem = {
       uid: `item-${Date.now()}-${Math.random().toString(36).substr(2, 4)}`,
       productId: product.id,
-      quantity: 1,
+      quantity: modalQuantity,
       price: product.price,
       isReady: false,
       observations: observationStr || ''
@@ -489,7 +491,7 @@ const Tables: React.FC<TablesProps> = ({ currentUser }) => {
           allReady: true
         };
       }
-      grouped[item.productId].quantity += 1;
+      grouped[item.productId].quantity += (item.quantity || 1);
       if (!item.isReady) grouped[item.productId].allReady = false;
     });
     return Object.values(grouped);
@@ -802,6 +804,7 @@ const Tables: React.FC<TablesProps> = ({ currentUser }) => {
                             onClick={() => {
                               setSelectedProductForLaunch(prod);
                               setModalObservation('');
+                              setModalQuantity(1);
                             }}
                             className={`p-5 bg-white dark:bg-slate-800 border rounded-[2.5rem] shadow-sm transition-all duration-200 text-left group relative overflow-hidden active:scale-95 hover:scale-[1.02] ${lastAddedProduct === prod.id
                               ? 'border-emerald-500 ring-4 ring-emerald-50 dark:ring-emerald-900/20 scale-95'
@@ -844,7 +847,10 @@ const Tables: React.FC<TablesProps> = ({ currentUser }) => {
                     <div className="bg-slate-50 dark:bg-slate-800/50 rounded-[2rem] p-8 border border-slate-100 dark:border-slate-700 space-y-3 font-receipt shadow-inner">
                       {getGroupedItems(getSessForTable(selectedTable)?.items || []).map((it, idx) => (
                         <div key={idx} className="flex justify-between border-b border-dashed border-slate-200 dark:border-slate-700 pb-2">
-                          <span className="font-bold text-[13px] dark:text-slate-200">{it.quantity}x {it.product?.name.toUpperCase()}</span>
+                          <div className="flex items-center flex-1 pr-4">
+                            <span className="text-slate-300 dark:text-slate-600 font-bold text-[13px] mr-3 font-mono">{it.quantity}x</span>
+                            <p className="text-[13px] font-bold text-slate-800 dark:text-slate-200 uppercase tracking-tight line-clamp-1">{it.product?.name}</p>
+                          </div>
                           <span className="font-black text-[13px] dark:text-slate-100">R$ {(it.quantity * it.price).toFixed(2)}</span>
                         </div>
                       ))}
@@ -877,7 +883,7 @@ const Tables: React.FC<TablesProps> = ({ currentUser }) => {
                             {clients.filter(c => c.name.toLowerCase().includes(clientSearch.toLowerCase())).map(c => (<button key={c.id} onClick={() => { setSelectedClient(c); setClientSearch(c.name); setShowClientList(false); }} className="w-full text-left p-4 hover:bg-slate-50 dark:hover:bg-slate-700 border-b border-slate-50 dark:border-slate-700 last:border-0 rounded-2xl"><p className="text-xs font-black text-slate-800 dark:text-white uppercase tracking-tighter">{c.name}</p><p className="text-[10px] text-slate-400 dark:text-slate-500 font-bold">{c.phone}</p></button>))}
                           </div>
                         )}
-                        {selectedClient && <div className="mt-4 bg-emerald-50 dark:bg-emerald-900/20 p-4 rounded-2xl border border-emerald-100 dark:border-emerald-900/30 flex justify-between items-center animate-in fade-in"><div className="flex-1 min-w-0"><p className="text-[10px] font-black text-emerald-700 dark:text-emerald-400 uppercase">{selectedClient.name}</p><p className="text-[8px] text-emerald-400 dark:text-emerald-500 truncate uppercase">{formatAddress(selectedClient)}</p></div><button onClick={() => setSelectedClient(null)} className="text-emerald-400 font-black px-2 text-xl">×</button></div>}
+                        {selectedClient && <div className="mt-4 bg-emerald-50 dark:bg-emerald-900/20 p-4 rounded-2xl border border-emerald-100 dark:border-emerald-900/30 flex justify-between items-center animate-in fade-in"><div className="flex-1 min-w-0"><p className="text-[10px] font-black text-emerald-700 dark:emerald-400 uppercase">{selectedClient.name}</p><p className="text-[8px] text-emerald-400 dark:text-emerald-500 truncate uppercase">{formatAddress(selectedClient)}</p></div><button onClick={() => setSelectedClient(null)} className="text-emerald-400 font-black px-2 text-xl">×</button></div>}
                       </div>
                       <button onClick={() => { const sess = getSessForTable(selectedTable!); if (sess) startBillingRequest(sess); }} disabled={getSessForTable(selectedTable)?.items.length === 0} className="w-full py-5 bg-orange-500 text-white font-black text-xs uppercase tracking-widest rounded-2xl shadow-xl shadow-orange-100 hover:bg-orange-600 transition-all active:scale-95 disabled:opacity-50">Solicitar Pré-Fechamento / Ir para Cupom</button>
                     </div>
@@ -894,7 +900,32 @@ const Tables: React.FC<TablesProps> = ({ currentUser }) => {
         <div className="fixed inset-0 z-[60] flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-sm animate-in zoom-in duration-200">
           <div className="bg-white dark:bg-slate-900 rounded-[2rem] shadow-2xl p-8 w-full max-w-sm border border-white/20 dark:border-slate-800">
             <h3 className="text-lg font-black text-slate-800 dark:text-white uppercase mb-2 tracking-tighter text-center">Lançar Item</h3>
-            <p className="text-center text-[10px] font-bold text-slate-400 dark:text-slate-500 uppercase mb-6">{selectedProductForLaunch.name}</p>
+            <p className="text-center text-[10px] font-bold text-slate-400 dark:text-slate-500 uppercase mb-4">{selectedProductForLaunch.name}</p>
+            
+            {/* Seletor de Quantidade */}
+            <div className="flex flex-col items-center justify-center p-3 bg-slate-50 dark:bg-slate-800 rounded-[1.5rem] border border-slate-100 dark:border-slate-700 mb-4 group/qt">
+              <p className="text-[10px] font-black text-slate-400 dark:text-slate-500 uppercase tracking-widest mb-2">Defina a Quantidade</p>
+              <div className="flex items-center gap-4">
+                <button 
+                  onClick={() => setModalQuantity(prev => Math.max(1, prev - 1))}
+                  className="w-10 h-10 bg-white dark:bg-slate-700 hover:bg-red-50 dark:hover:bg-red-900/30 text-slate-400 dark:text-slate-500 hover:text-red-500 dark:hover:text-red-400 rounded-xl flex items-center justify-center font-black text-xl transition-all shadow-sm active:scale-90"
+                >
+                  -
+                </button>
+                <span className="text-3xl font-black text-slate-800 dark:text-white tracking-tighter w-10 text-center select-none group-hover/qt:scale-110 transition-transform">{modalQuantity}</span>
+                <button 
+                  onClick={() => setModalQuantity(prev => prev + 1)}
+                  className="w-10 h-10 bg-white dark:bg-slate-700 hover:bg-blue-50 dark:hover:bg-blue-900/30 text-slate-400 dark:text-slate-500 hover:text-blue-500 dark:hover:text-blue-400 rounded-xl flex items-center justify-center font-black text-xl transition-all shadow-sm active:scale-90"
+                >
+                  +
+                </button>
+              </div>
+              <div className="mt-3 pt-2 border-t border-slate-200/50 dark:border-slate-700/50 w-full text-center">
+                <p className="text-[9px] font-bold text-slate-400 dark:text-slate-500 uppercase">Subtotal do Item</p>
+                <p className="text-base font-black text-blue-600 dark:text-blue-400">R$ {(selectedProductForLaunch.price * modalQuantity).toFixed(2)}</p>
+              </div>
+            </div>
+
             <div className="space-y-6">
               <div>
                 <label className="text-[10px] font-black text-slate-500 dark:text-slate-400 uppercase tracking-widest mb-2 block">Deseja adicionar alguma observação?</label>
