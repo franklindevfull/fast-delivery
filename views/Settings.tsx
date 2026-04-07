@@ -1069,6 +1069,31 @@ const Settings: React.FC<SettingsProps> = ({ settings, setSettings, onReset }) =
                             <div className="pt-8 border-t border-slate-100 dark:border-slate-800">
                                 <div className="flex justify-between items-center mb-6">
                                     <div>
+                                        <h4 className="text-sm font-black text-slate-800 dark:text-white uppercase tracking-tighter">Configurações Padrão para Pizzas</h4>
+                                        <p className="text-[10px] text-slate-400 dark:text-slate-500 font-bold uppercase tracking-widest leading-relaxed">Defina regras de preço e impressão fiscal para pizzas</p>
+                                    </div>
+                                </div>
+                                <div className="grid grid-cols-1 md:grid-cols-2 gap-4 sm:gap-6">
+                                    <div className="space-y-2">
+                                        <label className="text-[10px] font-black text-slate-400 dark:text-slate-500 uppercase tracking-widest ml-1">Cálculo de Preço (Mais de um Sabor)</label>
+                                        <select className="w-full p-4 bg-slate-50 dark:bg-slate-800 border-none rounded-2xl focus:ring-4 focus:ring-blue-50 dark:focus:ring-blue-900/20 transition-all font-bold text-sm text-slate-800 dark:text-white" value={settings.pizzaPriceRule || 'HIGHEST'} onChange={e => setSettings({ ...settings, pizzaPriceRule: e.target.value as any })}>
+                                            <option value="HIGHEST">Cobrar pelo Sabor de Maior Valor</option>
+                                            <option value="AVERAGE">Média Ponderada (Proporção Exata)</option>
+                                        </select>
+                                    </div>
+                                    <div className="space-y-2">
+                                        <label className="text-[10px] font-black text-slate-400 dark:text-slate-500 uppercase tracking-widest ml-1">Regra de Emissão NFC-e</label>
+                                        <select className="w-full p-4 bg-slate-50 dark:bg-slate-800 border-none rounded-2xl focus:ring-4 focus:ring-blue-50 dark:focus:ring-blue-900/20 transition-all font-bold text-sm text-slate-800 dark:text-white" value={settings.pizzaNfeRule || 'OBSERVATION'} onChange={e => setSettings({ ...settings, pizzaNfeRule: e.target.value as any })}>
+                                            <option value="OBSERVATION">Item Único + Sabores na Observação</option>
+                                            <option value="FRACTIONED">Itens Fracionados Multiplicados (Kits)</option>
+                                        </select>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div className="pt-8 border-t border-slate-100 dark:border-slate-800">
+                                <div className="flex justify-between items-center mb-6">
+                                    <div>
                                         <h4 className="text-sm font-black text-slate-800 dark:text-white uppercase tracking-tighter">Módulos e Aplicativos Adicionais</h4>
                                         <p className="text-[10px] text-slate-400 dark:text-slate-500 font-bold uppercase tracking-widest">Habilite ou desabilite os aplicativos para sua loja</p>
                                     </div>

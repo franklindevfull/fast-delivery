@@ -12,7 +12,8 @@ const mapOrderResponse = (order: any) => {
             uid: item.id, // Ensure frontend gets 'uid'
             observations: item.observations || null,
             // skipKitchen: !!item.skipKitchen,
-            tableSessionId: item.tableSessionId || null
+            tableSessionId: item.tableSessionId || null,
+            pizzaFlavors: item.pizzaFlavors ? (typeof item.pizzaFlavors === 'string' ? (() => { try { return JSON.parse(item.pizzaFlavors); } catch(e) { return null; } })() : item.pizzaFlavors) : null
         }))
     };
 };
@@ -185,6 +186,30 @@ const handleInventoryImpact = async (tx: any, items: any[], type: 'DECREMENT' | 
         if (product) {
             const iq = parseFloat(item.quantity?.toString() || '0');
             await processProductInventory(tx, product, iq, type, orderId);
+
+            if (item.pizzaFlavors) {
+                try {
+                    const flavors = typeof item.pizzaFlavors === 'string' ? JSON.parse(item.pizzaFlavors) : item.pizzaFlavors;
+                    if (Array.isArray(flavors)) {
+                        for (const flavorRef of flavors) {
+                            if (!flavorRef.productId || !flavorRef.fraction) continue;
+                            const flavorProduct = await tx.product.findUnique({
+                                where: { id: flavorRef.productId },
+                                include: { 
+                                    recipe: { include: { inventoryItem: true } },
+                                    comboItems: { include: { product: { include: { recipe: { include: { inventoryItem: true } } } } } }
+                                }
+                            });
+                            if (flavorProduct) {
+                                const flavorQty = iq * parseFloat(flavorRef.fraction.toString());
+                                await processProductInventory(tx, flavorProduct, flavorQty, type, orderId, `Sabor: ${flavorRef.name || 'Pizza'}`);
+                            }
+                        }
+                    }
+                } catch (e) {
+                    console.error("Error processing pizza flavors inventory:", e);
+                }
+            }
         }
     }
 };
@@ -462,6 +487,7 @@ export const saveOrder = async (req: Request, res: Response) => {
                             readyAt: (item.readyAt && !isNaN(Date.parse(item.readyAt))) ? new Date(item.readyAt) : null,
                             // skipKitchen: !!item.skipKitchen,
                             observations: item.observations || null,
+                            pizzaFlavors: item.pizzaFlavors ? (typeof item.pizzaFlavors === 'string' ? item.pizzaFlavors : JSON.stringify(item.pizzaFlavors)) : null,
                             tableSessionId: (newStatus === 'DELIVERED') ? null : ((item.tableSessionId && !isNaN(parseInt(item.tableSessionId.toString()))) ? parseInt(item.tableSessionId.toString()) : null)
                         }))
                     }
@@ -509,6 +535,7 @@ export const saveOrder = async (req: Request, res: Response) => {
                             readyAt: (item.readyAt && !isNaN(Date.parse(item.readyAt))) ? new Date(item.readyAt) : null,
                             // skipKitchen: !!item.skipKitchen,
                             observations: item.observations || null,
+                            pizzaFlavors: item.pizzaFlavors ? (typeof item.pizzaFlavors === 'string' ? item.pizzaFlavors : JSON.stringify(item.pizzaFlavors)) : null,
                             tableSessionId: (newStatus === 'DELIVERED') ? null : ((item.tableSessionId && !isNaN(parseInt(item.tableSessionId.toString()))) ? parseInt(item.tableSessionId.toString()) : null)
                         }))
                     }

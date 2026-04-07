@@ -108,6 +108,8 @@ export interface BusinessSettings {
   appBannerUrl2?: string;
   appBannerUrl3?: string;
   notificationTermsTemplate?: string;
+  pizzaPriceRule?: 'HIGHEST' | 'AVERAGE';
+  pizzaNfeRule?: 'OBSERVATION' | 'FRACTIONED';
 }
 
 export interface Waiter {
@@ -205,6 +207,8 @@ export interface Product {
   ncm?: string;
   cfop?: string;
   cest?: string;
+  isPizza?: boolean;
+  pizzaSize?: string;
 }
 
 export interface OrderItem {
@@ -219,6 +223,7 @@ export interface OrderItem {
   readyAt?: string | null;
   skipKitchen?: boolean;
   observations?: string | null;
+  pizzaFlavors?: any;
 }
 
 export interface TableSession {

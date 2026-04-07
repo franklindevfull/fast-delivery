@@ -56,6 +56,7 @@ const POS: React.FC<POSProps> = ({ currentUser }) => {
   const [cartObservation, setCartObservation] = useState('');
   const [cartQuantity, setCartQuantity] = useState(1);
   const [skipKitchen, setSkipKitchen] = useState(false);
+  const [selectedPizzaFlavors, setSelectedPizzaFlavors] = useState<Product[]>([]);
 
   const [pendingTables, setPendingTables] = useState<TableSession[]>([]);
   const [pendingCounterOrders, setPendingCounterOrders] = useState<Order[]>([]);
@@ -211,20 +212,41 @@ const POS: React.FC<POSProps> = ({ currentUser }) => {
       }
     }
 
+    if (selectedProductForCart.isPizza && selectedProductForCart.pizzaSize) {
+      if (selectedPizzaFlavors.length === 0) {
+        return showAlert("Atenção", "Selecione pelo menos um sabor para a pizza.", "DANGER");
+      }
+    }
+
+    let finalPrice = selectedProductForCart.price;
+    if (selectedProductForCart.isPizza && selectedProductForCart.pizzaSize && selectedPizzaFlavors.length > 0) {
+      if (businessSettings?.pizzaPriceRule === 'AVERAGE') {
+         const sumPrices = selectedPizzaFlavors.reduce((acc, f) => acc + f.price, 0);
+         finalPrice = sumPrices / selectedPizzaFlavors.length;
+      } else {
+         finalPrice = Math.max(...selectedPizzaFlavors.map(f => f.price), selectedProductForCart.price);
+      }
+    }
+
+    const maxFlavors = selectedProductForCart.pizzaSize === 'P' ? 2 : selectedProductForCart.pizzaSize === 'M' ? 3 : selectedProductForCart.pizzaSize === 'G' ? 4 : 1;
+    const fraction = 1 / Math.max(1, selectedPizzaFlavors.length);
+
     setCart(prev => [...prev, {
       uid: `item-${Date.now()}-${Math.random().toString(36).substr(2, 4)}`,
       productId: product.id,
       quantity: cartQuantity,
-      price: product.price,
+      price: finalPrice,
       isReady: false,
       skipKitchen: skipKitchen,
-      observations: cartObservation || ''
+      observations: cartObservation || '',
+      pizzaFlavors: selectedPizzaFlavors.length > 0 ? selectedPizzaFlavors.map(f => ({ productId: f.id, name: f.name, fraction })) : undefined
     }]);
 
     setSelectedProductForCart(null);
     setCartObservation('');
     setCartQuantity(1);
     setSkipKitchen(false);
+    setSelectedPizzaFlavors([]);
   };
 
   const loadTableSession = async (sess: TableSession) => {
@@ -662,6 +684,7 @@ const POS: React.FC<POSProps> = ({ currentUser }) => {
     setEmitNfce(false);
     setSystemPreview(null);
     setErrors({});
+    setSelectedPizzaFlavors([]);
   };
 
   const handleOpenCash = async () => {
@@ -959,21 +982,38 @@ const POS: React.FC<POSProps> = ({ currentUser }) => {
 
   const groupedPrintingItems = useMemo(() => {
     if (!printingOrder) return [];
-    const grouped: Record<string, { product: Product | undefined, quantity: number, price: number }> = {};
+    const grouped: Record<string, { product: Product | undefined, quantity: number, price: number, isSubItem?: boolean; notes?: string }> = {};
     if (printingOrder && Array.isArray(printingOrder.items)) {
       printingOrder.items.forEach(item => {
-        if (!grouped[item.productId]) {
-          grouped[item.productId] = {
-            product: products.find(p => p.id === item.productId),
-            quantity: 0,
-            price: item.price
-          };
+        const isFractioned = businessSettings?.pizzaNfeRule === 'FRACTIONED' && item.pizzaFlavors && Array.isArray(item.pizzaFlavors) && item.pizzaFlavors.length > 0;
+        
+        if (isFractioned) {
+           item.pizzaFlavors.forEach((flavor: any) => {
+               const flavorId = `${item.productId}-${flavor.productId}`;
+               if (!grouped[flavorId]) {
+                 grouped[flavorId] = {
+                   product: products.find(p => p.id === flavor.productId) || { name: `1/${item.pizzaFlavors.length} Pizza: ${flavor.name}`, id: flavor.productId } as any,
+                   quantity: 0,
+                   price: item.price
+                 };
+               }
+               grouped[flavorId].quantity += (item.quantity * flavor.fraction);
+           });
+        } else {
+           if (!grouped[item.productId]) {
+             grouped[item.productId] = {
+               product: products.find(p => p.id === item.productId),
+               quantity: 0,
+               price: item.price,
+               notes: item.pizzaFlavors && item.pizzaFlavors.length > 0 ? `Sabores: ${item.pizzaFlavors.map((f:any) => f.name).join(', ')}` : undefined
+             };
+           }
+           grouped[item.productId].quantity += item.quantity;
         }
-        grouped[item.productId].quantity += item.quantity;
       });
     }
     return Object.entries(grouped);
-  }, [printingOrder, products]);
+  }, [printingOrder, products, businessSettings]);
 
   return (
     <div className="flex flex-col h-full gap-2 lg:gap-4 xl:gap-6">
@@ -1861,6 +1901,53 @@ const POS: React.FC<POSProps> = ({ currentUser }) => {
               <h3 className="text-lg font-black text-slate-800 dark:text-white uppercase mb-2 tracking-tighter text-center">Adicionar ao Carrinho</h3>
               <p className="text-center text-[10px] font-bold text-slate-400 dark:text-slate-500 uppercase mb-4">{selectedProductForCart.name}</p>
               
+              {/* Pizza Flavor Selector */}
+              {selectedProductForCart.isPizza && selectedProductForCart.pizzaSize && (
+                <div className="mb-4">
+                  <p className="text-[10px] font-black text-slate-400 dark:text-slate-500 uppercase tracking-widest mb-2">
+                    Escolha até {selectedProductForCart.pizzaSize === 'P' ? 2 : selectedProductForCart.pizzaSize === 'M' ? 3 : selectedProductForCart.pizzaSize === 'G' ? 4 : 1} sabores
+                  </p>
+                  <div className="max-h-48 overflow-y-auto space-y-2 custom-scrollbar mb-2 border border-slate-100 dark:border-slate-800 rounded-xl p-2 bg-slate-50/50 dark:bg-slate-900/50">
+                    {products.filter(p => p.isPizza && p.id !== selectedProductForCart.id && (!p.pizzaSize || p.pizzaSize === selectedProductForCart.pizzaSize)).map(flavor => {
+                      const isSelected = selectedPizzaFlavors.find(f => f.id === flavor.id);
+                      return (
+                        <div key={flavor.id} onClick={() => {
+                          const maxF = selectedProductForCart.pizzaSize === 'P' ? 2 : selectedProductForCart.pizzaSize === 'M' ? 3 : selectedProductForCart.pizzaSize === 'G' ? 4 : 1;
+                          if (isSelected) {
+                            setSelectedPizzaFlavors(prev => prev.filter(f => f.id !== flavor.id));
+                          } else {
+                            if (selectedPizzaFlavors.length < maxF) {
+                              setSelectedPizzaFlavors(prev => [...prev, flavor]);
+                            } else {
+                              addToast({ title: 'Aviso', message: `Máximo de ${maxF} sabores permitidos.`, type: 'INFO' });
+                            }
+                          }
+                        }} className={`p-3 rounded-xl border flex items-center justify-between cursor-pointer transition-colors ${isSelected ? 'bg-blue-50 dark:bg-blue-900/30 border-blue-200 dark:border-blue-800' : 'bg-white dark:bg-slate-800 border-transparent hover:border-slate-200 dark:hover:border-slate-700'}`}>
+                           <div>
+                             <p className={`text-xs font-bold leading-tight ${isSelected ? 'text-blue-700 dark:text-blue-300' : 'text-slate-800 dark:text-slate-200'}`}>{flavor.name}</p>
+                             <p className="text-[9px] text-slate-400 mt-0.5">{formatCurrency(flavor.price)}</p>
+                           </div>
+                           <div className={`w-5 h-5 rounded-full border-2 flex items-center justify-center transition-colors ${isSelected ? 'border-blue-500 bg-blue-500' : 'border-slate-300 dark:border-slate-600'}`}>
+                             {isSelected && <Icons.Check className="w-3 h-3 text-white" />}
+                           </div>
+                        </div>
+                      )
+                    })}
+                  </div>
+                  {/* Dynamic Pricing Preview */}
+                  <div className="mb-3 px-3 py-2 bg-emerald-50 dark:bg-emerald-900/10 border border-emerald-100 dark:border-emerald-900/30 rounded-xl">
+                    <p className="text-[9px] font-black uppercase text-emerald-600 dark:text-emerald-500 text-center">Preço Calculado (Sabor)</p>
+                    <p className="text-center font-black text-emerald-700 dark:text-emerald-400 text-sm">
+                      {selectedProductForCart.isPizza && selectedPizzaFlavors.length > 0 
+                        ? formatCurrency(businessSettings?.pizzaPriceRule === 'AVERAGE' 
+                            ? selectedPizzaFlavors.reduce((acc, f) => acc + f.price, 0) / selectedPizzaFlavors.length 
+                            : Math.max(...selectedPizzaFlavors.map(f => f.price), selectedProductForCart.price))
+                        : formatCurrency(selectedProductForCart.price)}
+                    </p>
+                  </div>
+                </div>
+              )}
+
               {/* Seletor de Quantidade */}
               <div className="flex flex-col items-center justify-center p-3 bg-slate-50 dark:bg-slate-800 rounded-[1.5rem] border border-slate-100 dark:border-slate-700 mb-4 group/qt">
                 <p className="text-[10px] font-black text-slate-400 dark:text-slate-500 uppercase tracking-widest mb-2">Defina a Quantidade</p>
@@ -1881,7 +1968,11 @@ const POS: React.FC<POSProps> = ({ currentUser }) => {
                 </div>
                 <div className="mt-3 pt-2 border-t border-slate-200/50 dark:border-slate-700/50 w-full text-center">
                   <p className="text-[9px] font-bold text-slate-400 dark:text-slate-500 uppercase">Subtotal do Item</p>
-                  <p className="text-base font-black text-blue-600 dark:text-blue-400">{formatCurrency(selectedProductForCart.price * cartQuantity)}</p>
+                  <p className="text-base font-black text-blue-600 dark:text-blue-400">
+                    {formatCurrency((selectedProductForCart.isPizza && selectedProductForCart.pizzaSize && selectedPizzaFlavors.length > 0 
+                     ? (businessSettings?.pizzaPriceRule === 'AVERAGE' ? (selectedPizzaFlavors.reduce((acc, f) => acc + f.price, 0) / selectedPizzaFlavors.length) : Math.max(...selectedPizzaFlavors.map(f => f.price), selectedProductForCart.price)) 
+                     : selectedProductForCart.price) * cartQuantity)}
+                  </p>
                 </div>
               </div>
 
@@ -1906,7 +1997,7 @@ const POS: React.FC<POSProps> = ({ currentUser }) => {
                   </div>
                 )}
                 <div className="flex gap-2">
-                  <button onClick={() => setSelectedProductForCart(null)} className="flex-1 py-4 font-black text-[10px] uppercase text-slate-400 dark:text-slate-500 hover:text-slate-600 dark:hover:text-slate-400 transition-colors">Cancelar</button>
+                  <button onClick={() => { setSelectedProductForCart(null); setSelectedPizzaFlavors([]); }} className="flex-1 py-4 font-black text-[10px] uppercase text-slate-400 dark:text-slate-500 hover:text-slate-600 dark:hover:text-slate-400 transition-colors">Cancelar</button>
                   <button onClick={confirmAddToCart} className="flex-1 py-4 bg-blue-600 hover:bg-blue-700 text-white rounded-xl font-black text-[10px] uppercase shadow-xl hover:shadow-blue-200 dark:shadow-none transition-all active:scale-95">Adicionar ✓</button>
                 </div>
               </div>
@@ -1944,13 +2035,20 @@ const POS: React.FC<POSProps> = ({ currentUser }) => {
                         {groupedPrintingItems.map(([id, data]) => {
                           const ncmCode = data.product?.ncm || '00000000';
                           return (
-                            <tr key={id} className="uppercase">
-                              <td>{ncmCode.substring(0, 6)}</td>
-                              <td>{data.product?.name.substring(0, 20)}</td>
-                              <td className="text-right">{data.quantity}</td>
-                              <td className="text-right">{formatCurrency(data.price, false)}</td>
-                              <td className="text-right">{formatCurrency(data.quantity * data.price, false)}</td>
-                            </tr>
+                            <React.Fragment key={id}>
+                              <tr className="uppercase">
+                                <td>{ncmCode.substring(0, 6)}</td>
+                                <td>{data.product?.name.substring(0, 20)}</td>
+                                <td className="text-right">{data.quantity}</td>
+                                <td className="text-right">{formatCurrency(data.price, false)}</td>
+                                <td className="text-right">{formatCurrency(data.quantity * data.price, false)}</td>
+                              </tr>
+                              {data.notes && (
+                                <tr className="uppercase text-[10px] text-slate-800 font-bold mb-1 pb-1 border-b border-dotted border-black/10">
+                                  <td colSpan={5} className="pt-0.5 whitespace-pre-wrap">📝 {data.notes}</td>
+                                </tr>
+                              )}
+                            </React.Fragment>
                           );
                         })}
                       </tbody>
@@ -2014,9 +2112,14 @@ const POS: React.FC<POSProps> = ({ currentUser }) => {
 
                   <div className="mb-1 border-t border-black pt-1">
                     {groupedPrintingItems.map(([id, data]) => (
-                      <div key={id} className="flex justify-between items-start font-bold uppercase py-0.5 text-[8px] gap-2">
-                        <span className="flex-1 leading-tight whitespace-normal">{data.quantity}X {data.product?.name.substring(0, 25)}</span>
-                        <span className="shrink-0 whitespace-nowrap">{formatCurrency(data.price, false)}</span>
+                      <div key={id} className={`flex flex-col py-0.5 ${data.notes ? 'mb-1 border-b border-dotted border-black/10 pb-1' : ''}`}>
+                        <div className="flex justify-between items-start font-bold uppercase text-[8px] gap-2">
+                          <span className="flex-1 leading-tight whitespace-normal">{data.quantity}X {data.product?.name.substring(0, 25)}</span>
+                          <span className="shrink-0 whitespace-nowrap">{formatCurrency(data.price, false)}</span>
+                        </div>
+                        {data.notes && (
+                          <span className="text-[7px] font-bold uppercase text-slate-600 mt-0.5 ml-3">📝 {data.notes}</span>
+                        )}
                       </div>
                     ))}
                   </div>

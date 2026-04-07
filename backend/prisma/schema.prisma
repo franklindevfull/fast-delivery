@@ -76,6 +76,8 @@ model Product {
   partOfCombos ComboItem[]  @relation("ComboChild")
   orderItems   OrderItem[]
   recipe       RecipeItem[]
+  isPizza      Boolean      @default(false)
+  pizzaSize    String?
 }
 
 model InventoryItem {
@@ -251,6 +253,7 @@ model OrderItem {
   readyAt        DateTime?
   skipKitchen    Boolean       @default(false)
   observations   String?
+  pizzaFlavors   String?
   order          Order?        @relation(fields: [orderId], references: [id])
   product        Product       @relation(fields: [productId], references: [id])
   tableSession   TableSession? @relation(fields: [tableSessionId], references: [tableNumber])
@@ -344,6 +347,8 @@ model BusinessSettings {
   appBannerUrl2        String?
   appBannerUrl3        String?
   notificationTermsTemplate String?
+  pizzaPriceRule       String  @default("HIGHEST")
+  pizzaNfeRule         String  @default("OBSERVATION")
 }
 
 model ChatMessage {

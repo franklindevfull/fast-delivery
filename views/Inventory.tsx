@@ -27,7 +27,7 @@ const Inventory: React.FC = () => {
 
   const [prodFormData, setProdFormData] = useState({
     name: '', price: 0, category: '', imageUrl: '', stock: 0,
-    ncm: '', cfop: '', cest: '', preparation: '', isCombo: false
+    ncm: '', cfop: '', cest: '', preparation: '', isCombo: false, isPizza: false, pizzaSize: ''
   });
 
   const [tempRecipe, setTempRecipe] = useState<RecipeItem[]>([]);
@@ -105,13 +105,15 @@ const Inventory: React.FC = () => {
         cfop: product.cfop || '',
         cest: product.cest || '',
         preparation: product.preparation || '',
-        isCombo: (product.comboItems?.length ?? 0) > 0
+        isCombo: (product.comboItems?.length ?? 0) > 0,
+        isPizza: product.isPizza || false,
+        pizzaSize: product.pizzaSize || ''
       });
       setTempRecipe(product.recipe || []);
       setTempComboItems(product.comboItems?.map(ci => ({ productId: ci.productId, quantity: ci.quantity })) || []);
     } else {
       setEditingProduct(null);
-      setProdFormData({ name: '', price: 0, category: 'Geral', imageUrl: '', stock: 0, ncm: '', cfop: '', cest: '', preparation: '', isCombo: false });
+      setProdFormData({ name: '', price: 0, category: 'Geral', imageUrl: '', stock: 0, ncm: '', cfop: '', cest: '', preparation: '', isCombo: false, isPizza: false, pizzaSize: '' });
       setTempRecipe([]);
       setTempComboItems([]);
     }
@@ -430,6 +432,29 @@ const Inventory: React.FC = () => {
 
               <div className="pt-4 border-t border-slate-50 dark:border-slate-800 space-y-4">
                 <div className="flex items-center gap-3">
+                  <input
+                    type="checkbox"
+                    id="isPizza"
+                    checked={prodFormData.isPizza}
+                    onChange={(e) => setProdFormData({ ...prodFormData, isPizza: e.target.checked })}
+                    className="w-5 h-5 rounded-lg border-slate-300 text-blue-600 focus:ring-blue-500"
+                  />
+                  <label htmlFor="isPizza" className="text-sm font-black text-slate-800 dark:text-white cursor-pointer">
+                    Este produto é Sabor de Pizza / Pizza?
+                  </label>
+                </div>
+                {prodFormData.isPizza && (
+                  <div className="space-y-1">
+                    <label className="text-[10px] font-black text-slate-400 dark:text-slate-500 uppercase tracking-widest ml-1">Tamanho Específico (Opcional)</label>
+                    <select value={prodFormData.pizzaSize} onChange={e => setProdFormData({ ...prodFormData, pizzaSize: e.target.value })} className="w-full p-4 bg-slate-100 dark:bg-slate-800 border-none rounded-2xl focus:ring-2 focus:ring-blue-500 font-bold text-sm text-slate-800 dark:text-white">
+                      <option value="">Aplicável a todos tamanhos (Padrão)</option>
+                      <option value="P">Pequena (4 Fatias / 2 Sabores)</option>
+                      <option value="M">Média (6 Fatias / 3 Sabores)</option>
+                      <option value="G">Grande (8 Fatias / 4 Sabores)</option>
+                    </select>
+                  </div>
+                )}
+                <div className="flex items-center gap-3 pt-2">
                   <input
                     type="checkbox"
                     id="isCombo"
