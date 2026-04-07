@@ -438,13 +438,13 @@ const SalesMonitor: React.FC = () => {
 
                     <div className="section-divider"></div>
 
-                    <div className="mb-2">
+                    <div className="mb-2 pt-2">
                       {groupedPrintingItems.map(([id, data]) => {
                         const prodName = data.product?.name || `PROD #${id.substring(0, 5)}`;
                         return (
-                          <div key={id} className="flex justify-between font-bold uppercase py-0.5 text-[9px]">
-                            <span>{data.quantity}x {prodName.substring(0, 15)}</span>
-                            <span>R$ {(data.quantity * data.price).toFixed(2)}</span>
+                          <div key={id} className="flex justify-between items-start font-bold uppercase py-0.5 text-[8px] gap-2">
+                            <span className="flex-1 leading-tight">{data.quantity}x {prodName.substring(0, 25)}</span>
+                            <span className="whitespace-nowrap">R$ {(data.quantity * data.price).toFixed(2)}</span>
                           </div>
                         );
                       })}
@@ -470,8 +470,8 @@ const SalesMonitor: React.FC = () => {
                         </div>
                       )}
                       <div className="flex justify-between items-end pt-1">
-                        <span className="font-bold text-[10px] uppercase">TOTAL:</span>
-                        <span className="text-sm font-bold">R$ {printingOrder.total.toFixed(2)}</span>
+                        <span className="font-bold text-[9px] uppercase">TOTAL:</span>
+                        <span className="text-xs font-bold">R$ {printingOrder.total.toFixed(2)}</span>
                       </div>
                     </div>
                   </>

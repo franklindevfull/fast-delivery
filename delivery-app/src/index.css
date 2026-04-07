@@ -172,11 +172,11 @@ body {
   min-height: 40mm !important;
   padding: 2mm !important;
   box-sizing: border-box !important;
-  margin: 0 auto !important;
+  margin-left: 0 !important;
+  margin-right: auto !important;
   position: relative;
   word-wrap: break-word;
   white-space: normal;
-  font-size: 12px !important;
 }
 
 .is-receipt *, .cupom * {
@@ -209,7 +209,8 @@ body {
   .is-receipt, .cupom {
     display: block !important;
     width: 48mm !important;
-    margin: 0 auto !important;
+    margin-left: 0 !important;
+    margin-right: auto !important;
     padding: 2mm !important;
     background-color: white !important;
     overflow: visible !important;

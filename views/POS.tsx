@@ -2014,27 +2014,27 @@ const POS: React.FC<POSProps> = ({ currentUser }) => {
 
                   <div className="mb-1 border-t border-black pt-1">
                     {groupedPrintingItems.map(([id, data]) => (
-                      <div key={id} className="flex justify-between font-bold uppercase py-0.5 text-[10px]">
-                        <span className="flex-1 pr-2">{data.quantity}X {data.product?.name.substring(0, 20)}</span>
-                        <span className="shrink-0">R$ {(data.quantity * data.price).toFixed(2)}</span>
+                      <div key={id} className="flex justify-between items-start font-bold uppercase py-0.5 text-[8px] gap-2">
+                        <span className="flex-1 leading-tight whitespace-normal">{data.quantity}X {data.product?.name.substring(0, 25)}</span>
+                        <span className="shrink-0 whitespace-nowrap">R$ {(data.quantity * data.price).toFixed(2)}</span>
                       </div>
                     ))}
                   </div>
 
                   <div className="border-t border-black pt-1">
-                    <div className="flex justify-between items-center text-[9px] font-bold uppercase">
+                    <div className="flex justify-between items-center text-[8px] font-bold uppercase">
                       <span>SUBTOTAL:</span>
                       <span>R$ {(printingOrder.total - (printingOrder.appliedServiceFee || 0)).toFixed(2)}</span>
                     </div>
                     {printingOrder.appliedServiceFee !== undefined && printingOrder.appliedServiceFee > 0 && (
-                      <div className="flex justify-between items-center text-[9px] font-bold uppercase">
+                      <div className="flex justify-between items-center text-[8px] font-bold uppercase">
                         <span>TAXA SERVICO:</span>
                         <span>R$ {printingOrder.appliedServiceFee.toFixed(2)}</span>
                       </div>
                     )}
                     <div className="flex justify-between items-end pt-1">
-                      <span className="font-bold text-[10px] uppercase">TOTAL:</span>
-                      <span className="text-sm font-bold">R$ {printingOrder.total.toFixed(2)}</span>
+                      <span className="font-bold text-[9px] uppercase">TOTAL:</span>
+                      <span className="text-xs font-bold">R$ {printingOrder.total.toFixed(2)}</span>
                     </div>
                   </div>
                 </div>

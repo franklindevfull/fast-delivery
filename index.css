@@ -60,7 +60,6 @@
   position: relative;
   word-wrap: break-word;
   white-space: normal;
-  font-size: 12px !important;
 }
 
 /* Ensure all text inside receipt is black regardless of dark mode, except for UI elements */
@@ -149,7 +148,8 @@
   .is-receipt, .cupom {
     display: block !important;
     width: 48mm !important;
-    margin: 0 auto !important;
+    margin-left: 0 !important;
+    margin-right: auto !important;
     padding: 2mm !important;
     background-color: white !important;
     overflow: visible !important;
@@ -158,7 +158,7 @@
   }
 
   @page {
-    margin: 10mm;
-    size: auto;
+    margin: 0;
+    size: 58mm auto;
   }
 }

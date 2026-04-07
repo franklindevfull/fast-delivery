@@ -537,28 +537,28 @@ const Receivables: React.FC<ReceivablesProps> = ({ currentUser, setActiveTab }) 
                             {printingOrder.items.map((item: any, idx: number) => {
                                 const prod = availableProducts.find(p => p.id === item.productId);
                                 return (
-                                    <div key={idx} className="flex justify-between font-black uppercase py-0.5">
-                                        <span>{item.quantity}x {prod?.name.substring(0, 18) || 'Item'}</span>
-                                        <span>R$ {(item.quantity * item.price).toFixed(2)}</span>
+                                    <div key={idx} className="flex justify-between items-start font-black uppercase py-0.5 text-[8px] gap-2">
+                                        <span className="flex-1 leading-tight">{item.quantity}x {prod?.name.substring(0, 25) || 'Item'}</span>
+                                        <span className="whitespace-nowrap">R$ {(item.quantity * item.price).toFixed(2)}</span>
                                     </div>
                                 );
                             })}
                         </div>
                         {printingOrder.appliedServiceFee > 0 && (
-                            <div className="flex justify-between items-center border-t border-dashed pt-4 mb-2 text-[10px] uppercase font-black">
+                            <div className="flex justify-between items-center border-t border-dashed pt-4 mb-2 text-[8px] uppercase font-black">
                                 <span>Taxa Serviço:</span>
                                 <span>R$ {printingOrder.appliedServiceFee.toFixed(2)}</span>
                             </div>
                         )}
                         {printingOrder.deliveryFee > 0 && (
-                            <div className="flex justify-between items-center text-[10px] uppercase font-black mb-2">
+                            <div className="flex justify-between items-center text-[8px] uppercase font-black mb-2">
                                 <span>Taxa Entrega:</span>
                                 <span>R$ {printingOrder.deliveryFee.toFixed(2)}</span>
                             </div>
                         )}
                         <div className="flex justify-between items-center border-t border-dashed pt-4 mb-6">
-                            <span className="font-black text-[10px] uppercase tracking-tighter">TOTAL DEVEDOR:</span>
-                            <span className="text-lg font-black whitespace-nowrap">R$ {printingOrder.total.toFixed(2)}</span>
+                            <span className="font-black text-[9px] uppercase tracking-tighter">TOTAL DEVEDOR:</span>
+                            <span className="text-xs font-black whitespace-nowrap">R$ {printingOrder.total.toFixed(2)}</span>
                         </div>
 
                         <div className="grid grid-cols-2 gap-4 no-print mt-6">
