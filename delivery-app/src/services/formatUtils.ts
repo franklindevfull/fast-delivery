@@ -1,35 +1,22 @@
-
 /**
- * Simple helper to title case strings
+ * Formats a client's structured address into a single string for display or printing.
  */
-const toTitleCase = (str: string) => {
-    if (!str) return '';
-    return str.toLowerCase().split(' ').map(word => word.charAt(0).toUpperCase() + word.slice(1)).join(' ');
-};
+export const formatAddress = (client: any): string => {
+    if (!client) return 'Nenhum endereço';
 
-/**
- * Formats a structured address into a single string for order persistence and display.
- */
-export const formatAddress = (data: any): string => {
-    if (!data) return 'Endereço não informado';
-
-    const { street, number, addressNumber, complement, neighborhood, city, state, cep } = data;
-    const actualNumber = number || addressNumber;
-
-    if (!street) {
-        return data.address || 'Endereço não informado';
-    }
+    const { street, addressNumber, number, complement, neighborhood, city, state, cep } = client;
+    const finalNumber = addressNumber || number;
 
     const parts = [];
-    if (street) parts.push(toTitleCase(street));
-    if (actualNumber) parts.push(actualNumber);
+    if (street) parts.push(street);
+    if (finalNumber) parts.push(finalNumber);
     if (complement) parts.push(complement);
 
     let mainLine = parts.join(', ');
 
     const secondLineParts = [];
-    if (neighborhood) secondLineParts.push(toTitleCase(neighborhood));
-    if (city) secondLineParts.push(toTitleCase(city));
+    if (neighborhood) secondLineParts.push(neighborhood);
+    if (city) secondLineParts.push(city);
     if (state) secondLineParts.push(state.toUpperCase());
 
     const secondLine = secondLineParts.join(', ');
@@ -37,6 +24,20 @@ export const formatAddress = (data: any): string => {
     let full = mainLine;
     if (secondLine) full += ` - ${secondLine}`;
     if (cep) full += ` (CEP: ${cep})`;
-
     return full;
+};
+
+/**
+ * Formats a number as a Brazilian currency string (BRL / R$).
+ * @param value The numeric value to format.
+ * @param showSymbol Whether to include the 'R$' symbol (default: true).
+ * @returns A formatted currency string.
+ */
+export const formatCurrency = (value: number, showSymbol = true): string => {
+  const formatted = new Intl.NumberFormat('pt-BR', {
+    minimumFractionDigits: 2,
+    maximumFractionDigits: 2,
+  }).format(value || 0);
+
+  return showSymbol ? `R$ ${formatted}` : formatted;
 };

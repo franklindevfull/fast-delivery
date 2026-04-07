@@ -8,6 +8,7 @@ import { LogOut, LayoutGrid, RefreshCw, PlusCircle, MessageSquare, History, Aler
 import Modal from './components/Modal';
 import HistoryModal from './components/HistoryModal';
 import PrivacyScreen from './components/PrivacyScreen';
+import { formatCurrency } from './utils';
 
 const Dashboard: React.FC<{ user: User }> = ({ user }) => {
   const [tables, setTables] = useState<TableSession[]>([]);
@@ -416,7 +417,7 @@ const Dashboard: React.FC<{ user: User }> = ({ user }) => {
           </div>
           <div className="bg-blue-600 text-white px-2 sm:px-3 py-1 sm:py-1.5 rounded-lg sm:rounded-xl shadow-md shrink-0">
             <span className="text-xs sm:text-sm font-black tracking-tighter">
-              R$ {(() => {
+              {formatCurrency((() => {
                 const today = new Date().toDateString();
                 const feePercentage = settings?.serviceFeePercentage || 10;
                 const isFeeActive = settings?.serviceFeeStatus !== false;
@@ -456,8 +457,8 @@ const Dashboard: React.FC<{ user: User }> = ({ user }) => {
                   return sum + (tableTotal * feePercentage / 100);
                 }, 0);
 
-                return (finalizedCommission + activeCommission).toFixed(2);
-              })()}
+                return (finalizedCommission + activeCommission);
+              })())}
             </span>
           </div>
         </button>

@@ -5,6 +5,7 @@ import { socket } from '../services/socket';
 import { useReactToPrint } from 'react-to-print';
 import type { Order } from '../types';
 import { Icons } from '../constants';
+import { formatCurrency } from '../services/formatUtils';
 
 const paymentLabels: Record<string, string> = {
     'CREDIT': 'Cartão de Crédito',
@@ -169,7 +170,7 @@ const OrderHistory: React.FC = () => {
                                             <span className="text-indigo-600 dark:text-indigo-400 font-black text-[10px] bg-indigo-50 dark:bg-indigo-900/30 px-2 py-0.5 rounded-lg">{item.quantity}x</span>
                                             {item.product?.name || item.productName || 'Item'}
                                         </span>
-                                        <span className="font-black text-slate-500 dark:text-slate-400 text-xs">R$ {((item.price || 0) * item.quantity).toFixed(2)}</span>
+                                        <span className="font-black text-slate-500 dark:text-slate-400 text-xs">{formatCurrency(item.price || 0, false)}</span>
                                     </div>
                                 ))}
                             </div>
@@ -181,12 +182,12 @@ const OrderHistory: React.FC = () => {
                                             <Icons.Smartphone className="w-3 h-3 opacity-50" />
                                             Taxa de Entrega
                                         </span>
-                                        <span className="text-xs font-bold">R$ {(order.deliveryFee ?? 0).toFixed(2)}</span>
+                                        <span className="text-xs font-bold">{formatCurrency(order.deliveryFee ?? 0)}</span>
                                     </div>
                                 )}
                                 <div className="flex justify-between items-center">
                                     <span className="text-[10px] font-black text-slate-400 dark:text-slate-500 uppercase tracking-widest">Total Pago</span>
-                                    <span className="text-xl font-black text-indigo-600 dark:text-indigo-400 tracking-tighter">R$ {order.total.toFixed(2)}</span>
+                                    <span className="text-xl font-black text-indigo-600 dark:text-indigo-400 tracking-tighter">{formatCurrency(order.total)}</span>
                                 </div>
                                     <button
                                         onClick={() => setPrintingOrder(order)}
@@ -242,7 +243,7 @@ const OrderHistory: React.FC = () => {
                                 return (
                                     <div key={idx} className="flex justify-between font-black uppercase py-0.5 text-[11px] text-slate-700 dark:text-slate-300">
                                         <span>{it.quantity}x {prodName.substring(0, 18)}</span>
-                                        <span>R$ {((it.price || 0) * it.quantity).toFixed(2)}</span>
+                                        <span>{formatCurrency(it.price || 0, false)}</span>
                                     </div>
                                 );
                             })}
@@ -251,20 +252,20 @@ const OrderHistory: React.FC = () => {
                         <div className="flex flex-col gap-1 font-receipt">
                             <div className="flex justify-between items-center py-1 text-slate-600 dark:text-slate-400">
                                 <span className="text-[10px] font-black uppercase">SUBTOTAL:</span>
-                                <span className="font-black text-xs">R$ {(printingOrder.total - (printingOrder.deliveryFee || 0)).toFixed(2)}</span>
+                                <span className="font-black text-xs">{formatCurrency(printingOrder.total - (printingOrder.deliveryFee || 0))}</span>
                             </div>
 
                             {((printingOrder.deliveryFee || 0) > 0) && (
                                 <div className="flex justify-between items-center py-1 text-slate-500 dark:text-slate-400">
                                     <span className="text-[10px] uppercase font-bold">TAXA ENTREGA:</span>
-                                    <span className="font-bold text-[11px]">R$ {(printingOrder.deliveryFee || 0).toFixed(2)}</span>
+                                    <span className="font-bold text-[11px]">{formatCurrency(printingOrder.deliveryFee || 0)}</span>
                                 </div>
                             )}
                         </div>
 
                         <div className="flex justify-between items-end border-t border-black dark:border-slate-700 pt-4 mb-2 mt-2 font-receipt">
                             <span className="font-black text-xs uppercase tracking-widest text-slate-600 dark:text-slate-500">TOTAL:</span>
-                            <span className="text-xl font-black text-indigo-600 dark:text-indigo-400">R$ {printingOrder.total.toFixed(2)}</span>
+                            <span className="text-xl font-black text-indigo-600 dark:text-indigo-400">{formatCurrency(printingOrder.total)}</span>
                         </div>
 
                         <div className="mt-8 text-center text-[9px] text-slate-500 dark:text-slate-600 font-bold border-t border-dashed dark:border-slate-700 pt-4 font-receipt">

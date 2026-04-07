@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { Minus, Plus, X, Search, LayoutGrid, Check, Trash2 } from 'lucide-react';
 import { db } from '../api';
+import { formatCurrency } from '../utils';
 import type { User, Product, OrderItem, SaleType, StoreStatus } from '../types';
 import Modal from './Modal';
 import ClientSelector from './ClientSelector';
@@ -168,7 +169,7 @@ const DirectOrderModal: React.FC<DirectOrderModalProps> = ({ user, onClose, onRe
                                         </div>
                                         <div className="min-w-0 flex-1">
                                             <p className="text-xs font-black text-slate-800 uppercase mb-0.5 truncate">{product.name}</p>
-                                            <p className="text-[8px] font-black text-blue-600 tracking-tighter">R$ {product.price.toFixed(2)}</p>
+                                            <p className="text-[8px] font-black text-blue-600 tracking-tighter">{formatCurrency(product.price)}</p>
                                         </div>
                                     </div>
                                     <div className="flex items-center gap-3 shrink-0">
@@ -218,11 +219,11 @@ const DirectOrderModal: React.FC<DirectOrderModalProps> = ({ user, onClose, onRe
                                         <div key={item.uid} className="flex justify-between items-center bg-slate-50 p-3 rounded-2xl border border-slate-100">
                                             <div className="min-w-0 flex-1 mr-4">
                                                 <p className="text-[11px] font-black text-slate-800 uppercase truncate">
-                                                    {item.quantity}x {item.productName || item.product?.name || 'Produto'}
+                                                    {item.quantity}x {item.productName || item.product?.name || 'Produto'} {formatCurrency(item.price, false)}
                                                 </p>
                                             </div>
                                             <div className="flex items-center gap-3">
-                                                <span className="text-[10px] font-black text-slate-900 tracking-tighter">R$ {(item.price * item.quantity).toFixed(2)}</span>
+                                                <span className="text-[10px] font-black text-slate-900 tracking-tighter">{formatCurrency(item.price * item.quantity)}</span>
                                                 <button
                                                     onClick={() => updateCartQuantity(item.productId, -item.quantity)}
                                                     className="p-2 bg-red-50 text-red-500 rounded-xl active:scale-90 transition-transform"
@@ -247,7 +248,7 @@ const DirectOrderModal: React.FC<DirectOrderModalProps> = ({ user, onClose, onRe
                                         <p className="text-[9px] font-bold text-blue-600 uppercase tracking-widest">{showCartItems ? 'Ocultar' : 'Ver Tudo'}</p>
                                     </div>
                                 </button>
-                                <p className="text-2xl font-black text-blue-600 tracking-tighter">R$ {cartTotal.toFixed(2)}</p>
+                                <p className="text-2xl font-black text-blue-600 tracking-tighter">{formatCurrency(cartTotal)}</p>
                             </div>
                             <div className="flex gap-2">
                                 <button

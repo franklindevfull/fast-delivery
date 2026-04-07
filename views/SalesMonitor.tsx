@@ -7,6 +7,7 @@ import { db } from '../services/db';
 import { Icons } from '../constants';
 import CustomAlert from '../components/CustomAlert';
 import { useToast } from '../hooks/useToast';
+import { formatCurrency } from '../services/formatUtils';
 
 
 
@@ -258,7 +259,7 @@ const SalesMonitor: React.FC = () => {
                             <span>{new Intl.DateTimeFormat('pt-BR', { hour: '2-digit', minute: '2-digit' }).format(new Date(order.createdAt))}</span>
                             <span className="text-slate-200 dark:text-slate-800">•</span>
                             <span>{getFriendlySaleType(order.type)}</span>
-                            <span className="text-blue-600 dark:text-blue-400 font-bold">R$ {order.total.toFixed(2)}</span>
+                            <span className="text-blue-600 dark:text-blue-400 font-bold">{formatCurrency(order.total)}</span>
                             {order.nfeStatus === 'EMITTED' && businessSettings?.enableNfcEmission && (
                               <span className="px-1.5 py-0.5 bg-emerald-100 dark:bg-emerald-900/40 text-emerald-700 dark:text-emerald-400 text-[8px] font-black rounded-md flex items-center gap-1">
                                 <Icons.QrCode className="w-2 h-2" />
@@ -280,8 +281,8 @@ const SalesMonitor: React.FC = () => {
                         </td>
                         <td className="px-8 py-5">
                           <p className="text-[10px] font-black text-slate-400 dark:text-slate-500 uppercase tracking-widest">
-                            {order.deliveryFee ? `Entrega: R$ ${order.deliveryFee.toFixed(2)}` : ''}
-                            {order.type === SaleType.TABLE ? `${order.deliveryFee ? ' | ' : ''}Serviço: R$ ${(order.appliedServiceFee || 0).toFixed(2)}` : ''}
+                            {order.deliveryFee ? `Entrega: ${formatCurrency(order.deliveryFee)}` : ''}
+                            {order.type === SaleType.TABLE ? `${order.deliveryFee ? ' | ' : ''}Serviço: ${formatCurrency(order.appliedServiceFee || 0)}` : ''}
                           </p>
                         </td>
                         <td className="px-8 py-5 text-right">
@@ -361,8 +362,8 @@ const SalesMonitor: React.FC = () => {
                                 <td>{ncmCode.substring(0, 6)}</td>
                                 <td>{prodName.substring(0, 20)}</td>
                                 <td className="text-right">{data.quantity}</td>
-                                <td className="text-right">{data.price.toFixed(2)}</td>
-                                <td className="text-right">{(data.quantity * data.price).toFixed(2)}</td>
+                                <td className="text-right">{formatCurrency(data.price, false)}</td>
+                                <td className="text-right">{formatCurrency(data.quantity * data.price, false)}</td>
                               </tr>
                             );
                           })}
@@ -373,7 +374,7 @@ const SalesMonitor: React.FC = () => {
                     <div className="space-y-1 pt-2">
                       <div className="flex justify-between font-bold">
                         <span>VALOR A PAGAR R$</span>
-                        <span>{printingOrder.total.toFixed(2)}</span>
+                        <span>{formatCurrency(printingOrder.total, false)}</span>
                       </div>
                       <div className="flex justify-between font-bold text-[8px] border-b border-dashed border-black dark:border-slate-700 pb-1">
                         <span>FORMA DE PAGAMENTO</span>
@@ -394,7 +395,7 @@ const SalesMonitor: React.FC = () => {
                       <p>Protocolo de Autorizacao: {Math.floor(Math.random() * 100000000000000)}</p>
                       <div className="flex justify-between text-[8px]">
                         <span>Tributos Totais Incidentes (Lei Federal 12.741/2012)</span>
-                        <span className="font-bold">{(printingOrder.total * 0.1345).toFixed(2)}</span>
+                        <span className="font-bold">{formatCurrency(printingOrder.total * 0.1345, false)}</span>
                       </div>
                     </div>
 
@@ -444,7 +445,7 @@ const SalesMonitor: React.FC = () => {
                         return (
                           <div key={id} className="flex justify-between items-start font-bold uppercase py-0.5 text-[8px] gap-2">
                             <span className="flex-1 leading-tight">{data.quantity}x {prodName.substring(0, 25)}</span>
-                            <span className="whitespace-nowrap">R$ {(data.quantity * data.price).toFixed(2)}</span>
+                            <span className="whitespace-nowrap">{formatCurrency(data.price, false)}</span>
                           </div>
                         );
                       })}
@@ -455,23 +456,23 @@ const SalesMonitor: React.FC = () => {
                     <div className="space-y-0.5">
                       <div className="flex justify-between items-center text-[8px] font-bold uppercase">
                         <span>SUBTOTAL:</span>
-                        <span>R$ {(printingOrder.total - (printingOrder.type === SaleType.OWN_DELIVERY ? (printingOrder.deliveryFee || 0) : 0) - (printingOrder.type === SaleType.TABLE ? (printingOrder.appliedServiceFee || 0) : 0)).toFixed(2)}</span>
+                        <span>{formatCurrency(printingOrder.total - (printingOrder.type === SaleType.OWN_DELIVERY ? (printingOrder.deliveryFee || 0) : 0) - (printingOrder.type === SaleType.TABLE ? (printingOrder.appliedServiceFee || 0) : 0))}</span>
                       </div>
                       {printingOrder.type === SaleType.OWN_DELIVERY && printingOrder.deliveryFee !== undefined && printingOrder.deliveryFee > 0 && (
                         <div className="flex justify-between items-center text-[8px] font-bold uppercase">
                           <span>TAXA ENTREGA:</span>
-                          <span>R$ {printingOrder.deliveryFee.toFixed(2)}</span>
+                          <span>{formatCurrency(printingOrder.deliveryFee)}</span>
                         </div>
                       )}
                       {printingOrder.type === SaleType.TABLE && typeof printingOrder.appliedServiceFee === 'number' && (
                         <div className="flex justify-between items-center text-[8px] font-bold uppercase">
                           <span>TAXA SERVICO:</span>
-                          <span>R$ {printingOrder.appliedServiceFee.toFixed(2)}</span>
+                          <span>{formatCurrency(printingOrder.appliedServiceFee)}</span>
                         </div>
                       )}
                       <div className="flex justify-between items-end pt-1">
                         <span className="font-bold text-[9px] uppercase">TOTAL:</span>
-                        <span className="text-xs font-bold">R$ {printingOrder.total.toFixed(2)}</span>
+                        <span className="text-xs font-bold">{formatCurrency(printingOrder.total)}</span>
                       </div>
                     </div>
                   </>

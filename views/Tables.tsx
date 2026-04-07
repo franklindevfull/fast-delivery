@@ -8,7 +8,7 @@ import { Icons, PLACEHOLDER_FOOD_IMAGE, formatImageUrl } from '../constants';
 import CustomAlert from '../components/CustomAlert';
 import { useDigitalAlert } from '../hooks/useDigitalAlert';
 import { validateEmail, validateCPF, validateCNPJ, maskPhone, maskDocument, toTitleCase } from '../services/validationUtils';
-import { formatAddress } from '../services/formatUtils';
+import { formatAddress, formatCurrency } from '../services/formatUtils';
 import WaiterAuthModal from '../components/WaiterAuthModal';
 import { useToast } from '../hooks/useToast';
 
@@ -659,7 +659,7 @@ const Tables: React.FC<TablesProps> = ({ currentUser }) => {
               {sess && (sess.items.length > 0 || sess.hasPendingDigital) && (
                 <div className="text-center w-full px-2 overflow-hidden flex flex-col items-center">
                   <p className="text-[10px] font-black mt-1 opacity-80 w-[95%] text-ellipsis overflow-hidden whitespace-nowrap block">{sess.clientName || 'Consumo'}</p>
-                  <p className="text-sm font-black shrink-0 mt-0.5">R$ {sess.items.reduce((acc, it) => acc + (it.price * it.quantity), 0).toFixed(2)}</p>
+                  <p className="text-sm font-black shrink-0 mt-0.5">{formatCurrency(sess.items.reduce((acc, it) => acc + (it.price * it.quantity), 0))}</p>
                 </div>
               )}
             </button>
@@ -816,7 +816,7 @@ const Tables: React.FC<TablesProps> = ({ currentUser }) => {
                             </div>
                             <p className="text-[11px] font-black text-slate-800 dark:text-white uppercase line-clamp-1">{prod.name}</p>
                             <div className="flex justify-between items-center mt-1">
-                              <p className="text-sm font-black text-blue-600 dark:text-blue-400">R$ {prod.price.toFixed(2)}</p>
+                              <p className="text-sm font-black text-blue-600 dark:text-blue-400">{formatCurrency(prod.price)}</p>
                               {lastAddedProduct === prod.id && (
                                 <span className="bg-emerald-500 text-white text-[8px] font-black px-2 py-1 rounded-full animate-bounce">OK!</span>
                               )}
@@ -831,7 +831,7 @@ const Tables: React.FC<TablesProps> = ({ currentUser }) => {
                 {activeModalTab === 'REMOVE' && (
                   <div className="space-y-3">
                     <div className="bg-red-50 dark:bg-red-900/20 p-6 rounded-[2.5rem] border border-red-100 dark:border-red-900/30 flex items-center gap-4 mb-4"><div className="bg-red-500 p-4 rounded-2xl text-white shadow-lg shrink-0"><svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" /></svg></div><p className="text-red-700 dark:text-red-300 text-sm font-black uppercase">Estorno por Unidade (Auditado)</p></div>
-                    {getSessForTable(selectedTable)?.items.map(item => (<div key={item.uid} className="flex justify-between items-center p-6 bg-white dark:bg-slate-800 border border-slate-100 dark:border-slate-700 rounded-3xl shadow-sm"><div className="flex-1 min-w-0"><p className="font-black text-slate-800 dark:text-white uppercase text-sm truncate">{products.find(p => p.id === item.productId)?.name}</p><p className="text-[10px] font-bold text-slate-400 dark:text-slate-500 mt-1 uppercase tracking-widest">{item.price.toFixed(2)} • {item.isReady ? 'CONCLUÍDO' : 'PENDENTE'}</p></div><button onClick={() => removeProduct(item.uid)} className="p-4 bg-red-50 dark:bg-red-900/40 text-red-600 dark:text-red-400 rounded-2xl hover:bg-red-500 dark:hover:bg-red-600 hover:text-white transition-all shadow-sm"><svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" /></svg></button></div>))}
+                    {getSessForTable(selectedTable)?.items.map(item => (<div key={item.uid} className="flex justify-between items-center p-6 bg-white dark:bg-slate-800 border border-slate-100 dark:border-slate-700 rounded-3xl shadow-sm"><div className="flex-1 min-w-0"><p className="font-black text-slate-800 dark:text-white uppercase text-sm truncate">{products.find(p => p.id === item.productId)?.name}</p><p className="text-[10px] font-bold text-slate-400 dark:text-slate-500 mt-1 uppercase tracking-widest">{formatCurrency(item.price)} • {item.isReady ? 'CONCLUÍDO' : 'PENDENTE'}</p></div><button onClick={() => removeProduct(item.uid)} className="p-4 bg-red-50 dark:bg-red-900/40 text-red-600 dark:text-red-400 rounded-2xl hover:bg-red-500 dark:hover:bg-red-600 hover:text-white transition-all shadow-sm"><svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" /></svg></button></div>))}
                   </div>
                 )}
 
@@ -851,29 +851,29 @@ const Tables: React.FC<TablesProps> = ({ currentUser }) => {
                             <span className="text-slate-300 dark:text-slate-600 font-bold text-[13px] mr-3 font-mono">{it.quantity}x</span>
                             <p className="text-[13px] font-bold text-slate-800 dark:text-slate-200 uppercase tracking-tight line-clamp-1">{it.product?.name}</p>
                           </div>
-                          <span className="font-black text-[13px] dark:text-slate-100">R$ {(it.quantity * it.price).toFixed(2)}</span>
+                          <span className="font-black text-[13px] dark:text-slate-100">{formatCurrency(it.quantity * it.price)}</span>
                         </div>
                       ))}
                       {settings.serviceFeeStatus && (
                         <div className="flex justify-between border-b border-dashed border-slate-200 dark:border-slate-700 pb-2 text-slate-500 dark:text-slate-400">
                           <span className="font-bold text-[11px] uppercase">Taxa de Serviço ({settings.serviceFeePercentage || 10}%)</span>
-                          <span className="font-black text-[12px]">R$ {((getSessForTable(selectedTable)?.items.reduce((acc, it) => acc + (it.price * it.quantity), 0) || 0) * (settings.serviceFeePercentage || 10) / 100).toFixed(2)}</span>
+                           <span className="font-black text-[12px]">{formatCurrency((getSessForTable(selectedTable)?.items.reduce((acc, it) => acc + (it.price * it.quantity), 0) || 0) * (settings.serviceFeePercentage || 10) / 100)}</span>
                         </div>
                       )}
-                      <div className="pt-6 flex justify-between items-end"><span className="font-black text-[11px] dark:text-slate-400 uppercase opacity-50">Total Mesa:</span><span className="text-4xl font-black text-indigo-600 dark:text-indigo-400">R$ {(
+                      <div className="pt-6 flex justify-between items-end"><span className="font-black text-[11px] dark:text-slate-400 uppercase opacity-50">Total Mesa:</span><span className="text-4xl font-black text-indigo-600 dark:text-indigo-400">{formatCurrency(
                         (getSessForTable(selectedTable)?.items.reduce((acc, it) => acc + (it.price * it.quantity), 0) || 0) +
                         (settings.serviceFeeStatus ? ((getSessForTable(selectedTable)?.items.reduce((acc, it) => acc + (it.price * it.quantity), 0) || 0) * (settings.serviceFeePercentage || 10) / 100) : 0)
-                      ).toFixed(2)}</span></div>
+                      )}</span></div>
                     </div>
                   </div>
                 )}
 
                 {activeModalTab === 'CHECKOUT' && (
                   <div className="flex flex-col items-center py-4">
-                    <div className="text-center mb-8"><p className="text-[10px] font-black text-slate-400 dark:text-slate-500 uppercase tracking-widest mb-2">Valor Total da Conta</p><h4 className="text-6xl font-black text-slate-900 dark:text-white tracking-tighter">R$ {(
+                    <h4 className="text-6xl font-black text-slate-900 dark:text-white tracking-tighter">{formatCurrency(
                       (getSessForTable(selectedTable)?.items.reduce((acc, it) => acc + (it.price * it.quantity), 0) || 0) +
                       (settings.serviceFeeStatus ? ((getSessForTable(selectedTable)?.items.reduce((acc, it) => acc + (it.price * it.quantity), 0) || 0) * (settings.serviceFeePercentage || 10) / 100) : 0)
-                    ).toFixed(2)}</h4></div>
+                    )}</h4>
                     <div className="w-full max-w-2xl bg-slate-50 dark:bg-slate-800/50 p-8 rounded-[2rem] border border-slate-100 dark:border-slate-700 space-y-6">
                       <div className="flex items-center justify-between"><label className="text-[10px] font-black text-slate-500 dark:text-slate-400 uppercase tracking-widest">Identificação do Cliente</label></div>
                       <div className="relative animate-in zoom-in-95">
@@ -922,7 +922,7 @@ const Tables: React.FC<TablesProps> = ({ currentUser }) => {
               </div>
               <div className="mt-3 pt-2 border-t border-slate-200/50 dark:border-slate-700/50 w-full text-center">
                 <p className="text-[9px] font-bold text-slate-400 dark:text-slate-500 uppercase">Subtotal do Item</p>
-                <p className="text-base font-black text-blue-600 dark:text-blue-400">R$ {(selectedProductForLaunch.price * modalQuantity).toFixed(2)}</p>
+                <p className="text-base font-black text-blue-600 dark:text-blue-400">{formatCurrency(selectedProductForLaunch.price * modalQuantity)}</p>
               </div>
             </div>
 
@@ -966,28 +966,28 @@ const Tables: React.FC<TablesProps> = ({ currentUser }) => {
                 {getGroupedItems((isConfirmingBilling ? printingPreBill : getSessForTable(selectedTable!))?.items || []).map((it, i) => (
                   <div key={i} className="flex justify-between font-bold uppercase py-0.5 text-[9px]">
                     <span>{it.quantity}x {it.product?.name.substring(0, 15)}</span>
-                    <span>R$ {(it.quantity * it.price).toFixed(2)}</span>
+                  <span>{formatCurrency(it.quantity * it.price)}</span>
                   </div>
                 ))}
               </div>
               <div className="space-y-0.5 border-t border-dashed border-black pt-1">
                 <div className="flex justify-between items-center text-[8px] font-bold uppercase">
                   <span>SUBTOTAL:</span>
-                  <span>R$ {((isConfirmingBilling ? printingPreBill : getSessForTable(selectedTable!))?.items.reduce((acc, it) => acc + (it.price * it.quantity), 0) || 0).toFixed(2)}</span>
+                  <span>{formatCurrency((isConfirmingBilling ? printingPreBill : getSessForTable(selectedTable!))?.items.reduce((acc, it) => acc + (it.price * it.quantity), 0) || 0)}</span>
                 </div>
                 {settings.serviceFeeStatus && (
                   <div className="flex justify-between items-center text-[8px] font-bold uppercase">
                     <span>TAXA SERVICO ({settings.serviceFeePercentage || 10}%):</span>
-                    <span>R$ {(((isConfirmingBilling ? printingPreBill : getSessForTable(selectedTable!))?.items.reduce((acc, it) => acc + (it.price * it.quantity), 0) || 0) * (settings.serviceFeePercentage || 10) / 100).toFixed(2)}</span>
+                    <span>{formatCurrency(((isConfirmingBilling ? printingPreBill : getSessForTable(selectedTable!))?.items.reduce((acc, it) => acc + (it.price * it.quantity), 0) || 0) * (settings.serviceFeePercentage || 10) / 100)}</span>
                   </div>
                 )}
                 <div className="flex justify-between items-end pt-1">
                   <span className="font-bold text-[10px] uppercase">TOTAL:</span>
                   <span className="text-sm font-bold">
-                    R$ {(
+                    {formatCurrency(
                       ((isConfirmingBilling ? printingPreBill : getSessForTable(selectedTable!))?.items.reduce((acc, it) => acc + (it.price * it.quantity), 0) || 0) +
                       (settings.serviceFeeStatus ? (((isConfirmingBilling ? printingPreBill : getSessForTable(selectedTable!))?.items.reduce((acc, it) => acc + (it.price * it.quantity), 0) || 0) * (settings.serviceFeePercentage || 10) / 100) : 0)
-                    ).toFixed(2)}
+                    )}
                   </span>
                 </div>
               </div>
@@ -1045,7 +1045,7 @@ const Tables: React.FC<TablesProps> = ({ currentUser }) => {
                       <div className="flex items-center gap-3">
                         {it.allReady && <span className="text-emerald-500 font-black text-xs">✓</span>}
                         <span className="text-xs font-black text-slate-600 dark:text-slate-400">
-                          R$ {(it.quantity * it.price).toFixed(2)}
+                          {formatCurrency(it.price, false)}
                         </span>
                       </div>
                     </div>
@@ -1059,17 +1059,17 @@ const Tables: React.FC<TablesProps> = ({ currentUser }) => {
                   <div className="flex justify-between items-center px-1">
                     <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Taxa de Serviço ({settings.serviceFeePercentage || 10}%)</span>
                     <span className="text-xs font-black text-slate-600 dark:text-slate-400">
-                      R$ {(((isConfirmingBilling ? printingPreBill : getSessForTable(selectedTable!))?.items.reduce((acc, it) => acc + (it.price * it.quantity), 0) || 0) * (settings.serviceFeePercentage || 10) / 100).toFixed(2)}
+                      {formatCurrency(((isConfirmingBilling ? printingPreBill : getSessForTable(selectedTable!))?.items.reduce((acc, it) => acc + (it.price * it.quantity), 0) || 0) * (settings.serviceFeePercentage || 10) / 100)}
                     </span>
                   </div>
                 )}
                 <div className="flex justify-between items-end p-4 bg-slate-900 text-white rounded-[2rem]">
                   <span className="text-[10px] font-black uppercase tracking-[0.2em] mb-1">Total Geral</span>
                   <span className="text-2xl font-black tracking-tighter">
-                    R$ {(
+                    {formatCurrency(
                       ((isConfirmingBilling ? printingPreBill : getSessForTable(selectedTable!))?.items.reduce((acc, it) => acc + (it.price * it.quantity), 0) || 0) +
                       (settings.serviceFeeStatus ? (((isConfirmingBilling ? printingPreBill : getSessForTable(selectedTable!))?.items.reduce((acc, it) => acc + (it.price * it.quantity), 0) || 0) * (settings.serviceFeePercentage || 10) / 100) : 0)
-                    ).toFixed(2)}
+                    )}
                   </span>
                 </div>
               </div>

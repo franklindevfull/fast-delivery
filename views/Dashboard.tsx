@@ -5,6 +5,7 @@ import { db } from '../services/db';
 import { Order, OrderStatus, SaleType } from '../types';
 import { Icons } from '../constants';
 import { useTheme } from '../components/ThemeProvider';
+import { formatCurrency } from '../services/formatUtils';
 
 const Dashboard: React.FC = () => {
   const [orders, setOrders] = useState<Order[]>([]);
@@ -125,7 +126,7 @@ const Dashboard: React.FC = () => {
             <div>
               <p className="text-[9px] sm:text-[10px] text-slate-400 dark:text-slate-500 font-bold uppercase tracking-widest">Receita (Hoje)</p>
               <h3 className="text-xl sm:text-2xl font-black text-slate-800 dark:text-white uppercase tracking-tighter">
-                {new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(stats.revenueToday)}
+                {formatCurrency(stats.revenueToday)}
               </h3>
             </div>
           </div>
@@ -151,7 +152,7 @@ const Dashboard: React.FC = () => {
             <div>
               <p className="text-[9px] sm:text-[10px] text-slate-400 dark:text-slate-500 font-bold uppercase tracking-widest">Ticket Médio</p>
               <h3 className="text-xl sm:text-2xl font-black text-slate-800 dark:text-white uppercase tracking-tighter">
-                {new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(stats.avgTicket)}
+                {formatCurrency(stats.avgTicket)}
               </h3>
             </div>
           </div>
@@ -180,7 +181,7 @@ const Dashboard: React.FC = () => {
             </div>
             <div className="text-right">
               <p className="text-[10px] text-slate-400 dark:text-slate-500 font-bold uppercase tracking-widest">Total Semana</p>
-              <p className="text-2xl font-black text-slate-900 dark:text-white">R$ {chartData.reduce((acc, d) => acc + d.vendas, 0).toFixed(2)}</p>
+              <p className="text-2xl font-black text-slate-900 dark:text-white">{formatCurrency(chartData.reduce((acc, d) => acc + d.vendas, 0))}</p>
             </div>
           </div>
           <div className="h-[250px] sm:h-80 w-full min-h-[250px] relative">
@@ -270,7 +271,7 @@ const Dashboard: React.FC = () => {
                   <Tooltip
                     contentStyle={{ borderRadius: '15px', border: 'none', backgroundColor: isDark ? '#0f172a' : '#ffffff', boxShadow: '0 10px 15px -3px rgb(0 0 0 / 0.1)' }}
                     itemStyle={{ color: isDark ? '#cbd5e1' : '#1e293b' }}
-                    formatter={(value: number) => `R$ ${value.toFixed(2)}`}
+                    formatter={(value: number) => formatCurrency(value)}
                   />
                   <Legend iconType="circle" wrapperStyle={{ paddingTop: '20px', fontSize: '10px', fontWeight: 800, textTransform: 'uppercase', color: labelColor }} />
                 </PieChart>

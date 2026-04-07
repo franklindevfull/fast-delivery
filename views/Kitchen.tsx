@@ -7,6 +7,7 @@ import { socket } from '../services/socket';
 import { Icons } from '../constants';
 import { useDigitalAlert } from '../hooks/useDigitalAlert';
 import { useToast } from '../hooks/useToast';
+import { formatAddress, formatCurrency } from '../services/formatUtils';
 
 
 
@@ -409,7 +410,7 @@ const Kitchen: React.FC = () => {
                       </td>
                       <td className="px-8 py-5">
                         <p className="text-[11px] font-black text-blue-600 dark:text-blue-400">
-                          R$ {(order.total || 0).toFixed(2)}
+                          {formatCurrency(order.total || 0)}
                         </p>
                       </td>
                       <td className="px-8 py-5">
@@ -596,7 +597,7 @@ const Kitchen: React.FC = () => {
             {viewTab === 'HISTORICO' && (
               <div className="flex justify-between items-end">
                 <span className="font-bold text-[9px] uppercase">TOTAL:</span>
-                <span className="text-sm font-bold">R$ {(printingOrder.total || 0).toFixed(2)}</span>
+                <span className="text-sm font-bold">{formatCurrency(printingOrder.total || 0)}</span>
               </div>
             )}
 

@@ -5,6 +5,7 @@ import { db } from '../services/db';
 import { Icons } from '../constants';
 import { socket, chatUnreadManager } from '../services/socket';
 import { useToast } from '../hooks/useToast';
+import { formatCurrency } from '../services/formatUtils';
 
 import { useReactToPrint } from 'react-to-print';
 import CustomAlert from '../components/CustomAlert';
@@ -282,7 +283,7 @@ const Logistics: React.FC = () => {
               <div className="flex justify-between items-center text-sm font-black text-slate-900 border-t border-slate-50 dark:border-slate-800 pt-3">
                 <div className="flex items-center gap-2">
                   <span className="text-[10px] text-slate-400 dark:text-slate-500 uppercase">Total:</span>
-                  <span className="text-slate-900 dark:text-white">R$ {order.total.toFixed(2)}</span>
+                  <span className="text-slate-900 dark:text-white">{formatCurrency(order.total)}</span>
                 </div>
                 <button
                   onClick={() => setPrintingOrder(order)}
@@ -513,7 +514,7 @@ const Logistics: React.FC = () => {
                       </td>
                       <td className="px-8 py-5">
                         <p className="text-[11px] font-black text-blue-600 dark:text-blue-400">
-                          R$ {order.total.toFixed(2)}
+                          {formatCurrency(order.total)}
                         </p>
                       </td>
                       <td className="px-8 py-5">
@@ -599,7 +600,7 @@ const Logistics: React.FC = () => {
                             </span>
                             <span className="text-[11px] font-black text-slate-700 dark:text-slate-200 uppercase">{prod?.name || '...'}</span>
                           </div>
-                          <span className="text-[11px] font-black text-slate-400 dark:text-slate-500">R$ {(item.quantity * item.price).toFixed(2)}</span>
+                          <span className="text-[11px] font-black text-slate-400 dark:text-slate-500">{formatCurrency(item.price, false)}</span>
                         </div>
                       );
                     })}
@@ -608,10 +609,9 @@ const Logistics: React.FC = () => {
               </div>
 
               <div className="pt-6 border-t border-slate-100 dark:border-slate-800 grid grid-cols-2 gap-8 items-end">
-                <div className="space-y-2">
-                  <div className="flex justify-between text-[11px] font-bold text-slate-400 dark:text-slate-500 uppercase tracking-widest">
+                                 <div className="flex justify-between text-[11px] font-bold text-slate-400 dark:text-slate-500 uppercase tracking-widest">
                     <span>Taxa Entrega:</span>
-                    <span>R$ {(viewingHistoryOrder.deliveryFee || 0).toFixed(2)}</span>
+                    <span>{formatCurrency(viewingHistoryOrder.deliveryFee || 0)}</span>
                   </div>
                   <div className="flex justify-between text-[11px] font-bold text-slate-400 dark:text-slate-500 uppercase tracking-widest">
                     <span>Pagamento:</span>
@@ -619,7 +619,7 @@ const Logistics: React.FC = () => {
                   </div>
                   <div className="flex justify-between items-center pt-2">
                     <span className="text-xs font-black text-slate-800 dark:text-white uppercase tracking-tighter">Total Geral:</span>
-                    <span className="text-xl font-black text-blue-600 dark:text-blue-400">R$ {viewingHistoryOrder.total.toFixed(2)}</span>
+                    <span className="text-xl font-black text-blue-600 dark:text-blue-400">{formatCurrency(viewingHistoryOrder.total)}</span>
                   </div>
                 </div>
                 <div className="flex gap-3">
@@ -633,7 +633,6 @@ const Logistics: React.FC = () => {
                     <Icons.Print size={16} /> Imprimir Cupom
                   </button>
                 </div>
-              </div>
             </div>
           </div>
         </div>
@@ -677,7 +676,7 @@ const Logistics: React.FC = () => {
               }, {} as Record<string, any>)).map(([id, data]: [string, any]) => (
                 <div key={id} className="flex justify-between font-bold uppercase py-0.5 text-[10px]">
                   <span className="flex-1 pr-2">{data.quantity}X {data.name.substring(0, 20)}</span>
-                  <span className="shrink-0">R$ {(data.quantity * data.price).toFixed(2)}</span>
+                  <span className="shrink-0">{formatCurrency(data.price, false)}</span>
                 </div>
               ))}
             </div>
@@ -686,12 +685,12 @@ const Logistics: React.FC = () => {
 
             <div className="flex justify-between items-center py-0.5 text-[9px]">
               <span className="uppercase font-bold">TAXA ENTREGA:</span>
-              <span className="font-bold">R$ {(printingOrder.deliveryFee || 0).toFixed(2)}</span>
+              <span className="font-bold">{formatCurrency(printingOrder.deliveryFee || 0)}</span>
             </div>
 
             <div className="flex justify-between items-end pt-1 mb-2">
               <span className="font-black text-[9px] uppercase tracking-widest">TOTAL:</span>
-              <span className="text-xl font-black">R$ {printingOrder.total.toFixed(2)}</span>
+              <span className="text-xl font-black">{formatCurrency(printingOrder.total)}</span>
             </div>
 
             <div className="grid grid-cols-2 gap-4 no-print mt-6">
@@ -756,9 +755,9 @@ const Logistics: React.FC = () => {
                 {groupedPrintingItems.map(([id, data]: [string, any]) => (
                   <div key={id} className="flex justify-between font-bold uppercase py-0.5 text-[10px]">
                     <span className="flex-1 pr-2">{data.quantity}X {data.name.substring(0, 20)}</span>
-                    <span className="shrink-0">R$ {(data.quantity * data.price).toFixed(2)}</span>
+                    <span className="shrink-0">{formatCurrency(data.price, false)}</span>
                   </div>
-                ))}
+                  ))}
               </div>
             )}
 
@@ -766,12 +765,12 @@ const Logistics: React.FC = () => {
 
             <div className="flex justify-between items-center py-0.5 text-[9px]">
               <span className="uppercase font-bold">TAXA ENTREGA:</span>
-              <span className="font-bold">R$ {(printingHistoryOrder.deliveryFee || 0).toFixed(2)}</span>
+              <span className="font-bold">{formatCurrency(printingHistoryOrder.deliveryFee || 0)}</span>
             </div>
 
             <div className="flex justify-between items-end pt-1 mb-2">
               <span className="font-black text-[9px] uppercase tracking-widest">TOTAL:</span>
-              <span className="text-xl font-black">R$ {printingHistoryOrder.total.toFixed(2)}</span>
+              <span className="text-xl font-black">{formatCurrency(printingHistoryOrder.total)}</span>
             </div>
 
             <div className="grid grid-cols-2 gap-4 no-print mt-6">
@@ -801,7 +800,7 @@ const Logistics: React.FC = () => {
           </div>
         </div>
       )}
-    </div >
+    </div>
   );
 };
 

@@ -3,6 +3,7 @@ import { Receivable, User, Client, Order, Product, BusinessSettings } from '../t
 import { db } from '../services/db';
 import { Icons } from '../constants';
 import { useToast } from '../hooks/useToast';
+import { formatCurrency } from '../services/formatUtils';
 
 import { useReactToPrint } from 'react-to-print';
 import CustomAlert from '../components/CustomAlert';
@@ -93,7 +94,7 @@ const Receivables: React.FC<ReceivablesProps> = ({ currentUser, setActiveTab }) 
     const handleReceive = (receivable: Receivable & { client: Client }) => {
         showAlert({
             title: 'RECEBER NO PDV',
-            message: `O débito de R$ ${receivable.amount.toFixed(2)} do cliente ${receivable.client.name} será enviado para a área de 'Aguardando Recebimento' no PDV. Deseja ir para lá agora?`,
+            message: `O débito de ${formatCurrency(receivable.amount)} do cliente ${receivable.client.name} será enviado para a área de 'Aguardando Recebimento' no PDV. Deseja ir para lá agora?`,
             type: 'INFO',
             onCancel: closeAlert,
             onConfirm: async () => {
@@ -289,7 +290,7 @@ const Receivables: React.FC<ReceivablesProps> = ({ currentUser, setActiveTab }) 
                                     <div className="space-y-4">
                                         <div className="bg-slate-50 dark:bg-slate-800/50 p-4 rounded-2xl flex items-center justify-between">
                                             <span className="text-[10px] font-black text-slate-400 dark:text-slate-500 uppercase tracking-widest">Valor em Aberto:</span>
-                                            <span className="text-xl font-black text-slate-900 dark:text-white">R$ {receivable.amount.toFixed(2)}</span>
+                                            <span className="text-xl font-black text-slate-900 dark:text-white">{formatCurrency(receivable.amount)}</span>
                                         </div>
 
                                         <div className="flex justify-between items-center text-[10px] font-bold uppercase px-2">
@@ -390,11 +391,11 @@ const Receivables: React.FC<ReceivablesProps> = ({ currentUser, setActiveTab }) 
                                             <div className="flex items-center gap-4">
                                                 <div className="w-8 h-8 rounded-lg bg-white dark:bg-slate-700 flex items-center justify-center font-black text-xs text-slate-400 dark:text-slate-500">{item.quantity}x</div>
                                                 <div>
-                                                    <p className="text-xs font-black text-slate-800 dark:text-white uppercase tracking-tight">{prod?.name || 'Produto'}</p>
+                                                    <p className="text-xs font-black text-slate-800 dark:text-white uppercase tracking-tight">{prod?.name || 'Produto'} {formatCurrency(item.price, false)}</p>
                                                     {item.observations && <p className="text-[8px] text-slate-400 dark:text-slate-500 font-bold uppercase">{item.observations}</p>}
                                                 </div>
                                             </div>
-                                            <span className="text-[10px] font-black text-slate-800 dark:text-white tracking-tight">R$ {(item.price * item.quantity).toFixed(2)}</span>
+                                            <span className="text-[10px] font-black text-slate-800 dark:text-white tracking-tight">{formatCurrency(item.price * item.quantity)}</span>
                                         </div>
                                     );
                                 })}
@@ -403,17 +404,17 @@ const Receivables: React.FC<ReceivablesProps> = ({ currentUser, setActiveTab }) 
                             <div className="mt-8 pt-8 border-t border-slate-100 dark:border-slate-800 space-y-2">
                                 <div className="flex justify-between items-center text-slate-400 dark:text-slate-500 px-4">
                                     <span className="text-[10px] font-black uppercase tracking-widest">Subtotal:</span>
-                                    <span className="text-sm font-bold tracking-tight">R$ {(selectedOrder.total - (selectedOrder.deliveryFee || 0)).toFixed(2)}</span>
+                                    <span className="text-sm font-bold tracking-tight">{formatCurrency(selectedOrder.total - (selectedOrder.deliveryFee || 0))}</span>
                                 </div>
                                 {selectedOrder.deliveryFee > 0 && (
                                     <div className="flex justify-between items-center text-slate-400 dark:text-slate-500 px-4">
                                         <span className="text-[10px] font-black uppercase tracking-widest">Taxa de Entrega:</span>
-                                        <span className="text-sm font-bold tracking-tight">R$ {selectedOrder.deliveryFee.toFixed(2)}</span>
+                                        <span className="text-sm font-bold tracking-tight">{formatCurrency(selectedOrder.deliveryFee)}</span>
                                     </div>
                                 )}
                                 <div className="flex justify-between items-center bg-slate-900 dark:bg-blue-600 text-white p-6 rounded-[2rem] shadow-xl shadow-slate-200 dark:shadow-blue-900/40">
                                     <span className="text-xs font-black uppercase tracking-widest">Total no Crediário:</span>
-                                    <span className="text-2xl font-black">R$ {selectedOrder.total.toFixed(2)}</span>
+                                    <span className="text-2xl font-black">{formatCurrency(selectedOrder.total)}</span>
                                 </div>
                             </div>
                         </div>
@@ -466,7 +467,7 @@ const Receivables: React.FC<ReceivablesProps> = ({ currentUser, setActiveTab }) 
                                             className="w-full flex justify-between items-center p-4 bg-slate-50 dark:bg-slate-800 rounded-2xl hover:bg-blue-50 dark:hover:bg-blue-900/20 hover:border-blue-100 dark:hover:border-blue-900 border border-transparent transition-all group"
                                         >
                                             <span className="text-[11px] font-black text-slate-700 dark:text-slate-200 uppercase tracking-tight text-left truncate pr-4">{p.name}</span>
-                                            <span className="text-[10px] font-black text-blue-600 dark:text-blue-400">R$ {p.price.toFixed(2)}</span>
+                                            <span className="text-[10px] font-black text-blue-600 dark:text-blue-400">{formatCurrency(p.price)}</span>
                                         </button>
                                     ))}
                                 </div>
@@ -492,7 +493,7 @@ const Receivables: React.FC<ReceivablesProps> = ({ currentUser, setActiveTab }) 
                                                         <span className="text-white font-black text-xs">{item.quantity}</span>
                                                         <button onClick={() => updateItemQty(item.uid, 1)} className="w-8 h-8 rounded-lg bg-white/5 dark:bg-slate-700/50 text-white flex items-center justify-center hover:bg-white/10 dark:hover:bg-slate-700 transition-all">+</button>
                                                     </div>
-                                                    <span className="text-[10px] font-black text-white dark:text-slate-200 tracking-widest">R$ {(item.price * item.quantity).toFixed(2)}</span>
+                                                    <span className="text-[10px] font-black text-white dark:text-slate-200 tracking-widest">{formatCurrency(item.price * item.quantity)}</span>
                                                 </div>
                                             </div>
                                         );
@@ -502,7 +503,7 @@ const Receivables: React.FC<ReceivablesProps> = ({ currentUser, setActiveTab }) 
                                 <div className="mt-8 pt-6 border-t border-white/10 space-y-4">
                                     <div className="flex justify-between items-center">
                                         <span className="text-[10px] font-black text-white/40 uppercase tracking-widest">Novo Total no Crediário:</span>
-                                        <span className="text-2xl font-black text-white">R$ {calculateTotal().toFixed(2)}</span>
+                                        <span className="text-2xl font-black text-white">{formatCurrency(calculateTotal())}</span>
                                     </div>
                                     <button
                                         onClick={handleUpdateItems}
@@ -539,7 +540,7 @@ const Receivables: React.FC<ReceivablesProps> = ({ currentUser, setActiveTab }) 
                                 return (
                                     <div key={idx} className="flex justify-between items-start font-black uppercase py-0.5 text-[8px] gap-2">
                                         <span className="flex-1 leading-tight">{item.quantity}x {prod?.name.substring(0, 25) || 'Item'}</span>
-                                        <span className="whitespace-nowrap">R$ {(item.quantity * item.price).toFixed(2)}</span>
+                                        <span className="whitespace-nowrap">{formatCurrency(item.price, false)}</span>
                                     </div>
                                 );
                             })}
@@ -547,18 +548,18 @@ const Receivables: React.FC<ReceivablesProps> = ({ currentUser, setActiveTab }) 
                         {printingOrder.appliedServiceFee > 0 && (
                             <div className="flex justify-between items-center border-t border-dashed pt-4 mb-2 text-[8px] uppercase font-black">
                                 <span>Taxa Serviço:</span>
-                                <span>R$ {printingOrder.appliedServiceFee.toFixed(2)}</span>
+                                <span>{formatCurrency(printingOrder.appliedServiceFee)}</span>
                             </div>
                         )}
                         {printingOrder.deliveryFee > 0 && (
                             <div className="flex justify-between items-center text-[8px] uppercase font-black mb-2">
                                 <span>Taxa Entrega:</span>
-                                <span>R$ {printingOrder.deliveryFee.toFixed(2)}</span>
+                                <span>{formatCurrency(printingOrder.deliveryFee)}</span>
                             </div>
                         )}
                         <div className="flex justify-between items-center border-t border-dashed pt-4 mb-6">
                             <span className="font-black text-[9px] uppercase tracking-tighter">TOTAL DEVEDOR:</span>
-                            <span className="text-xs font-black whitespace-nowrap">R$ {printingOrder.total.toFixed(2)}</span>
+                            <span className="text-xs font-black whitespace-nowrap">{formatCurrency(printingOrder.total)}</span>
                         </div>
 
                         <div className="grid grid-cols-2 gap-4 no-print mt-6">

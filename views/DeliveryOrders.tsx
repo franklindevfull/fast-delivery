@@ -5,6 +5,7 @@ import { socket, clientChatUnreadManager } from '../services/socket';
 import { Order, User, OrderStatusLabels, DeliveryDriver, Product, SaleType, BusinessSettings } from '../types';
 import { Icons } from '../constants';
 import { useToast } from '../hooks/useToast';
+import { formatCurrency } from '../services/formatUtils';
 
 import CustomAlert from '../components/CustomAlert';
 import { sendOrderToThermalPrinter } from '../services/printService';
@@ -318,7 +319,7 @@ const DeliveryOrders: React.FC<DeliveryOrdersProps> = ({ currentUser }) => {
                                     <div key={order.id} className="bg-white dark:bg-slate-900 p-5 md:p-6 rounded-3xl md:rounded-[2.5rem] border border-slate-100 dark:border-slate-800 shadow-sm flex flex-col hover:shadow-xl transition-all h-fit">
                                         <div className="flex justify-between items-start mb-4">
                                             <h3 className="font-black text-xl md:text-2xl text-slate-800 dark:text-white tracking-tighter">#{order.id.slice(-4).toUpperCase()}</h3>
-                                            <p className="text-lg md:text-xl font-black text-slate-800 dark:text-white">R$ {order.total.toFixed(2)}</p>
+                                            <p className="text-lg md:text-xl font-black text-slate-800 dark:text-white">{formatCurrency(order.total)}</p>
                                         </div>
                                         <div className="space-y-4 mb-6">
                                             <p className="font-bold text-slate-700 dark:text-slate-300 leading-tight uppercase text-xs">{order.clientName}</p>
@@ -411,7 +412,7 @@ const DeliveryOrders: React.FC<DeliveryOrdersProps> = ({ currentUser }) => {
                                         </td>
                                         <td className="px-8 py-5">
                                             <p className="text-[11px] font-black text-blue-600 dark:text-blue-400">
-                                                R$ {order.total.toFixed(2)}
+                                                {formatCurrency(order.total)}
                                             </p>
                                         </td>
                                         <td className="px-8 py-5 text-right">
@@ -541,7 +542,7 @@ const DeliveryOrders: React.FC<DeliveryOrdersProps> = ({ currentUser }) => {
                                 {groupedPrintingItems.map(([id, data]: [string, any]) => (
                                     <div key={id} className="flex justify-between font-bold uppercase py-0.5 text-[10px]">
                                         <span className="flex-1 pr-2">{data.quantity}X {data.name.substring(0, 20)}</span>
-                                        <span className="shrink-0">R$ {(data.quantity * data.price).toFixed(2)}</span>
+                                        <span className="shrink-0">{formatCurrency(data.price, false)}</span>
                                     </div>
                                 ))}
                             </div>
@@ -551,12 +552,12 @@ const DeliveryOrders: React.FC<DeliveryOrdersProps> = ({ currentUser }) => {
 
                         <div className="flex justify-between items-center py-0.5 text-[9px]">
                             <span className="uppercase font-bold">TAXA ENTREGA:</span>
-                            <span className="font-bold">R$ {(printingOrder.deliveryFee || 0).toFixed(2)}</span>
+                            <span className="font-bold">{formatCurrency(printingOrder.deliveryFee || 0)}</span>
                         </div>
 
                         <div className="flex justify-between items-end pt-1 mb-2">
                             <span className="font-black text-[9px] uppercase tracking-widest">TOTAL:</span>
-                            <span className="text-xl font-black">R$ {printingOrder.total.toFixed(2)}</span>
+                            <span className="text-xl font-black">{formatCurrency(printingOrder.total)}</span>
                         </div>
                         <div className="grid grid-cols-2 gap-4 no-print mt-6">
                             <button

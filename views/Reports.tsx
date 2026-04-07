@@ -7,6 +7,7 @@ import CustomAlert from '../components/CustomAlert';
 import { PDFDocument, StandardFonts, rgb } from 'pdf-lib';
 import { getLocalIsoDate } from '../services/dateUtils';
 import { useToast } from '../hooks/useToast';
+import { formatCurrency } from '../services/formatUtils';
 
 interface ReportsProps {
     currentUser: User | null;
@@ -358,54 +359,54 @@ const Reports: React.FC<ReportsProps> = ({ currentUser }) => {
             // KPIs
             page.drawText('RESUMO FINANCEIRO (VENDAS)', { x: 50, y, size: 12, font: fontBold });
             y -= 20;
-            page.drawText(`Faturamento Total: R$ ${totalRevenue.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}`, { x: 50, y, size: 10, font: fontBold, color: rgb(0, 0.4, 0) });
+            page.drawText(`Faturamento Total: ${formatCurrency(totalRevenue)}`, { x: 50, y, size: 10, font: fontBold, color: rgb(0, 0.4, 0) });
             y -= 15;
             page.drawText(`Volume de Vendas: ${orderCount}`, { x: 50, y, size: 10, font });
             y -= 15;
-            page.drawText(`Ticket Médio: R$ ${avgTicket.toFixed(2)}`, { x: 50, y, size: 10, font });
+            page.drawText(`Ticket Médio: ${formatCurrency(avgTicket)}`, { x: 50, y, size: 10, font });
 
             y -= 30;
             page.drawText('VENDAS POR FORMA DE PAGAMENTO', { x: 50, y, size: 12, font: fontBold });
             y -= 20;
-            page.drawText(`Dinheiro: R$ ${totalDinheiro.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}`, { x: 50, y, size: 10, font });
+            page.drawText(`Dinheiro: ${formatCurrency(totalDinheiro)}`, { x: 50, y, size: 10, font });
             y -= 15;
-            page.drawText(`Cartão de Crédito: R$ ${totalCredito.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}`, { x: 50, y, size: 10, font });
+            page.drawText(`Cartão de Crédito: ${formatCurrency(totalCredito)}`, { x: 50, y, size: 10, font });
             y -= 15;
-            page.drawText(`Cartão de Débito: R$ ${totalDebito.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}`, { x: 50, y, size: 10, font });
+            page.drawText(`Cartão de Débito: ${formatCurrency(totalDebito)}`, { x: 50, y, size: 10, font });
             y -= 15;
-            page.drawText(`PIX: R$ ${totalPix.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}`, { x: 50, y, size: 10, font });
+            page.drawText(`PIX: ${formatCurrency(totalPix)}`, { x: 50, y, size: 10, font });
             if (totalFiado > 0) {
                 y -= 15;
-                page.drawText(`Vendas no Crediário: R$ ${totalFiado.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}`, { x: 50, y, size: 10, font });
+                page.drawText(`Vendas no Crediário: ${formatCurrency(totalFiado)}`, { x: 50, y, size: 10, font });
             }
             if (totalOutros > 0) {
                 y -= 15;
-                page.drawText(`Outros: R$ ${totalOutros.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}`, { x: 50, y, size: 10, font });
+                page.drawText(`Outros: ${formatCurrency(totalOutros)}`, { x: 50, y, size: 10, font });
             }
 
             y -= 30;
             page.drawText('RESUMO DE CAIXA', { x: 50, y, size: 12, font: fontBold });
             y -= 20;
-            page.drawText(`Dinheiro das Vendas (Período): R$ ${totalDinheiro.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}`, { x: 50, y, size: 10, font });
+            page.drawText(`Dinheiro das Vendas (Período): ${formatCurrency(totalDinheiro)}`, { x: 50, y, size: 10, font });
             y -= 15;
-            page.drawText(`Fundo de Troco (Aberturas de Caixa): R$ ${totalInitialCash.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}`, { x: 50, y, size: 10, font });
+            page.drawText(`Fundo de Troco (Aberturas de Caixa): ${formatCurrency(totalInitialCash)}`, { x: 50, y, size: 10, font });
             y -= 15;
-            page.drawText(`Total de Dinheiro Físico Esperado (Vendas + Troco): R$ ${(totalDinheiro + totalInitialCash).toLocaleString('pt-BR', { minimumFractionDigits: 2 })}`, { x: 50, y, size: 10, font: fontBold });
+            page.drawText(`Total de Dinheiro Físico Esperado (Vendas + Troco): ${formatCurrency(totalDinheiro + totalInitialCash)}`, { x: 50, y, size: 10, font: fontBold });
             y -= 15;
-            page.drawText(`Total de Dinheiro Físico Declarado (Fechamentos de Caixa): R$ ${totalReportedCash.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}`, { x: 50, y, size: 10, font });
+            page.drawText(`Total de Dinheiro Físico Declarado (Fechamentos de Caixa): ${formatCurrency(totalReportedCash)}`, { x: 50, y, size: 10, font });
             y -= 15;
-            page.drawText(`Lucro Líquido Declarado em Dinheiro (Sobra após retirar o Troco): R$ ${(totalReportedCash - totalInitialCash).toLocaleString('pt-BR', { minimumFractionDigits: 2 })}`, { x: 50, y, size: 10, font: fontBold, color: rgb(0, 0.4, 0) });
+            page.drawText(`Lucro Líquido Declarado em Dinheiro (Sobra após retirar o Troco): ${formatCurrency(totalReportedCash - totalInitialCash)}`, { x: 50, y, size: 10, font: fontBold, color: rgb(0, 0.4, 0) });
             y -= 25;
             page.drawText('DIFERENÇAS DE CAIXA', { x: 50, y, size: 12, font: fontBold });
             y -= 20;
-            page.drawText(`Sobra de Caixa (Diferenças Positivas): R$ ${totalSobra.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}`, { x: 50, y, size: 10, font, color: rgb(0, 0.5, 0) });
+            page.drawText(`Sobra de Caixa (Diferenças Positivas): ${formatCurrency(totalSobra)}`, { x: 50, y, size: 10, font, color: rgb(0, 0.5, 0) });
             y -= 15;
-            page.drawText(`Falta de Caixa (Diferenças Negativas): R$ ${totalFalta.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}`, { x: 50, y, size: 10, font, color: rgb(0.8, 0, 0) });
+            page.drawText(`Falta de Caixa (Diferenças Negativas): ${formatCurrency(totalFalta)}`, { x: 50, y, size: 10, font, color: rgb(0.8, 0, 0) });
 
             y -= 25;
             page.drawText('RECEBIMENTOS DE DÉBITOS (CREDIÁRIO)', { x: 50, y, size: 12, font: fontBold });
             y -= 20;
-            page.drawText(`Total Recebido em Crediário no Período: R$ ${totalFiadoReceived.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}`, { x: 50, y, size: 10, font: fontBold, color: rgb(0, 0, 0.5) });
+            page.drawText(`Total Recebido em Crediário no Período: ${formatCurrency(totalFiadoReceived)}`, { x: 50, y, size: 10, font: fontBold, color: rgb(0, 0, 0.5) });
 
             y -= 40;
             // Table Header
@@ -432,7 +433,7 @@ const Reports: React.FC<ReportsProps> = ({ currentUser }) => {
                 page.drawText(o.clientName.substring(0, 38), { x: 140, y, size: 7, font });
                 page.drawText((o.paymentMethod || 'DINHEIRO').substring(0, 20), { x: 360, y, size: 7, font });
                 page.drawText(getFriendlySaleType(o.type), { x: 465, y, size: 7, font });
-                page.drawText(`R$ ${o.total.toFixed(2)}`, { x: 520, y, size: 7, font: fontBold });
+                page.drawText(formatCurrency(o.total), { x: 520, y, size: 7, font: fontBold });
                 y -= 20;
             }
 
@@ -525,11 +526,11 @@ const Reports: React.FC<ReportsProps> = ({ currentUser }) => {
             // KPIs
             page.drawText('RESUMO DO PERÍODO', { x: 50, y, size: 12, font: fontBold });
             y -= 20;
-            page.drawText(`Faturamento Total: R$ ${totalRevenue.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}`, { x: 50, y, size: 10, font });
+            page.drawText(`Faturamento Total: ${formatCurrency(totalRevenue)}`, { x: 50, y, size: 10, font });
             y -= 15;
             page.drawText(`Volume de Pedidos: ${orderCount}`, { x: 50, y, size: 10, font });
             y -= 15;
-            page.drawText(`Ticket Médio: R$ ${avgTicket.toFixed(2)}`, { x: 50, y, size: 10, font });
+            page.drawText(`Ticket Médio: ${formatCurrency(avgTicket)}`, { x: 50, y, size: 10, font });
 
             y -= 40;
             // Table Header
@@ -570,12 +571,12 @@ const Reports: React.FC<ReportsProps> = ({ currentUser }) => {
                 }
 
                 // Prices
-                page.drawText(`Total: R$ ${o.total.toFixed(2)}`, { x: 500, y, size: 8, font: fontBold });
+                page.drawText(`Total: ${formatCurrency(o.total)}`, { x: 500, y, size: 8, font: fontBold });
                 if (o.deliveryFee > 0) {
-                    page.drawText(`Entrega: R$ ${o.deliveryFee.toFixed(2)}`, { x: 500, y: y - 10, size: 6, font });
+                    page.drawText(`Entrega: ${formatCurrency(o.deliveryFee)}`, { x: 500, y: y - 10, size: 6, font });
                 }
                 if (o.appliedServiceFee > 0) {
-                    page.drawText(`Serviço: R$ ${o.appliedServiceFee.toFixed(2)}`, { x: 500, y: y - (o.deliveryFee > 0 ? 18 : 10), size: 6, font });
+                    page.drawText(`Serviço: ${formatCurrency(o.appliedServiceFee)}`, { x: 500, y: y - (o.deliveryFee > 0 ? 18 : 10), size: 6, font });
                 }
                 page.drawText(`PG: ${o.paymentMethod || 'N/A'}`, { x: 500, y: y - (o.deliveryFee > 0 && o.appliedServiceFee > 0 ? 26 : (o.deliveryFee > 0 || o.appliedServiceFee > 0 ? 18 : 10)), size: 6, font, color: rgb(0.3, 0.3, 0.3) });
 
@@ -640,11 +641,11 @@ const Reports: React.FC<ReportsProps> = ({ currentUser }) => {
             // KPIs
             page.drawText('RESUMO DE ENTREGAS', { x: 50, y, size: 12, font: fontBold });
             y -= 20;
-            page.drawText(`Faturamento Vinculado: R$ ${totalRevenue.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}`, { x: 50, y, size: 10, font });
+            page.drawText(`Faturamento Vinculado: ${formatCurrency(totalRevenue)}`, { x: 50, y, size: 10, font });
             y -= 15;
-            page.drawText(`Valor em Produtos: R$ ${totalProductsValue.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}`, { x: 50, y, size: 10, font });
+            page.drawText(`Valor em Produtos: ${formatCurrency(totalProductsValue)}`, { x: 50, y, size: 10, font });
             y -= 15;
-            page.drawText(`Total de Taxas de Entrega: R$ ${totalDeliveryFees.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}`, { x: 50, y, size: 10, font });
+            page.drawText(`Total de Taxas de Entrega: ${formatCurrency(totalDeliveryFees)}`, { x: 50, y, size: 10, font });
             y -= 15;
             page.drawText(`Total de Entregas Finalizadas: ${totalDeliveries}`, { x: 50, y, size: 10, font });
             y -= 15;
@@ -673,9 +674,9 @@ const Reports: React.FC<ReportsProps> = ({ currentUser }) => {
                 page.drawText(dateStr, { x: 55, y, size: 7, font });
                 page.drawText(o.clientName.substring(0, 25), { x: 160, y, size: 7, font });
                 page.drawText(dName.substring(0, 20), { x: 280, y, size: 7, font });
-                page.drawText(`R$ ${(o.deliveryFee || 0).toFixed(2)}`, { x: 380, y, size: 7, font });
-                page.drawText(`R$ ${(o.total - (o.deliveryFee || 0)).toFixed(2)}`, { x: 440, y, size: 7, font });
-                page.drawText(`R$ ${o.total.toFixed(2)}`, { x: 500, y, size: 7, font: fontBold });
+                page.drawText(formatCurrency(o.deliveryFee || 0), { x: 380, y, size: 7, font });
+                page.drawText(formatCurrency(o.total - (o.deliveryFee || 0)), { x: 440, y, size: 7, font });
+                page.drawText(formatCurrency(o.total), { x: 500, y, size: 7, font: fontBold });
                 y -= 20;
             }
 
@@ -755,7 +756,7 @@ const Reports: React.FC<ReportsProps> = ({ currentUser }) => {
             page.drawText(`Emitido em: ${new Date().toLocaleString('pt-BR')}`, { x: 50, y, size: 10, font });
 
             y -= 30;
-            page.drawText(`TOTAL SELECIONADO: R$ ${totalAmount.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}`, { x: 50, y, size: 14, font: fontBold });
+            page.drawText(`TOTAL SELECIONADO: ${formatCurrency(totalAmount)}`, { x: 50, y, size: 14, font: fontBold });
 
             y -= 40;
             // Table Header
@@ -789,7 +790,7 @@ const Reports: React.FC<ReportsProps> = ({ currentUser }) => {
                     color: isOverdue ? rgb(0.8, 0, 0) : rgb(0, 0.5, 0)
                 });
 
-                page.drawText(`R$ ${r.amount.toFixed(2)}`, { x: 535, y, size: 7, font: fontBold });
+                page.drawText(formatCurrency(r.amount), { x: 535, y, size: 7, font: fontBold });
 
                 y -= 18;
             }
@@ -854,25 +855,21 @@ const Reports: React.FC<ReportsProps> = ({ currentUser }) => {
 
                 page.drawText(openedAt, { x: 55, y, size: 7, font });
                 page.drawText(closedAt, { x: 150, y, size: 7, font });
-                page.drawText(`R$ ${s.initialBalance.toFixed(2)}`, { x: 250, y, size: 7, font });
-                page.drawText(`R$ ${(s.totalSales || 0).toFixed(2)}`, { x: 320, y, size: 7, font });
+                page.drawText(formatCurrency(s.initialBalance), { x: 250, y, size: 7, font });
+                page.drawText(formatCurrency(s.totalSales || 0), { x: 320, y, size: 7, font });
 
                 const diff = s.difference || 0;
-                page.drawText(`R$ ${diff.toFixed(2)}`, {
+                page.drawText(formatCurrency(diff), {
                     x: 400, y, size: 7, font,
                     color: diff < 0 ? rgb(0.8, 0, 0) : (diff > 0 ? rgb(0, 0.5, 0) : rgb(0, 0, 0))
                 });
 
                 page.drawText(s.status === 'OPEN' ? 'ABERTO' : 'FECHADO', { x: 480, y, size: 7, font: fontBold });
-
-                y -= 20;
-
-                // Little detail block if closed
-                if (s.status === 'CLOSED') {
+                if (s.status === 'CLOSED') {
                     y -= 5;
                     page.drawRectangle({ x: 60, y: y - 25, width: 480, height: 25, color: rgb(0.98, 0.98, 0.98) });
-                    page.drawText(`Relatado: Dinheiro: R$ ${(s.reportedCash || 0).toFixed(2)} | Pix: R$ ${(s.reportedPix || 0).toFixed(2)} | Crédito: R$ ${(s.reportedCredit || 0).toFixed(2)} | Débito: R$ ${(s.reportedDebit || 0).toFixed(2)} | Crediário: R$ ${(s.reportedFiado || 0).toFixed(2)} | Outros: R$ ${(s.reportedOthers || 0).toFixed(2)}`, { x: 70, y: y - 10, size: 5.5, font });
-+                    page.drawText(`Sistema: Dinheiro: R$ ${(s.systemCash || 0).toFixed(2)} | Pix: R$ ${(s.systemPix || 0).toFixed(2)} | Crédito: R$ ${(s.systemCredit || 0).toFixed(2)} | Débito: R$ ${(s.systemDebit || 0).toFixed(2)} | Crediário: R$ ${(s.systemFiado || 0).toFixed(2)} | Outros: R$ ${(s.systemOthers || 0).toFixed(2)}`, { x: 70, y: y - 20, size: 5.5, font });
+                    page.drawText(`Relatado: Dinheiro: ${formatCurrency(s.reportedCash || 0)} | Pix: ${formatCurrency(s.reportedPix || 0)} | Crédito: ${formatCurrency(s.reportedCredit || 0)} | Débito: ${formatCurrency(s.reportedDebit || 0)} | Crediário: ${formatCurrency(s.reportedFiado || 0)} | Outros: ${formatCurrency(s.reportedOthers || 0)}`, { x: 70, y: y - 10, size: 5.5, font });
+                    page.drawText(`Sistema: Dinheiro: ${formatCurrency(s.systemCash || 0)} | Pix: ${formatCurrency(s.systemPix || 0)} | Crédito: ${formatCurrency(s.systemCredit || 0)} | Débito: ${formatCurrency(s.systemDebit || 0)} | Crediário: ${formatCurrency(s.systemFiado || 0)} | Outros: ${formatCurrency(s.systemOthers || 0)}`, { x: 70, y: y - 20, size: 5.5, font });
                     y -= 35;
                 }
             }
@@ -1010,8 +1007,8 @@ const Reports: React.FC<ReportsProps> = ({ currentUser }) => {
 
                 page.drawText(s.name.substring(0, 35), { x: 55, y, size: 8, font });
                 page.drawText(s.count.toString(), { x: 250, y, size: 8, font });
-                page.drawText(`R$ ${s.totalSales.toFixed(2)}`, { x: 320, y, size: 8, font });
-                page.drawText(`R$ ${s.totalCommission.toFixed(2)}`, { x: 450, y, size: 8, font: fontBold });
+                page.drawText(formatCurrency(s.totalSales), { x: 320, y, size: 8, font });
+                page.drawText(formatCurrency(s.totalCommission), { x: 450, y, size: 8, font: fontBold });
 
                 grandTotalSales += s.totalSales;
                 grandTotalCommission += s.totalCommission;
@@ -1022,8 +1019,8 @@ const Reports: React.FC<ReportsProps> = ({ currentUser }) => {
             page.drawRectangle({ x: 50, y: y - 5, width: width - 100, height: 2, color: rgb(0, 0, 0) });
             y -= 20;
             page.drawText('TOTAIS GERAIS', { x: 55, y, size: 10, font: fontBold });
-            page.drawText(`R$ ${grandTotalSales.toFixed(2)}`, { x: 320, y, size: 10, font: fontBold });
-            page.drawText(`R$ ${grandTotalCommission.toFixed(2)}`, { x: 450, y, size: 10, font: fontBold, color: rgb(0, 0.5, 0) });
+            page.drawText(formatCurrency(grandTotalSales), { x: 320, y, size: 10, font: fontBold });
+            page.drawText(formatCurrency(grandTotalCommission), { x: 450, y, size: 10, font: fontBold, color: rgb(0, 0.5, 0) });
 
             await handlePdfOutput(pdfDoc, `comissoes_garcom_${waiterStartDate}_${waiterEndDate}.pdf`, downloadOnly, 'WAITERS');
         } catch (error) {
@@ -1100,8 +1097,8 @@ const Reports: React.FC<ReportsProps> = ({ currentUser }) => {
                 page.drawText(wName.substring(0, 18), { x: 140, y, size: 7, font });
                 page.drawText(o.tableNumber ? `Mesa ${o.tableNumber}` : 'Balcão', { x: 230, y, size: 7, font: fontBold });
                 page.drawText(o.clientName.substring(0, 30), { x: 280, y, size: 7, font });
-                page.drawText(`R$ ${productsTotal.toFixed(2)}`, { x: 440, y, size: 7, font });
-                page.drawText(`R$ ${commission.toFixed(2)}`, { x: 500, y, size: 7, font: fontBold });
+                page.drawText(formatCurrency(productsTotal), { x: 440, y, size: 7, font });
+                page.drawText(formatCurrency(commission), { x: 500, y, size: 7, font: fontBold });
 
                 grandTotalSales += productsTotal;
                 grandTotalCommission += commission;
@@ -1112,8 +1109,8 @@ const Reports: React.FC<ReportsProps> = ({ currentUser }) => {
             page.drawRectangle({ x: 50, y: y - 5, width: width - 100, height: 2, color: rgb(0, 0, 0) });
             y -= 20;
             page.drawText('TOTAIS GERAIS DO PERÍODO', { x: 55, y, size: 10, font: fontBold });
-            page.drawText(`R$ ${grandTotalSales.toFixed(2)}`, { x: 440, y, size: 9, font: fontBold });
-            page.drawText(`R$ ${grandTotalCommission.toFixed(2)}`, { x: 500, y, size: 9, font: fontBold, color: rgb(0, 0.5, 0) });
+            page.drawText(formatCurrency(grandTotalSales), { x: 440, y, size: 9, font: fontBold });
+            page.drawText(formatCurrency(grandTotalCommission), { x: 500, y, size: 9, font: fontBold, color: rgb(0, 0.5, 0) });
 
             await handlePdfOutput(pdfDoc, `comissoes_analitico_${waiterStartDate}_${waiterEndDate}.pdf`, downloadOnly, 'WAITERS_ANALYTICAL');
         } catch (error) {
@@ -1438,7 +1435,7 @@ const Reports: React.FC<ReportsProps> = ({ currentUser }) => {
                                             <tr key={s.id} className="hover:bg-slate-50/50 dark:hover:bg-slate-800/50 transition-colors">
                                                 <td className="p-4">{new Date(s.openedAt).toLocaleString('pt-BR', { dateStyle: 'short', timeStyle: 'short' })}</td>
                                                 <td className="p-4">{s.closedAt ? new Date(s.closedAt).toLocaleString('pt-BR', { dateStyle: 'short', timeStyle: 'short' }) : 'Em Aberto'}</td>
-                                                <td className="p-4">R$ {s.totalSales?.toFixed(2) || (s.status === 'OPEN' ? 'Processando...' : '0,00')}</td>
+                                                <td className="p-4">{s.status === 'OPEN' ? 'Processando...' : formatCurrency(s.totalSales || 0)}</td>
                                                 <td className="p-4">
                                                     <span className={`px-3 py-1 rounded-full text-[8px] uppercase tracking-widest font-black ${s.status === 'OPEN' ? 'bg-emerald-100 dark:bg-emerald-900/30 text-emerald-600 dark:text-emerald-400' : 'bg-slate-100 dark:bg-slate-800 text-slate-400 dark:text-slate-500'}`}>
                                                         {s.status === 'OPEN' ? 'Aberto' : 'Fechado'}
@@ -1677,7 +1674,7 @@ const Reports: React.FC<ReportsProps> = ({ currentUser }) => {
                                                             {isOverdue ? 'Vencido' : 'Em Dia'}
                                                         </span>
                                                     </td>
-                                                    <td className="p-4 font-black">R$ {r.amount.toFixed(2)}</td>
+                                                    <td className="p-4 font-black">{formatCurrency(r.amount)}</td>
                                                 </tr>
                                             );
                                         })}

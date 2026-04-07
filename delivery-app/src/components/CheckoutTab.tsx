@@ -3,7 +3,7 @@ import { useCart } from '../CartContext';
 import { api } from '../services/api';
 import { socket } from '../services/socket';
 import { Icons } from '../constants';
-import { formatAddress } from '../services/formatUtils';
+import { formatAddress, formatCurrency } from '../services/formatUtils';
 import CustomAlert from './CustomAlert';
 import type { StoreStatus } from '../types';
 
@@ -178,7 +178,7 @@ const CheckoutTab: React.FC<{ onOrderPlaced: () => void }> = ({ onOrderPlaced })
 
         showAlert(
             'Finalizar Pedido',
-            `Deseja enviar seu pedido no valor de R$ ${finalTotal.toFixed(2)}?`,
+            `Deseja enviar seu pedido no valor de ${formatCurrency(finalTotal)}?`,
             'SUCCESS',
             async () => {
                 setIsLoading(true);
@@ -270,31 +270,31 @@ const CheckoutTab: React.FC<{ onOrderPlaced: () => void }> = ({ onOrderPlaced })
                                 <div className="w-12 h-12 bg-indigo-50 dark:bg-indigo-900/30 text-indigo-600 dark:text-indigo-400 font-black rounded-xl flex items-center justify-center shrink-0">{item.quantity}x</div>
                                 <div className="flex-1">
                                     <h3 className="text-sm font-bold text-slate-800 dark:text-slate-100 line-clamp-1">{item.product.name}</h3>
-                                    <p className="text-[10px] font-bold text-slate-400 dark:text-slate-500 mt-0.5">R$ {item.product.price.toFixed(2)}/un</p>
+                                    <p className="text-[10px] font-bold text-slate-400 dark:text-slate-500 mt-0.5">{formatCurrency(item.product.price)}/un</p>
                                 </div>
-                                <span className="text-sm font-black text-slate-800 dark:text-slate-100">R$ {(item.product.price * item.quantity).toFixed(2)}</span>
+                                <span className="text-sm font-black text-slate-800 dark:text-slate-100">{formatCurrency(item.product.price * item.quantity)}</span>
                             </div>
                         ))}
                         <div className="pt-4 border-t border-slate-100 dark:border-slate-700 space-y-3">
                             <div className="flex justify-between items-center text-slate-500 dark:text-slate-400">
                                 <span className="text-[10px] font-black uppercase tracking-widest">Subtotal</span>
-                                <span className="text-xs font-bold">R$ {total.toFixed(2)}</span>
+                                <span className="text-xs font-bold">{formatCurrency(total)}</span>
                             </div>
                             <div className="flex justify-between items-center text-slate-500 dark:text-slate-400">
                                 <span className="text-[10px] font-black uppercase tracking-widest">Taxa de Entrega</span>
-                                <span className="text-xs font-bold">{deliveryFee.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}</span>
+                                <span className="text-xs font-bold">{formatCurrency(deliveryFee)}</span>
                             </div>
                             {appliedCoupon && (
                                 <div className="flex justify-between items-center text-emerald-600 dark:text-emerald-400">
                                     <span className="text-[10px] font-black uppercase tracking-widest flex items-center gap-1 font-bold">
                                         <Icons.Ticket className="w-3 h-3" /> Cupom: {appliedCoupon.code}
                                     </span>
-                                    <span className="text-xs font-bold">- R$ {discountValue.toFixed(2)}</span>
+                                    <span className="text-xs font-bold">- {formatCurrency(discountValue)}</span>
                                 </div>
                             )}
                             <div className="flex justify-between items-center pt-3 border-t border-dashed border-slate-200 dark:border-slate-700">
                                 <span className="text-[10px] font-black text-indigo-600 dark:text-indigo-400 uppercase tracking-widest">Total do Pedido</span>
-                                <span className="text-2xl font-black text-indigo-600 dark:text-indigo-400 tracking-tighter">R$ {finalTotal.toFixed(2)}</span>
+                                <span className="text-2xl font-black text-indigo-600 dark:text-indigo-400 tracking-tighter">{formatCurrency(finalTotal)}</span>
                             </div>
                         </div>
                     </div>
@@ -405,7 +405,7 @@ const CheckoutTab: React.FC<{ onOrderPlaced: () => void }> = ({ onOrderPlaced })
                     className="relative w-full overflow-hidden group bg-slate-800 dark:bg-indigo-600 text-white py-6 rounded-2xl font-black uppercase text-[11px] tracking-widest hover:bg-slate-700 dark:hover:bg-indigo-500 transition-all shadow-xl disabled:opacity-50"
                 >
                     <span className="relative z-10 flex items-center justify-center gap-3">
-                        {isLoading ? <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin"></div> : `Confirmar Pedido • R$ ${finalTotal.toFixed(2)}`}
+                        {isLoading ? <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin"></div> : `Confirmar Pedido • ${formatCurrency(finalTotal)}`}
                     </span>
                 </button>
                 </form>

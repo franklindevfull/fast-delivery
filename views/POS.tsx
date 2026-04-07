@@ -8,7 +8,7 @@ import { socket, feedbackUnreadManager } from '../services/socket';
 import { Icons, PLACEHOLDER_FOOD_IMAGE, formatImageUrl } from '../constants';
 import CustomAlert from '../components/CustomAlert';
 import { validateEmail, validateCPF, validateCNPJ, maskPhone, maskDocument, toTitleCase } from '../services/validationUtils';
-import { formatAddress } from '../services/formatUtils';
+import { formatAddress, formatCurrency } from '../services/formatUtils';
 import { QRCodeCanvas } from 'qrcode.react';
 import { sendOrderToThermalPrinter } from '../services/printService';
 
@@ -511,7 +511,7 @@ const POS: React.FC<POSProps> = ({ currentUser }) => {
 
     // Set initial payment state
     setPayments([]);
-    setCurrentPaymentAmount(cartTotal.toFixed(2));
+    setCurrentPaymentAmount(formatCurrency(cartTotal, false));
     setPaymentMethod('DINHEIRO');
     setPaymentData({ receivedAmount: '' });
     setEmitNfce(false);
@@ -713,11 +713,11 @@ const POS: React.FC<POSProps> = ({ currentUser }) => {
 
       // Auto-preencher os campos do relatório de fechamento
       setClosingReport({
-        cash: preview.systemCash.toFixed(2),
-        pix: preview.systemPix.toFixed(2),
-        credit: preview.systemCredit.toFixed(2),
-        debit: preview.systemDebit.toFixed(2),
-        others: preview.systemOthers.toFixed(2),
+        cash: formatCurrency(preview.systemCash, false),
+        pix: formatCurrency(preview.systemPix, false),
+        credit: formatCurrency(preview.systemCredit, false),
+        debit: formatCurrency(preview.systemDebit, false),
+        others: formatCurrency(preview.systemOthers, false),
         observations: closingReport.observations // Manter observações se já houver
       });
 
@@ -888,7 +888,7 @@ const POS: React.FC<POSProps> = ({ currentUser }) => {
       const alreadyPaid = payments.reduce((acc, p) => acc + p.amount, 0);
       const remaining = Math.max(0, total - alreadyPaid);
 
-      const targetAmount = remaining > 0 ? remaining.toFixed(2) : '0.00';
+      const targetAmount = remaining > 0 ? formatCurrency(remaining, false) : '0,00';
       if (currentPaymentAmount !== targetAmount) {
         setCurrentPaymentAmount(targetAmount);
       }
@@ -934,7 +934,7 @@ const POS: React.FC<POSProps> = ({ currentUser }) => {
         if (change > maxChange) {
           return showAlert(
             "Troco Excedido",
-            `O valor do troco (R$ ${change.toFixed(2)}) ultrapassa o limite permitido de R$ ${maxChange.toFixed(2)}. Por favor, informe um valor recebido menor.`,
+            `O valor do troco (${formatCurrency(change)}) ultrapassa o limite permitido de ${formatCurrency(maxChange)}. Por favor, informe um valor recebido menor.`,
             "DANGER"
           );
         }
@@ -993,7 +993,7 @@ const POS: React.FC<POSProps> = ({ currentUser }) => {
 
               <div className="text-center mb-4">
                 <span className="text-[10px] font-black text-slate-400 dark:text-slate-500 uppercase tracking-widest mb-0.5 block">Total da Compra</span>
-                <span className="text-3xl font-black text-blue-600 dark:text-blue-400 tracking-tighter">R$ {cartTotal.toFixed(2)}</span>
+                <span className="text-3xl font-black text-blue-600 dark:text-blue-400 tracking-tighter">{formatCurrency(cartTotal)}</span>
               </div>
 
               <div className="space-y-4 overflow-y-auto max-h-[55vh] pr-2 custom-scrollbar">
@@ -1080,16 +1080,16 @@ const POS: React.FC<POSProps> = ({ currentUser }) => {
                               <p className="text-[9px] font-black text-slate-800 dark:text-white uppercase tracking-tight">{p.method === 'FIADO' ? 'CREDIÁRIO' : p.method}</p>
                               {p.receivedAmount !== undefined && (
                                 <div className="flex items-center gap-2">
-                                  <p className="text-[9px] text-slate-400 dark:text-slate-500 font-medium uppercase">Recebido: R$ {p.receivedAmount.toFixed(2)}</p>
+                                  <p className="text-[9px] text-slate-400 dark:text-slate-500 font-medium uppercase">Recebido: {formatCurrency(p.receivedAmount)}</p>
                                   {p.receivedAmount > p.amount && (
-                                    <span className="text-[9px] bg-emerald-50 dark:bg-emerald-900/40 text-emerald-700 dark:text-emerald-400 px-2 py-0.5 rounded-full font-medium uppercase border border-emerald-100 dark:border-emerald-500/20">Troco: R$ {(p.receivedAmount - p.amount).toFixed(2)}</span>
+                                    <span className="text-[9px] bg-emerald-50 dark:bg-emerald-900/40 text-emerald-700 dark:text-emerald-400 px-2 py-0.5 rounded-full font-medium uppercase border border-emerald-100 dark:border-emerald-500/20">Troco: {formatCurrency(p.receivedAmount - p.amount)}</span>
                                   )}
                                 </div>
                               )}
                             </div>
                           </div>
                           <div className="flex items-center gap-3">
-                            <span className="text-xs font-black text-blue-700 dark:text-blue-400">R$ {p.amount.toFixed(2)}</span>
+                            <span className="text-xs font-black text-blue-700 dark:text-blue-400">{formatCurrency(p.amount)}</span>
                             <button
                               onClick={() => removePayment(p.method)}
                               className="text-red-400 hover:text-red-600 p-1.5 rounded-xl hover:bg-red-50 dark:hover:bg-red-900/30 transition-all active:scale-90"
@@ -1105,7 +1105,7 @@ const POS: React.FC<POSProps> = ({ currentUser }) => {
                     <div className="pt-1.5 border-t border-blue-200 dark:border-slate-700 mt-1 flex justify-between items-center px-1">
                       <span className="text-[9px] font-black text-blue-400 dark:text-blue-500 uppercase tracking-widest">Total Informado</span>
                       <span className="text-base font-black text-blue-600 dark:text-blue-400">
-                        R$ {payments.reduce((acc, p) => acc + p.amount, 0).toFixed(2)}
+                        {formatCurrency(payments.reduce((acc, p) => acc + p.amount, 0))}
                       </span>
                     </div>
                   </div>
@@ -1119,7 +1119,7 @@ const POS: React.FC<POSProps> = ({ currentUser }) => {
                       <div className="p-4 bg-red-50 border-2 border-red-100 rounded-3xl animate-pulse">
                         <p className="text-[9px] font-black text-red-600 uppercase tracking-widest text-center flex items-center justify-center gap-2">
                           <Icons.View className="w-3 h-3" />
-                          Falta R$ {(cartTotal - paid).toFixed(2)} para completar o total
+                          Falta {formatCurrency(cartTotal - paid)} para completar o total
                         </p>
                       </div>
                     );
@@ -1323,7 +1323,7 @@ const POS: React.FC<POSProps> = ({ currentUser }) => {
                     </div>
                   </div>
                   <div className="cursor-pointer" onClick={() => loadTableSession(t)}>
-                    <p className="text-[10px] font-bold text-orange-500 mt-1 uppercase tracking-tighter">Total: R$ {t.items.reduce((acc, it) => acc + (it.price * it.quantity), 0).toFixed(2)}</p>
+                    <p className="text-[10px] font-bold text-orange-500 mt-1 uppercase tracking-tighter">Total: {formatCurrency(t.items.reduce((acc, it) => acc + (it.price * it.quantity), 0))}</p>
                   </div>
                 </div>
               ))}
@@ -1365,7 +1365,7 @@ const POS: React.FC<POSProps> = ({ currentUser }) => {
                     </button>
                   </div>
                   <div className="cursor-pointer" onClick={() => loadCounterOrder(o)}>
-                    <p className="text-[10px] font-bold text-blue-500 mt-1 uppercase tracking-tighter">Pronto: R$ {o.total.toFixed(2)}</p>
+                    <p className="text-[10px] font-bold text-blue-500 mt-1 uppercase tracking-tighter">Pronto: {formatCurrency(o.total)}</p>
                   </div>
                 </div>
               ))}
@@ -1396,7 +1396,7 @@ const POS: React.FC<POSProps> = ({ currentUser }) => {
                   </div>
                   <div className="cursor-pointer" onClick={() => loadReceivable(r)}>
                     <p className="text-[9px] font-black text-slate-400 dark:text-slate-500 uppercase mt-0.5 tracking-tighter">Débito: {new Date(r.createdAt).toLocaleDateString()}</p>
-                    <p className="text-[10px] font-bold text-emerald-600 mt-1 uppercase tracking-tighter">Total: R$ {r.amount.toFixed(2)}</p>
+                    <p className="text-[10px] font-bold text-emerald-600 mt-1 uppercase tracking-tighter">Total: {formatCurrency(r.amount)}</p>
                   </div>
                 </div>
               ))}
@@ -1547,7 +1547,7 @@ const POS: React.FC<POSProps> = ({ currentUser }) => {
                       <img src={formatImageUrl(product.imageUrl)} onError={e => e.currentTarget.src = PLACEHOLDER_FOOD_IMAGE} className="max-h-full object-contain group-hover:scale-110 transition-transform" />
                     </div>
                     <p className="font-black text-slate-800 dark:text-white line-clamp-1 uppercase text-[10px] tracking-tighter">{product.name}</p>
-                    <p className="text-blue-600 dark:text-blue-400 font-black mt-1">R$ {product.price.toFixed(2)}</p>
+                    <p className="text-blue-600 dark:text-blue-400 font-black mt-1">{formatCurrency(product.price)}</p>
                   </button>
                 ))}
             </div>
@@ -1646,7 +1646,7 @@ const POS: React.FC<POSProps> = ({ currentUser }) => {
               <div key={id} className={`flex justify-between items-center border-b border-dotted dark:border-slate-700 pb-2 ${(currentOrderStatus === OrderStatus.PREPARING || currentOrderStatus === OrderStatus.PARTIALLY_READY) ? 'animate-moderate-blink text-orange-600 dark:text-orange-400' : ''}`}>
                 <div className="flex-1">
                   <p className="font-black uppercase text-slate-800 dark:text-white">{data.product?.name || '...'}</p>
-                  <p className="text-slate-400 dark:text-slate-500 font-bold">{data.quantity} x R$ {data.price.toFixed(2)}</p>
+                  <p className="text-slate-400 dark:text-slate-500 font-bold">{data.quantity} x {formatCurrency(data.price, false)}</p>
                 </div>
                 {!isReceivingFiado && (
                   <button onClick={() => {
@@ -1723,7 +1723,7 @@ const POS: React.FC<POSProps> = ({ currentUser }) => {
                   </div>
                   <div className="flex items-center gap-3">
                     <span className="text-sm font-black text-slate-800 dark:text-white">
-                      + R$ {(cart.reduce((acc, item) => acc + (item.price * item.quantity), 0) * (businessSettings.serviceFeePercentage || 10) / 100).toFixed(2)}
+                      + {formatCurrency(cart.reduce((acc, item) => acc + (item.price * item.quantity), 0) * (businessSettings.serviceFeePercentage || 10) / 100)}
                     </span>
                     <button
                       type="button"
@@ -1739,7 +1739,7 @@ const POS: React.FC<POSProps> = ({ currentUser }) => {
 
             <div className="flex justify-between items-end mb-3 xl:mb-6 font-receipt mt-2">
               <span className="font-black text-slate-400 dark:text-slate-500 uppercase text-[10px] tracking-widest">VALOR FINAL</span>
-              <span className="text-2xl xl:text-4xl font-black text-blue-600 dark:text-blue-400 tracking-tighter">R$ {cartTotal.toFixed(2)}</span>
+              <span className="text-2xl xl:text-4xl font-black text-blue-600 dark:text-blue-400 tracking-tighter">{formatCurrency(cartTotal)}</span>
             </div>
 
             {saleType === SaleType.TABLE && tableNumberInput && (
@@ -1881,7 +1881,7 @@ const POS: React.FC<POSProps> = ({ currentUser }) => {
                 </div>
                 <div className="mt-3 pt-2 border-t border-slate-200/50 dark:border-slate-700/50 w-full text-center">
                   <p className="text-[9px] font-bold text-slate-400 dark:text-slate-500 uppercase">Subtotal do Item</p>
-                  <p className="text-base font-black text-blue-600 dark:text-blue-400">R$ {(selectedProductForCart.price * cartQuantity).toFixed(2)}</p>
+                  <p className="text-base font-black text-blue-600 dark:text-blue-400">{formatCurrency(selectedProductForCart.price * cartQuantity)}</p>
                 </div>
               </div>
 
@@ -1948,8 +1948,8 @@ const POS: React.FC<POSProps> = ({ currentUser }) => {
                               <td>{ncmCode.substring(0, 6)}</td>
                               <td>{data.product?.name.substring(0, 20)}</td>
                               <td className="text-right">{data.quantity}</td>
-                              <td className="text-right">{data.price.toFixed(2)}</td>
-                              <td className="text-right">{(data.quantity * data.price).toFixed(2)}</td>
+                              <td className="text-right">{formatCurrency(data.price, false)}</td>
+                              <td className="text-right">{formatCurrency(data.quantity * data.price, false)}</td>
                             </tr>
                           );
                         })}
@@ -1959,11 +1959,11 @@ const POS: React.FC<POSProps> = ({ currentUser }) => {
                   <div className="space-y-1 pt-2">
                     <div className="flex justify-between font-bold">
                       <span>VALOR A PAGAR R$</span>
-                      <span>{printingOrder.total.toFixed(2)}</span>
+                      <span>{formatCurrency(printingOrder.total, false)}</span>
                     </div>
                     <div className="flex justify-between">
                       <span className="uppercase">{(printingOrder.paymentMethod || 'OUTROS').replace(/FIADO/g, 'CREDIÁRIO')}</span>
-                      <span>{printingOrder.total.toFixed(2)}</span>
+                      <span>{formatCurrency(printingOrder.total, false)}</span>
                     </div>
                   </div>
                   <div className="text-center space-y-1 border-t border-dashed border-black pt-2">
@@ -2016,7 +2016,7 @@ const POS: React.FC<POSProps> = ({ currentUser }) => {
                     {groupedPrintingItems.map(([id, data]) => (
                       <div key={id} className="flex justify-between items-start font-bold uppercase py-0.5 text-[8px] gap-2">
                         <span className="flex-1 leading-tight whitespace-normal">{data.quantity}X {data.product?.name.substring(0, 25)}</span>
-                        <span className="shrink-0 whitespace-nowrap">R$ {(data.quantity * data.price).toFixed(2)}</span>
+                        <span className="shrink-0 whitespace-nowrap">{formatCurrency(data.price, false)}</span>
                       </div>
                     ))}
                   </div>
@@ -2024,17 +2024,17 @@ const POS: React.FC<POSProps> = ({ currentUser }) => {
                   <div className="border-t border-black pt-1">
                     <div className="flex justify-between items-center text-[8px] font-bold uppercase">
                       <span>SUBTOTAL:</span>
-                      <span>R$ {(printingOrder.total - (printingOrder.appliedServiceFee || 0)).toFixed(2)}</span>
+                      <span>{formatCurrency(printingOrder.total - (printingOrder.appliedServiceFee || 0))}</span>
                     </div>
                     {printingOrder.appliedServiceFee !== undefined && printingOrder.appliedServiceFee > 0 && (
                       <div className="flex justify-between items-center text-[8px] font-bold uppercase">
                         <span>TAXA SERVICO:</span>
-                        <span>R$ {printingOrder.appliedServiceFee.toFixed(2)}</span>
+                        <span>{formatCurrency(printingOrder.appliedServiceFee)}</span>
                       </div>
                     )}
                     <div className="flex justify-between items-end pt-1">
                       <span className="font-bold text-[9px] uppercase">TOTAL:</span>
-                      <span className="text-xs font-bold">R$ {printingOrder.total.toFixed(2)}</span>
+                      <span className="text-xs font-bold">{formatCurrency(printingOrder.total)}</span>
                     </div>
                   </div>
                 </div>
@@ -2092,7 +2092,7 @@ const POS: React.FC<POSProps> = ({ currentUser }) => {
                     {groupedPrintingItems.map(([id, data]) => (
                       <div key={id} className="flex justify-between border-b border-dashed border-slate-200 dark:border-slate-700 pb-2">
                         <span className="text-[10px] font-black text-slate-600 dark:text-slate-400 uppercase max-w-[70%]">{data.quantity}x {data.product?.name}</span>
-                        <span className="text-[10px] font-black text-slate-800 dark:text-white">R$ {(data.quantity * data.price).toFixed(2)}</span>
+                        <span className="text-[10px] font-black text-slate-800 dark:text-white">{formatCurrency(data.quantity * data.price)}</span>
                       </div>
                     ))}
                   </div>
@@ -2106,17 +2106,17 @@ const POS: React.FC<POSProps> = ({ currentUser }) => {
                   <div className="bg-emerald-50 dark:bg-emerald-900/10 rounded-3xl p-4 border border-emerald-100/50 dark:border-emerald-500/10 space-y-2">
                     <div className="flex justify-between">
                       <span className="text-[10px] font-bold text-emerald-600/60 uppercase">Subtotal</span>
-                      <span className="text-[10px] font-black text-emerald-700 dark:text-emerald-400">R$ {(printingOrder.total - (printingOrder.appliedServiceFee || 0)).toFixed(2)}</span>
+                      <span className="text-[10px] font-black text-emerald-700 dark:text-emerald-400">{formatCurrency(printingOrder.total - (printingOrder.appliedServiceFee || 0))}</span>
                     </div>
                     {printingOrder.appliedServiceFee && printingOrder.appliedServiceFee > 0 && (
                       <div className="flex justify-between">
                         <span className="text-[10px] font-bold text-emerald-600/60 uppercase">Taxa de Serviço ({businessSettings?.serviceFeePercentage || 10}%)</span>
-                        <span className="text-[10px] font-black text-emerald-700 dark:text-emerald-400">R$ {printingOrder.appliedServiceFee.toFixed(2)}</span>
+                        <span className="text-[10px] font-black text-emerald-700 dark:text-emerald-400">{formatCurrency(printingOrder.appliedServiceFee)}</span>
                       </div>
                     )}
                     <div className="pt-3 border-t border-emerald-200/50 dark:border-emerald-500/20 flex justify-between items-end">
                       <span className="text-xs font-black text-emerald-800 dark:text-emerald-300 uppercase">Total Geral</span>
-                      <span className="text-2xl font-black text-emerald-600 dark:text-emerald-400">R$ {printingOrder.total.toFixed(2)}</span>
+                      <span className="text-2xl font-black text-emerald-600 dark:text-emerald-400">{formatCurrency(printingOrder.total)}</span>
                     </div>
                   </div>
                 </div>
@@ -2381,7 +2381,7 @@ const POS: React.FC<POSProps> = ({ currentUser }) => {
                     ].map(item => (
                       <div key={item.label} className="bg-white dark:bg-slate-800 p-3 rounded-2xl border border-emerald-100 dark:border-emerald-500/10 shadow-sm">
                         <p className="text-[8px] font-black text-slate-400 dark:text-slate-500 uppercase mb-1">{item.label}</p>
-                        <p className="text-sm font-black text-emerald-700 dark:text-emerald-400">R$ {item.val.toFixed(2)}</p>
+                        <p className="text-sm font-black text-emerald-700 dark:text-emerald-400">{formatCurrency(item.val)}</p>
                       </div>
                     ))}
                   </div>
@@ -2454,7 +2454,7 @@ const POS: React.FC<POSProps> = ({ currentUser }) => {
                       </div>
                       <div className="space-y-1 text-right pt-4 flex flex-col justify-end">
                         <p className="text-[9px] font-black text-slate-300 dark:text-slate-600 uppercase tracking-widest">Total Informado</p>
-                        <p className="text-2xl font-black text-slate-700 dark:text-slate-300 tracking-tighter">R$ {(Number(closingReport.cash || 0) + Number(closingReport.pix || 0) + Number(closingReport.credit || 0) + Number(closingReport.debit || 0) + Number(closingReport.others || 0)).toFixed(2)}</p>
+                        <p className="text-2xl font-black text-slate-700 dark:text-slate-300 tracking-tighter">{formatCurrency(Number(closingReport.cash || 0) + Number(closingReport.pix || 0) + Number(closingReport.credit || 0) + Number(closingReport.debit || 0) + Number(closingReport.others || 0))}</p>
                       </div>
                     </div>
 
@@ -2565,23 +2565,23 @@ const POS: React.FC<POSProps> = ({ currentUser }) => {
                       <tbody className="divide-y divide-slate-100 dark:divide-slate-800 italic">
                         <tr className="hover:bg-slate-50 dark:hover:bg-slate-800/30 transition-colors">
                           <td className="py-2 px-3 text-xs font-semibold text-slate-700 dark:text-slate-300">Dinheiro em Espécie</td>
-                          <td className="py-2 px-3 text-right text-sm font-bold text-slate-900 dark:text-white border-l border-slate-50 dark:border-slate-800">R$ {reviewSession.reportedCash.toFixed(2)}</td>
+                          <td className="py-2 px-3 text-right text-sm font-bold text-slate-900 dark:text-white border-l border-slate-50 dark:border-slate-800">{formatCurrency(reviewSession.reportedCash)}</td>
                         </tr>
                         <tr className="hover:bg-slate-50 dark:hover:bg-slate-800/30 transition-colors">
                           <td className="py-2 px-3 text-xs font-semibold text-slate-700 dark:text-slate-300">Pagamentos via PIX</td>
-                          <td className="py-2 px-3 text-right text-sm font-bold text-slate-900 dark:text-white border-l border-slate-50 dark:border-slate-800">R$ {reviewSession.reportedPix.toFixed(2)}</td>
+                          <td className="py-2 px-3 text-right text-sm font-bold text-slate-900 dark:text-white border-l border-slate-50 dark:border-slate-800">{formatCurrency(reviewSession.reportedPix)}</td>
                         </tr>
                         <tr className="hover:bg-slate-50 dark:hover:bg-slate-800/30 transition-colors">
                           <td className="py-2 px-3 text-xs font-semibold text-slate-700 dark:text-slate-300">Cartão de Crédito</td>
-                          <td className="py-2 px-3 text-right text-sm font-bold text-slate-900 dark:text-white border-l border-slate-50 dark:border-slate-800">R$ {reviewSession.reportedCredit.toFixed(2)}</td>
+                          <td className="py-2 px-3 text-right text-sm font-bold text-slate-900 dark:text-white border-l border-slate-50 dark:border-slate-800">{formatCurrency(reviewSession.reportedCredit)}</td>
                         </tr>
                         <tr className="hover:bg-slate-50 dark:hover:bg-slate-800/30 transition-colors">
                           <td className="py-2 px-3 text-xs font-semibold text-slate-700 dark:text-slate-300">Cartão de Débito</td>
-                          <td className="py-2 px-3 text-right text-sm font-bold text-slate-900 dark:text-white border-l border-slate-50 dark:border-slate-800">R$ {(reviewSession.reportedDebit || 0).toFixed(2)}</td>
+                          <td className="py-2 px-3 text-right text-sm font-bold text-slate-900 dark:text-white border-l border-slate-50 dark:border-slate-800">{formatCurrency(reviewSession.reportedDebit || 0)}</td>
                         </tr>
                         <tr className="bg-slate-50/80 dark:bg-slate-800/50 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors border-t border-slate-200 dark:border-slate-800">
                           <td className="py-2 px-3 text-xs font-bold text-slate-600 dark:text-slate-400 italic">Outras Categorias</td>
-                          <td className="py-2 px-3 text-right text-sm font-bold text-slate-800 dark:text-slate-100 border-l border-slate-50 dark:border-slate-800">R$ {(reviewSession.reportedOthers || 0).toFixed(2)}</td>
+                          <td className="py-2 px-3 text-right text-sm font-bold text-slate-800 dark:text-slate-100 border-l border-slate-50 dark:border-slate-800">{formatCurrency(reviewSession.reportedOthers || 0)}</td>
                         </tr>
                       </tbody>
                     </table>
@@ -2592,7 +2592,7 @@ const POS: React.FC<POSProps> = ({ currentUser }) => {
                 <div className="grid grid-cols-2 gap-3 pt-1">
                   <div className="bg-slate-50 dark:bg-slate-800/50 border border-slate-200 dark:border-slate-800 rounded-xl p-3 flex flex-col justify-center">
                     <span className="text-[10px] font-bold uppercase tracking-widest text-slate-400 dark:text-slate-500 mb-0.5">Total Consolidado</span>
-                    <span className="text-2xl font-bold text-slate-900 dark:text-white tracking-tight italic">R$ {((reviewSession.reportedCash || 0) + (reviewSession.reportedPix || 0) + (reviewSession.reportedCredit || 0) + (reviewSession.reportedDebit || 0) + (reviewSession.reportedOthers || 0)).toFixed(2)}</span>
+                    <span className="text-2xl font-bold text-slate-900 dark:text-white tracking-tight italic">{formatCurrency((reviewSession.reportedCash || 0) + (reviewSession.reportedPix || 0) + (reviewSession.reportedCredit || 0) + (reviewSession.reportedDebit || 0) + (reviewSession.reportedOthers || 0))}</span>
                   </div>
 
                   <div className={`border rounded-xl p-3 flex flex-col justify-center ${reviewSession.difference === 0 ? 'bg-white dark:bg-slate-900 border-slate-300 dark:border-slate-700' : 'bg-white dark:bg-slate-900 border-slate-900 dark:border-white border-2'}`}>
@@ -2602,7 +2602,7 @@ const POS: React.FC<POSProps> = ({ currentUser }) => {
                         {reviewSession.difference === 0 ? 'Conformidade de Caixa' : (reviewSession.difference > 0 ? 'Excedente (Sobra)' : 'Ajuste (Falta)')}
                       </div>
                     </div>
-                    <span className="text-xl font-bold text-slate-900 dark:text-white mt-0.5 italic">R$ {reviewSession.difference.toFixed(2)}</span>
+                    <span className="text-xl font-bold text-slate-900 dark:text-white mt-0.5 italic">{formatCurrency(reviewSession.difference)}</span>
                   </div>
                 </div>
 
@@ -2614,7 +2614,7 @@ const POS: React.FC<POSProps> = ({ currentUser }) => {
                       {(reviewSession.systemFiado || 0) > 0 && (
                         <div className="flex justify-between items-center bg-white dark:bg-slate-900 px-4 py-2 rounded-xl border border-slate-200 dark:border-slate-800">
                           <span className="text-[10px] font-semibold text-slate-600 dark:text-slate-400 uppercase">Vendas no Crediário</span>
-                          <span className="text-sm font-bold text-slate-800 dark:text-white">R$ {reviewSession.systemFiado!.toFixed(2)}</span>
+                          <span className="text-sm font-bold text-slate-800 dark:text-white">{formatCurrency(reviewSession.systemFiado!)}</span>
                         </div>
                       )}
                       {(reviewSession.orphanSales || 0) > 0 && (
@@ -2623,7 +2623,7 @@ const POS: React.FC<POSProps> = ({ currentUser }) => {
                             <span className="text-[10px] font-bold text-slate-900 dark:text-white uppercase">Vendas sem Sessão Aberta</span>
                             <span className="text-[9px] text-slate-500 dark:text-slate-400 font-medium italic">Ocorridas antes da abertura oficial</span>
                           </div>
-                          <span className="text-sm font-bold text-slate-900 dark:text-white">R$ {reviewSession.orphanSales!.toFixed(2)}</span>
+                          <span className="text-sm font-bold text-slate-900 dark:text-white">{formatCurrency(reviewSession.orphanSales!)}</span>
                         </div>
                       )}
                     </div>

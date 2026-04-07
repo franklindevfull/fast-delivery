@@ -5,6 +5,7 @@ import { db } from '../services/db';
 import { PLACEHOLDER_FOOD_IMAGE, formatImageUrl, Icons } from '../constants';
 import CustomAlert from '../components/CustomAlert';
 import { useToast } from '../hooks/useToast';
+import { formatCurrency } from '../services/formatUtils';
 
 const Inventory: React.FC = () => {
   const { addToast } = useToast();
@@ -225,7 +226,7 @@ const Inventory: React.FC = () => {
                 <img src={formatImageUrl(product.imageUrl)} onError={e => e.currentTarget.src = PLACEHOLDER_FOOD_IMAGE} className="w-full h-full object-contain" />
               </div>
               <h4 className="font-black text-slate-800 dark:text-white text-xs uppercase mb-1 h-8 line-clamp-2 leading-tight">{product.name}</h4>
-              <p className="text-sm font-black text-blue-600 dark:text-blue-500 mb-4">R$ {product.price.toFixed(2)}</p>
+              <p className="text-sm font-black text-blue-600 dark:text-blue-500 mb-4">{formatCurrency(product.price)}</p>
               <div className="flex gap-2 mt-auto min-w-0">
                 <button onClick={() => openProdModal(product)} className="flex-1 min-w-0 py-3 px-2 bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-600 dark:text-slate-300 rounded-2xl text-[9px] font-black uppercase transition-all flex items-center justify-center gap-1.5" title="Editar">
                   <Icons.Edit className="w-3.5 h-3.5 flex-shrink-0" />

@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import type { TableSession, Product, User, OrderItem, StoreStatus } from '../types';
 import { db } from '../api';
 import { X, Search, ShoppingCart, CheckCircle2, AlertCircle, Trash2, Plus, Minus, ArrowRight, LayoutGrid, RefreshCw, MessageSquare, Key, Eye, EyeOff } from 'lucide-react';
+import { formatCurrency } from '../utils';
 import Modal from './Modal';
 import ClientSelector from './ClientSelector';
 
@@ -410,7 +411,7 @@ const TableDetails: React.FC<TableDetailsProps> = ({ table, user, onClose, onRef
                                         <div className="flex justify-between items-start gap-4">
                                             <div className="flex-1 min-w-0">
                                                 <p className="text-sm font-black text-slate-800 uppercase tracking-tight leading-tight mb-0.5 break-words">
-                                                    {item.quantity}x {item.productName || item.product?.name || 'Item'}
+                                                    {item.quantity}x {item.productName || item.product?.name || 'Item'} {formatCurrency(item.price, false)}
                                                 </p>
 
                                                 <div className="flex flex-wrap items-center gap-x-3 gap-y-1 mt-1.5">
@@ -436,7 +437,7 @@ const TableDetails: React.FC<TableDetailsProps> = ({ table, user, onClose, onRef
                                             </div>
                                             <div className="text-right shrink-0">
                                                 <p className="text-[10px] font-black text-slate-400 uppercase tracking-[0.1em] leading-none mb-1">Total</p>
-                                                <p className="text-sm font-black text-slate-900 tracking-tighter">R$ {(item.price * item.quantity).toFixed(2)}</p>
+                                                <p className="text-sm font-black text-slate-900 tracking-tighter">{formatCurrency(item.price * item.quantity)}</p>
                                             </div>
                                         </div>
                                     </div>
@@ -479,7 +480,7 @@ const TableDetails: React.FC<TableDetailsProps> = ({ table, user, onClose, onRef
                                                 </div>
                                             </div>
                                             <div className="flex items-center gap-1.5 sm:gap-3 shrink-0">
-                                                <p className="text-[10px] sm:text-[11px] font-black text-blue-600 tracking-tighter shrink-0">R$ {product.price.toFixed(2)}</p>
+                                                <p className="text-[10px] sm:text-[11px] font-black text-blue-600 tracking-tighter shrink-0">{formatCurrency(product.price)}</p>
 
                                                 {product.maxAvailability !== undefined && product.maxAvailability <= 0 ? (
                                                     <span className="px-2 py-1 bg-red-100 text-red-600 rounded-lg text-[9px] font-black uppercase tracking-widest shrink-0">
@@ -531,11 +532,11 @@ const TableDetails: React.FC<TableDetailsProps> = ({ table, user, onClose, onRef
                                 {pendingItems.map((item: any, ix: number) => (
                                     <div key={ix} className="premium-card p-5 flex justify-between items-center border-amber-100 bg-amber-50/20">
                                         <div>
-                                            <p className="text-sm font-black text-slate-800 uppercase tracking-tight">{item.quantity}x {item.productName || 'Item'}</p>
+                                            <p className="text-sm font-black text-slate-800 uppercase tracking-tight">{item.quantity}x {item.productName || 'Item'} {formatCurrency(item.price, false)}</p>
                                             {item.observations && <p className="text-[10px] text-amber-600 font-bold uppercase mt-1 italic tracking-tight">Obs: {item.observations}</p>}
                                         </div>
                                         <div className="text-right">
-                                            <p className="text-sm font-black text-slate-900 tracking-tighter">R$ {(item.price * item.quantity).toFixed(2)}</p>
+                                            <p className="text-sm font-black text-slate-900 tracking-tighter">{formatCurrency(item.price * item.quantity)}</p>
                                         </div>
                                     </div>
                                 ))}
@@ -573,11 +574,11 @@ const TableDetails: React.FC<TableDetailsProps> = ({ table, user, onClose, onRef
                                         <div key={item.uid} className="flex justify-between items-center bg-slate-50 p-3 rounded-2xl border border-slate-100">
                                             <div className="min-w-0 flex-1 mr-4">
                                                 <p className="text-[11px] font-black text-slate-800 uppercase truncate">
-                                                    {item.quantity}x {item.productName}
+                                                    {item.quantity}x {item.productName} {formatCurrency(item.price, false)}
                                                 </p>
                                             </div>
                                             <div className="flex items-center gap-3">
-                                                <span className="text-[10px] font-black text-slate-900 tracking-tighter">R$ {(item.price * item.quantity).toFixed(2)}</span>
+                                                <span className="text-[10px] font-black text-slate-900 tracking-tighter">{formatCurrency(item.price * item.quantity)}</span>
                                                 <button
                                                     onClick={() => updateCartQuantity(item.productId, -item.quantity)}
                                                     className="p-2 bg-red-50 text-red-500 rounded-xl active:scale-90 transition-transform"
@@ -602,7 +603,7 @@ const TableDetails: React.FC<TableDetailsProps> = ({ table, user, onClose, onRef
                                         <p className="text-[9px] font-bold text-blue-600 uppercase tracking-widest">{showCartItems ? 'Ocultar' : 'Ver Itens'}</p>
                                     </div>
                                 </button>
-                                <p className="text-2xl font-black text-blue-600 tracking-tighter">R$ {cartTotal.toFixed(2)}</p>
+                                <p className="text-2xl font-black text-blue-600 tracking-tighter">{formatCurrency(cartTotal)}</p>
                             </div>
                             <div className="flex gap-2">
                                 <button
@@ -628,7 +629,7 @@ const TableDetails: React.FC<TableDetailsProps> = ({ table, user, onClose, onRef
                         <div className="flex justify-between items-center gap-6">
                             <div className="flex-1">
                                 <p className="text-[10px] font-black text-slate-400 uppercase tracking-[0.2em] mb-1 px-1">Total Consumido</p>
-                                <p className="text-3xl font-black text-slate-900 tracking-tighter">R$ {total.toFixed(2)}</p>
+                                <p className="text-3xl font-black text-slate-900 tracking-tighter">{formatCurrency(total)}</p>
                             </div>
                             <button
                                 onClick={() => handleCheckout()}

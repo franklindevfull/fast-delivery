@@ -13,6 +13,7 @@ import NotificationCenterModal from '../components/NotificationCenterModal';
 import ChangePasswordModal from '../components/ChangePasswordModal';
 import EngagementModal from '../components/EngagementModal';
 import { useUI } from '../UIContext';
+import { formatCurrency } from '../services/formatUtils';
 
 // Swiper Imports
 import { Swiper, SwiperSlide } from 'swiper/react';
@@ -436,7 +437,7 @@ const Home: React.FC = () => {
                                                 </div>
                                                 <h3 className="font-bold text-slate-800 dark:text-slate-100 text-sm leading-tight line-clamp-2">{product.name}</h3>
                                                 <div className="flex justify-between items-center mt-3">
-                                                    <span className="text-lg font-black text-slate-800 dark:text-white tracking-tighter">R$ {product.price.toFixed(2)}</span>
+                                                    <span className="text-lg font-black text-slate-800 dark:text-white tracking-tighter">{formatCurrency(product.price)}</span>
                                                     <button
                                                         onClick={(e) => {
                                                             e.stopPropagation();
@@ -480,7 +481,7 @@ const Home: React.FC = () => {
                             <div className="bg-indigo-500 w-6 h-6 rounded-lg text-[10px] flex items-center justify-center">{items.reduce((a, b) => a + b.quantity, 0)}</div>
                             <span>Ver Carrinho / Finalizar</span>
                         </div>
-                        <span className="font-black">R$ {total.toFixed(2)}</span>
+                        <span className="font-black">{formatCurrency(total)}</span>
                     </button>
                 </div>
             )}
