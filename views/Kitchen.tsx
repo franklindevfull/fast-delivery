@@ -42,12 +42,16 @@ const Kitchen: React.FC = () => {
     const interval = setInterval(() => refreshData(false), 10000); // 10s para Render Free
 
     // Socket.io Real-time
-    const handleNewOrder = () => refreshData(false);
-    socket.on('newOrder', handleNewOrder);
+    const handleRealtimeUpdate = () => refreshData(false);
+    socket.on('newOrder', handleRealtimeUpdate);
+    socket.on('tableStatusChanged', handleRealtimeUpdate);
+    socket.on('orderStatusChanged', handleRealtimeUpdate);
 
     return () => {
       clearInterval(interval);
-      socket.off('newOrder', handleNewOrder);
+      socket.off('newOrder', handleRealtimeUpdate);
+      socket.off('tableStatusChanged', handleRealtimeUpdate);
+      socket.off('orderStatusChanged', handleRealtimeUpdate);
     };
   }, [viewTab]);
 
@@ -69,12 +73,11 @@ const Kitchen: React.FC = () => {
           return orderDate >= sevenDaysAgo;
       });
 
-      // Filtro inteligente: Pedidos ativos (não finalizados ou cancelados) QUE POSSUEM itens em preparo
+      // Filtro inteligente: Pedidos ativos (não finalizados ou cancelados) QUE POSSUEM itens em preparo. Agora os pedidos ficam na tela até o pagamento = DELIVERED, independentemente se os itens estão prontos.
       const activeOrders = recentOrders.filter(o =>
         o.status !== OrderStatus.CANCELLED &&
         o.status !== OrderStatus.DELIVERED &&
         o.items.length > 0 &&
-        o.items.some(it => !it.isReady && !it.skipKitchen) && // Only orders with pending non-skipped items
         !(o.isOriginDeliveryApp && o.status === OrderStatus.PENDING)
       );
 
@@ -266,22 +269,27 @@ const Kitchen: React.FC = () => {
                       </p>
                     </div>
                     <div className="space-y-2 overflow-y-auto pr-1 custom-scrollbar max-h-[350px] md:max-h-[450px]">
-                      {order.items.filter(it => !it.isReady && !it.skipKitchen).map((item) => {
+                      {order.items.filter(it => !it.skipKitchen).map((item) => {
                         const product = products.find(p => p.id === item.productId);
                         const isSelected = (selectedItems[order.id] || []).includes(item.uid);
+                        const isReady = item.isReady;
 
                         return (
-                          <div key={item.uid} className="space-y-1 animate-in fade-in duration-300">
-                            <label className={`block cursor-pointer bg-white dark:bg-slate-900/40 p-3 rounded-xl border transition-all shadow-sm ${isSelected ? 'border-blue-600 dark:border-blue-500 ring-2 ring-blue-50 dark:ring-blue-900/20' : 'border-slate-100 dark:border-slate-800 hover:border-blue-100 dark:hover:border-blue-900/40'}`}>
+                          <div key={item.uid} className={`space-y-1 animate-in fade-in duration-300 ${isReady ? 'opacity-60 grayscale' : ''}`}>
+                            <label className={`block ${isReady ? 'cursor-default pointer-events-none' : 'cursor-pointer'} bg-white dark:bg-slate-900/40 p-3 rounded-xl border transition-all shadow-sm ${isSelected ? 'border-blue-600 dark:border-blue-500 ring-2 ring-blue-50 dark:ring-blue-900/20' : 'border-slate-100 dark:border-slate-800 hover:border-blue-100 dark:hover:border-blue-900/40'}`}>
                               <div className="flex items-center gap-3">
-                                <input
-                                  type="checkbox"
-                                  checked={isSelected}
-                                  onChange={() => toggleItemSelection(order.id, item.uid)}
-                                  className="w-4 h-4 rounded-md border-slate-300 text-blue-600 focus:ring-blue-500"
-                                />
+                                {!isReady ? (
+                                  <input
+                                    type="checkbox"
+                                    checked={isSelected}
+                                    onChange={() => toggleItemSelection(order.id, item.uid)}
+                                    className="w-4 h-4 rounded-md border-slate-300 text-blue-600 focus:ring-blue-500"
+                                  />
+                                ) : (
+                                  <Icons.Check className="w-5 h-5 text-emerald-500" />
+                                )}
                                 <div className="flex-1 min-w-0">
-                                  <p className="font-black text-slate-700 dark:text-slate-300 uppercase text-[11px] truncate">
+                                  <p className={`font-black text-slate-700 dark:text-slate-300 uppercase text-[11px] truncate ${isReady ? 'line-through text-slate-500 dark:text-slate-500' : ''}`}>
                                     <span className="text-blue-600 dark:text-blue-400 text-xs">{item.quantity}x</span> {product?.name}
                                   </p>
                                   {item.observations && (
@@ -334,15 +342,6 @@ const Kitchen: React.FC = () => {
                         );
                       })}
                     </div>
-
-                    {order.items.some(it => it.isReady) && (
-                      <div className="pt-4 border-t border-slate-100 dark:border-slate-700 mt-auto">
-                        <p className="text-[8px] font-black text-slate-300 dark:text-slate-600 uppercase tracking-widest mb-2">Itens já saíram:</p>
-                        {order.items.filter(it => it.isReady).map((it) => (
-                          <p key={it.uid} className="text-[10px] font-bold text-slate-300 dark:text-slate-600 line-through uppercase">{it.quantity}x {products.find(p => p.id === it.productId)?.name}</p>
-                        ))}
-                      </div>
-                    )}
                   </div>
 
                   <div className="p-4 md:p-6 bg-slate-50/50 dark:bg-slate-900/50 border-t border-slate-100 dark:border-slate-700 shrink-0">

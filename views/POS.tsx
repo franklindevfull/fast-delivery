@@ -231,16 +231,22 @@ const POS: React.FC<POSProps> = ({ currentUser }) => {
     const maxFlavors = selectedProductForCart.pizzaSize === 'P' ? 2 : selectedProductForCart.pizzaSize === 'M' ? 3 : selectedProductForCart.pizzaSize === 'G' ? 4 : 1;
     const fraction = 1 / Math.max(1, selectedPizzaFlavors.length);
 
-    setCart(prev => [...prev, {
-      uid: `item-${Date.now()}-${Math.random().toString(36).substr(2, 4)}`,
+    const newItemBase = {
       productId: product.id,
-      quantity: cartQuantity,
       price: finalPrice,
       isReady: false,
       skipKitchen: skipKitchen,
       observations: cartObservation || '',
-      pizzaFlavors: selectedPizzaFlavors.length > 0 ? selectedPizzaFlavors.map(f => ({ productId: f.id, name: f.name, fraction })) : undefined
-    }]);
+      pizzaFlavors: selectedPizzaFlavors.length > 0 ? selectedPizzaFlavors.map(f => ({ ...f, fraction, productId: f.id })) : undefined
+    };
+
+    const newItems = Array.from({ length: cartQuantity }).map((_, idx) => ({
+      ...newItemBase,
+      uid: `item-${Date.now()}-${Math.random().toString(36).substr(2, 4)}-${idx}`,
+      quantity: 1
+    }));
+
+    setCart(prev => [...prev, ...newItems]);
 
     setSelectedProductForCart(null);
     setCartObservation('');
