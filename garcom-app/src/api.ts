@@ -46,7 +46,7 @@ api.interceptors.response.use(
 );
 
 export const socket = io(API_BASE.replace('/api', ''), {
-    transports: ['websocket']
+    transports: ['polling', 'websocket']
 });
 
 export const db = {

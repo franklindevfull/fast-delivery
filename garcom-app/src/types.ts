@@ -31,6 +31,8 @@ export interface Product {
     imageUrl: string;
     stock: number;
     maxAvailability?: number;
+    isPizza?: boolean;
+    pizzaSize?: string;
 }
 
 export interface OrderItem {
@@ -43,6 +45,7 @@ export interface OrderItem {
     price: number;
     observations?: string;
     isReady?: boolean;
+    pizzaFlavors?: Product[];
 }
 
 export interface TableSession {
@@ -73,6 +76,8 @@ export interface BusinessSettings {
     enableDriverApp?: boolean;
     printerIp?: string;
     printerType?: string;
+    pizzaPriceRule?: string;
+    pizzaNfeRule?: string;
 }
 
 export interface Order {

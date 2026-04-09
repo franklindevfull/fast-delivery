@@ -5,8 +5,13 @@ export interface Product {
     category: string;
     imageUrl: string;
     maxAvailability?: number;
+    isPizza?: boolean;
+    pizzaSize?: string;
 }
 
 export interface CartItem extends Product {
+    cartId: string;
     quantity: number;
+    pizzaFlavors?: Product[];
+    observations?: string;
 }

@@ -481,7 +481,7 @@ export const saveOrder = async (req: Request, res: Response) => {
                         create: (order.items || []).map((item: any) => ({
                             id: item.uid || item.id,
                             productId: item.productId,
-                            quantity: (item.quantity && !isNaN(parseFloat(item.quantity.toString()))) ? Math.round(parseFloat(item.quantity.toString())) : 0,
+                            quantity: (item.quantity && !isNaN(parseFloat(item.quantity.toString()))) ? parseFloat(item.quantity.toString()) : 0,
                             price: (item.price && !isNaN(parseFloat(item.price.toString()))) ? parseFloat(item.price.toString()) : 0,
                             isReady: !!item.isReady,
                             readyAt: (item.readyAt && !isNaN(Date.parse(item.readyAt))) ? new Date(item.readyAt) : null,
@@ -529,7 +529,7 @@ export const saveOrder = async (req: Request, res: Response) => {
                         create: (order.items || []).map((item: any) => ({
                             id: item.uid || item.id,
                             productId: item.productId,
-                            quantity: (item.quantity && !isNaN(parseFloat(item.quantity.toString()))) ? Math.round(parseFloat(item.quantity.toString())) : 0,
+                            quantity: (item.quantity && !isNaN(parseFloat(item.quantity.toString()))) ? parseFloat(item.quantity.toString()) : 0,
                             price: (item.price && !isNaN(parseFloat(item.price.toString()))) ? parseFloat(item.price.toString()) : 0,
                             isReady: !!item.isReady,
                             readyAt: (item.readyAt && !isNaN(Date.parse(item.readyAt))) ? new Date(item.readyAt) : null,

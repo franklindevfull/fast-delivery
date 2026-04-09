@@ -1,5 +1,14 @@
 import 'dotenv/config'; 
 import express from 'express';
+
+process.on('uncaughtException', (err) => {
+    console.error(' [CRITICAL ERROR] Uncaught Exception:', err.message);
+    console.error(err.stack);
+});
+
+process.on('unhandledRejection', (reason, promise) => {
+    console.error(' [CRITICAL ERROR] Unhandled Rejection at:', promise, 'reason:', reason);
+});
 import cors from 'cors';
 import compression from 'compression';
 import cron from 'node-cron';

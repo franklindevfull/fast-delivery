@@ -56,12 +56,10 @@ const Layout: React.FC<{ children: React.ReactNode }> = ({ children }) => {
             // Also fetch coupons if sidebar is being prepared
             const c = await api.getCoupons();
             setCoupons(c || []);
-            
-            updateCountdown();
         } catch (err) {
             console.error("Error fetching settings in Layout:", err);
         }
-    }, [updateCountdown]);
+    }, []);
 
     // Initial fetch and periodic settings fetch (every 15s)
     React.useEffect(() => {

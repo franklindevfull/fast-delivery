@@ -105,6 +105,8 @@ export interface BusinessSettings {
   appBannerUrl3?: string;
   printerIp?: string;
   printerType?: string;
+  pizzaPriceRule?: 'HIGHEST' | 'AVERAGE';
+  pizzaNfeRule?: 'OBSERVATION' | 'FRACTIONED';
 }
 
 export interface Coupon {
@@ -185,6 +187,8 @@ export interface Product {
   ncm?: string;
   cfop?: string;
   cest?: string;
+  isPizza?: boolean;
+  pizzaSize?: string;
 }
 
 export interface OrderItem {

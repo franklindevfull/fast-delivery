@@ -37,6 +37,7 @@ const CheckoutTab: React.FC<{ onOrderPlaced: () => void }> = ({ onOrderPlaced })
     const [appliedCoupon, setAppliedCoupon] = useState<any>(null);
     const [couponError, setCouponError] = useState('');
     const [isValidatingCoupon, setIsValidatingCoupon] = useState(false);
+    const [settings, setSettings] = useState<any>(null);
 
     useEffect(() => {
         const init = async () => {
@@ -66,6 +67,7 @@ const CheckoutTab: React.FC<{ onOrderPlaced: () => void }> = ({ onOrderPlaced })
                 const fee = parseFloat(sanitizedFee) || 0;
                 setDeliveryFee(fee);
                 setStoreStatus(status as StoreStatus);
+                setSettings(s);
 
             } catch (err) {
                 console.error('Error fetching settings or client:', err);
@@ -186,6 +188,14 @@ const CheckoutTab: React.FC<{ onOrderPlaced: () => void }> = ({ onOrderPlaced })
                     const clientStr = localStorage.getItem('delivery_app_client');
                     const client = clientStr ? JSON.parse(clientStr) : null;
 
+                    const processedItems = items.map(i => ({
+                        productId: i.product.id,
+                        quantity: i.quantity,
+                        price: i.product.price,
+                        observations: i.observations || null,
+                        pizzaFlavors: i.pizzaFlavors && i.pizzaFlavors.length > 0 ? i.pizzaFlavors : undefined
+                    }));
+
                     const orderData = {
                         clientId: client?.id || (null as any),
                         clientName: client?.name || 'Cliente App',
@@ -193,11 +203,7 @@ const CheckoutTab: React.FC<{ onOrderPlaced: () => void }> = ({ onOrderPlaced })
                         clientEmail: client?.email || '',
                         clientAddress: finalAddress,
                         paymentMethod,
-                        items: items.map(i => ({
-                            productId: i.product.id,
-                            quantity: i.quantity,
-                            price: i.product.price
-                        })),
+                        items: processedItems,
                         total: finalTotal,
                         deliveryFee: deliveryFee,
                         couponCode: appliedCoupon?.code || null,
@@ -270,6 +276,12 @@ const CheckoutTab: React.FC<{ onOrderPlaced: () => void }> = ({ onOrderPlaced })
                                 <div className="w-12 h-12 bg-indigo-50 dark:bg-indigo-900/30 text-indigo-600 dark:text-indigo-400 font-black rounded-xl flex items-center justify-center shrink-0">{item.quantity}x</div>
                                 <div className="flex-1">
                                     <h3 className="text-sm font-bold text-slate-800 dark:text-slate-100 line-clamp-1">{item.product.name}</h3>
+                                    {item.pizzaFlavors && item.pizzaFlavors.length > 0 && (
+                                        <p className="text-[10px] font-bold text-indigo-500 line-clamp-1">+ {item.pizzaFlavors.map(f => f.name).join(', ')}</p>
+                                    )}
+                                    {item.observations && (
+                                        <p className="text-[10px] italic text-slate-400 dark:text-slate-500 line-clamp-1">Obs: {item.observations}</p>
+                                    )}
                                     <p className="text-[10px] font-bold text-slate-400 dark:text-slate-500 mt-0.5">{formatCurrency(item.product.price)}/un</p>
                                 </div>
                                 <span className="text-sm font-black text-slate-800 dark:text-slate-100">{formatCurrency(item.product.price * item.quantity)}</span>

@@ -219,17 +219,23 @@ const POS: React.FC<POSProps> = ({ currentUser }) => {
     }
 
     let finalPrice = selectedProductForCart.price;
-    if (selectedProductForCart.isPizza && selectedProductForCart.pizzaSize && selectedPizzaFlavors.length > 0) {
-      if (businessSettings?.pizzaPriceRule === 'AVERAGE') {
-         const sumPrices = selectedPizzaFlavors.reduce((acc, f) => acc + f.price, 0);
-         finalPrice = sumPrices / selectedPizzaFlavors.length;
-      } else {
-         finalPrice = Math.max(...selectedPizzaFlavors.map(f => f.price), selectedProductForCart.price);
-      }
-    }
+    let allFlavors: any[] = [];
 
-    const maxFlavors = selectedProductForCart.pizzaSize === 'P' ? 2 : selectedProductForCart.pizzaSize === 'M' ? 3 : selectedProductForCart.pizzaSize === 'G' ? 4 : 1;
-    const fraction = 1 / Math.max(1, selectedPizzaFlavors.length);
+    if (selectedProductForCart.isPizza && selectedProductForCart.pizzaSize) {
+      allFlavors = [selectedProductForCart, ...selectedPizzaFlavors];
+      const totalFlavorsCount = allFlavors.length;
+      const fraction = 1 / totalFlavorsCount;
+
+      if (businessSettings?.pizzaPriceRule === 'AVERAGE') {
+         const sumPrices = allFlavors.reduce((acc, f) => acc + f.price, 0);
+         finalPrice = sumPrices / totalFlavorsCount;
+      } else {
+         // HIGHEST
+         finalPrice = Math.max(...allFlavors.map(f => f.price));
+      }
+
+      allFlavors = allFlavors.map(f => ({ ...f, fraction, productId: f.id }));
+    }
 
     const newItemBase = {
       productId: product.id,
@@ -237,7 +243,7 @@ const POS: React.FC<POSProps> = ({ currentUser }) => {
       isReady: false,
       skipKitchen: skipKitchen,
       observations: cartObservation || '',
-      pizzaFlavors: selectedPizzaFlavors.length > 0 ? selectedPizzaFlavors.map(f => ({ ...f, fraction, productId: f.id })) : undefined
+      pizzaFlavors: allFlavors.length > 0 ? allFlavors : undefined
     };
 
     const newItems = Array.from({ length: cartQuantity }).map((_, idx) => ({
@@ -1946,8 +1952,8 @@ const POS: React.FC<POSProps> = ({ currentUser }) => {
                     <p className="text-center font-black text-emerald-700 dark:text-emerald-400 text-sm">
                       {selectedProductForCart.isPizza && selectedPizzaFlavors.length > 0 
                         ? formatCurrency(businessSettings?.pizzaPriceRule === 'AVERAGE' 
-                            ? selectedPizzaFlavors.reduce((acc, f) => acc + f.price, 0) / selectedPizzaFlavors.length 
-                            : Math.max(...selectedPizzaFlavors.map(f => f.price), selectedProductForCart.price))
+                            ? ([selectedProductForCart, ...selectedPizzaFlavors].reduce((acc, f) => acc + f.price, 0) / ([selectedProductForCart, ...selectedPizzaFlavors].length)) 
+                            : Math.max(...[selectedProductForCart, ...selectedPizzaFlavors].map(f => f.price)))
                         : formatCurrency(selectedProductForCart.price)}
                     </p>
                   </div>
@@ -1976,7 +1982,7 @@ const POS: React.FC<POSProps> = ({ currentUser }) => {
                   <p className="text-[9px] font-bold text-slate-400 dark:text-slate-500 uppercase">Subtotal do Item</p>
                   <p className="text-base font-black text-blue-600 dark:text-blue-400">
                     {formatCurrency((selectedProductForCart.isPizza && selectedProductForCart.pizzaSize && selectedPizzaFlavors.length > 0 
-                     ? (businessSettings?.pizzaPriceRule === 'AVERAGE' ? (selectedPizzaFlavors.reduce((acc, f) => acc + f.price, 0) / selectedPizzaFlavors.length) : Math.max(...selectedPizzaFlavors.map(f => f.price), selectedProductForCart.price)) 
+                     ? (businessSettings?.pizzaPriceRule === 'AVERAGE' ? ([selectedProductForCart, ...selectedPizzaFlavors].reduce((acc, f) => acc + f.price, 0) / [selectedProductForCart, ...selectedPizzaFlavors].length) : Math.max(...[selectedProductForCart, ...selectedPizzaFlavors].map(f => f.price))) 
                      : selectedProductForCart.price) * cartQuantity)}
                   </p>
                 </div>

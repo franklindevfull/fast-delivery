@@ -433,23 +433,28 @@ function AppContent() {
 
   const addToCart = (item: CartItem) => {
     setCart(prev => {
-      const existing = prev.find(i => i.id === item.id);
-      if (existing) {
-        return prev.map(i => i.id === item.id ? { ...i, quantity: i.quantity + item.quantity } : i);
+      // Se for item customizado (pizza fracionada ou com observação), nunca agrupa
+      if (item.pizzaFlavors?.length || item.observations) {
+        return [...prev, { ...item, cartId: Math.random().toString(36).substr(2, 9) }];
       }
-      return [...prev, item];
+
+      const existing = prev.find(i => i.id === item.id && !i.pizzaFlavors?.length && !i.observations);
+      if (existing) {
+        return prev.map(i => i.cartId === existing.cartId ? { ...i, quantity: i.quantity + item.quantity } : i);
+      }
+      return [...prev, { ...item, cartId: Math.random().toString(36).substr(2, 9) }];
     });
   };
 
-  const removeFromCart = (id: string) => {
-    setCart(prev => prev.filter(i => i.id !== id));
+  const removeFromCart = (cartId: string) => {
+    setCart(prev => prev.filter(i => i.cartId !== cartId));
   };
 
   const clearCart = () => setCart([]);
 
-  const updateQuantity = (id: string, qty: number) => {
-    if (qty <= 0) return removeFromCart(id);
-    setCart(prev => prev.map(i => i.id === id ? { ...i, quantity: qty } : i));
+  const updateQuantity = (cartId: string, qty: number) => {
+    if (qty <= 0) return removeFromCart(cartId);
+    setCart(prev => prev.map(i => i.cartId === cartId ? { ...i, quantity: qty } : i));
   };
 
   if (storeStatus.enableDigitalMenu === false) {

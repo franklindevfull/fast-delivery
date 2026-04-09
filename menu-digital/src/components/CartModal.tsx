@@ -1,6 +1,6 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { CartItem } from '../types';
-import { submitOrder, StoreStatus } from '../api';
+import { submitOrder, StoreStatus, fetchSettings } from '../api';
 
 interface CartModalProps {
     isOpen: boolean;
@@ -21,6 +21,13 @@ const CartModal: React.FC<CartModalProps> = ({ isOpen, onClose, cart, tableNumbe
     const [success, setSuccess] = useState(false);
     const [showClearConfirm, setShowClearConfirm] = useState(false);
     const [errorModal, setErrorModal] = useState<{ message: string, isPinError: boolean, title?: string } | null>(null);
+    const [settings, setSettings] = useState<any>(null);
+
+    useEffect(() => {
+        if (isOpen) {
+            fetchSettings().then(setSettings);
+        }
+    }, [isOpen]);
 
     if (!isOpen) return null;
 
@@ -36,9 +43,17 @@ const CartModal: React.FC<CartModalProps> = ({ isOpen, onClose, cart, tableNumbe
                 return;
             }
             try {
+                const processedItems = cart.map(i => ({
+                    productId: i.id,
+                    quantity: i.quantity,
+                    price: i.price,
+                    observations: i.observations || null,
+                    pizzaFlavors: i.pizzaFlavors && i.pizzaFlavors.length > 0 ? i.pizzaFlavors : undefined
+                }));
+
                 const response = await submitOrder({
                     tableNumber: parseInt(tableNumber),
-                    items: cart.map(i => ({ productId: i.id, quantity: i.quantity })),
+                    items: processedItems,
                     observations,
                     clientName: initialClientName || clientName || undefined,
                     clientLat: lat,
@@ -171,16 +186,22 @@ const CartModal: React.FC<CartModalProps> = ({ isOpen, onClose, cart, tableNumbe
                         <p className="text-center text-slate-400 py-8 font-bold text-sm uppercase tracking-widest">Seu carrinho está vazio</p>
                     ) : (
                         cart.map(item => (
-                            <div key={item.id} className="flex gap-3 p-3 bg-slate-50 rounded-2xl border border-slate-100 items-center">
+                            <div key={item.cartId} className="flex gap-3 p-3 bg-slate-50 rounded-2xl border border-slate-100 items-center">
                                 <img src={item.imageUrl} alt={item.name} className="w-14 h-14 rounded-xl object-cover shadow-sm" />
                                 <div className="flex-1 min-w-0">
                                     <h4 className="font-black text-slate-800 text-xs sm:text-sm uppercase tracking-tighter truncate">{item.name}</h4>
-                                    <p className="text-blue-600 font-black text-xs sm:text-sm">R$ {item.price.toFixed(2)}</p>
+                                    {item.pizzaFlavors && item.pizzaFlavors.length > 0 && (
+                                        <p className="text-[10px] font-bold text-indigo-500 line-clamp-1">+ {item.pizzaFlavors.map(f => f.name).join(', ')}</p>
+                                    )}
+                                    {item.observations && (
+                                        <p className="text-[10px] italic text-slate-400 dark:text-slate-500 line-clamp-1">Obs: {item.observations}</p>
+                                    )}
+                                    <p className="text-blue-600 font-black text-xs sm:text-sm mt-0.5">R$ {item.price.toFixed(2)} {item.pizzaFlavors && item.pizzaFlavors.length > 0 ? '/un' : ''}</p>
                                 </div>
                                 <div className="flex items-center bg-white rounded-xl p-1 gap-2 shadow-sm border border-slate-100 shrink-0">
-                                    <button onClick={() => updateQuantity(item.id, item.quantity - 1)} className="w-8 h-8 rounded-lg flex items-center justify-center font-black text-slate-400 active:scale-90">-</button>
+                                    <button onClick={() => updateQuantity(item.cartId, item.quantity - 1)} className="w-8 h-8 rounded-lg flex items-center justify-center font-black text-slate-400 active:scale-90">-</button>
                                     <span className="w-4 text-center font-black text-xs">{item.quantity}</span>
-                                    <button onClick={() => updateQuantity(item.id, item.quantity + 1)} className="w-8 h-8 rounded-lg bg-slate-900 text-white flex items-center justify-center font-black active:scale-90">+</button>
+                                    <button onClick={() => updateQuantity(item.cartId, item.quantity + 1)} className="w-8 h-8 rounded-lg bg-slate-900 text-white flex items-center justify-center font-black active:scale-90">+</button>
                                 </div>
                             </div>
                         ))

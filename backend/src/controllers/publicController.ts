@@ -435,9 +435,9 @@ export const createOrder = async (req: Request, res: Response) => {
                 return {
                     productId: it.productId,
                     productName: product ? product.name : 'Item',
-                    price: product ? product.price : 0,
+                    price: it.price || (product ? product.price : 0), // Favor price from payload for fractioned pizzas
                     quantity: it.quantity,
-                    observations: observations || '',
+                    observations: it.observations || observations || '', // Use item-level obs first
                     orderedBy: clientName || 'Digital'
                 };
             });

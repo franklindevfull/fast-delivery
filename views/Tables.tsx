@@ -45,6 +45,8 @@ const Tables: React.FC<TablesProps> = ({ currentUser }) => {
   const [modalObservation, setModalObservation] = useState('');
   const [modalQuantity, setModalQuantity] = useState(1);
   const [selectedProductForLaunch, setSelectedProductForLaunch] = useState<Product | null>(null);
+  const [pizzaFlavors, setPizzaFlavors] = useState<Product[]>([]);
+  const [isPizzaSelectionMode, setIsPizzaSelectionMode] = useState(false);
 
 
   const [clientSearch, setClientSearch] = useState('');
@@ -230,6 +232,8 @@ const Tables: React.FC<TablesProps> = ({ currentUser }) => {
     setSelectedProductForLaunch(null);
     setModalObservation('');
     setModalQuantity(1);
+    setPizzaFlavors([]);
+    setIsPizzaSelectionMode(false);
 
     console.log('Attempting to launch product:', product.name, 'to table:', selectedTable);
     if (selectedTable === null) return;
@@ -271,15 +275,69 @@ const Tables: React.FC<TablesProps> = ({ currentUser }) => {
     }
 
     const currentSess = getSessForTable(selectedTable);
-    const newItem: OrderItem = {
-      uid: `item-${Date.now()}-${Math.random().toString(36).substr(2, 4)}`,
-      productId: product.id,
-      quantity: modalQuantity,
-      price: product.price,
-      isReady: false,
-      observations: observationStr || ''
-    };
-    const newItems: OrderItem[] = existingSess ? [...existingSess.items, newItem] : [newItem];
+    let finalPrice = product.price;
+    let finalItems: OrderItem[] = [];
+    
+    if (product.isPizza && pizzaFlavors.length > 0) {
+      const prices = [product.price, ...pizzaFlavors.map(f => f.price)];
+      if (settings?.pizzaPriceRule === 'AVERAGE') {
+        finalPrice = prices.reduce((a, b) => a + b, 0) / prices.length;
+      } else {
+        finalPrice = Math.max(...prices);
+      }
+      
+      if (settings?.pizzaNfeRule === 'FRACTIONED') {
+         // Create a fractioned item per flavor
+         const totalFlavors = pizzaFlavors.length + 1;
+         const fractionPrice = finalPrice / totalFlavors;
+         const fractionQty = modalQuantity / totalFlavors;
+         
+         finalItems.push({
+           uid: `item-${Date.now()}-${Math.random().toString(36).substr(2, 4)}`,
+           productId: product.id,
+           quantity: fractionQty,
+           price: finalPrice, 
+           isReady: false,
+           observations: `(1/${totalFlavors}) ${observationStr}`.trim(),
+           pizzaFlavors: null
+         });
+         
+         pizzaFlavors.forEach((f, idx) => {
+           finalItems.push({
+             uid: `item-${Date.now()}-${Math.random().toString(36).substr(2, 4)}-${idx}`,
+             productId: f.id,
+             quantity: fractionQty,
+             price: finalPrice,
+             isReady: false,
+             observations: `(1/${totalFlavors}) ${observationStr}`.trim(),
+             pizzaFlavors: null
+           });
+         });
+      } else {
+        // OBSERVATION mode
+        const allNames = [product.name, ...pizzaFlavors.map(p => p.name)].join(', ');
+        finalItems.push({
+          uid: `item-${Date.now()}-${Math.random().toString(36).substr(2, 4)}`,
+          productId: product.id,
+          quantity: modalQuantity,
+          price: finalPrice,
+          isReady: false,
+          observations: `Sabores: ${allNames} | ${observationStr}`.trim(),
+          pizzaFlavors: pizzaFlavors.map(f => f.id)
+        });
+      }
+    } else {
+      finalItems.push({
+        uid: `item-${Date.now()}-${Math.random().toString(36).substr(2, 4)}`,
+        productId: product.id,
+        quantity: modalQuantity,
+        price: product.price,
+        isReady: false,
+        observations: observationStr || ''
+      });
+    }
+
+    const newItems: OrderItem[] = existingSess ? [...existingSess.items, ...finalItems] : [...finalItems];
     let startTime = existingSess?.startTime ? new Date(existingSess.startTime).toISOString() : new Date().toISOString();
 
     // If session is from a different day, reset startTime to now
@@ -805,6 +863,8 @@ const Tables: React.FC<TablesProps> = ({ currentUser }) => {
                               setSelectedProductForLaunch(prod);
                               setModalObservation('');
                               setModalQuantity(1);
+                              setPizzaFlavors([]);
+                              setIsPizzaSelectionMode(prod.isPizza || false);
                             }}
                             className={`p-5 bg-white dark:bg-slate-800 border rounded-[2.5rem] shadow-sm transition-all duration-200 text-left group relative overflow-hidden active:scale-95 hover:scale-[1.02] ${lastAddedProduct === prod.id
                               ? 'border-emerald-500 ring-4 ring-emerald-50 dark:ring-emerald-900/20 scale-95'
@@ -902,40 +962,91 @@ const Tables: React.FC<TablesProps> = ({ currentUser }) => {
             <h3 className="text-lg font-black text-slate-800 dark:text-white uppercase mb-2 tracking-tighter text-center">Lançar Item</h3>
             <p className="text-center text-[10px] font-bold text-slate-400 dark:text-slate-500 uppercase mb-4">{selectedProductForLaunch.name}</p>
             
-            {/* Seletor de Quantidade */}
-            <div className="flex flex-col items-center justify-center p-3 bg-slate-50 dark:bg-slate-800 rounded-[1.5rem] border border-slate-100 dark:border-slate-700 mb-4 group/qt">
-              <p className="text-[10px] font-black text-slate-400 dark:text-slate-500 uppercase tracking-widest mb-2">Defina a Quantidade</p>
-              <div className="flex items-center gap-4">
-                <button 
-                  onClick={() => setModalQuantity(prev => Math.max(1, prev - 1))}
-                  className="w-10 h-10 bg-white dark:bg-slate-700 hover:bg-red-50 dark:hover:bg-red-900/30 text-slate-400 dark:text-slate-500 hover:text-red-500 dark:hover:text-red-400 rounded-xl flex items-center justify-center font-black text-xl transition-all shadow-sm active:scale-90"
-                >
-                  -
-                </button>
-                <span className="text-3xl font-black text-slate-800 dark:text-white tracking-tighter w-10 text-center select-none group-hover/qt:scale-110 transition-transform">{modalQuantity}</span>
-                <button 
-                  onClick={() => setModalQuantity(prev => prev + 1)}
-                  className="w-10 h-10 bg-white dark:bg-slate-700 hover:bg-blue-50 dark:hover:bg-blue-900/30 text-slate-400 dark:text-slate-500 hover:text-blue-500 dark:hover:text-blue-400 rounded-xl flex items-center justify-center font-black text-xl transition-all shadow-sm active:scale-90"
-                >
-                  +
-                </button>
-              </div>
-              <div className="mt-3 pt-2 border-t border-slate-200/50 dark:border-slate-700/50 w-full text-center">
-                <p className="text-[9px] font-bold text-slate-400 dark:text-slate-500 uppercase">Subtotal do Item</p>
-                <p className="text-base font-black text-blue-600 dark:text-blue-400">{formatCurrency(selectedProductForLaunch.price * modalQuantity)}</p>
-              </div>
-            </div>
+            {isPizzaSelectionMode ? (
+              <div className="space-y-4">
+                <p className="text-center text-sm font-bold text-slate-800 dark:text-white mb-2">Quantos sabores adicionais?</p>
+                <div className="flex flex-wrap gap-2 justify-center max-h-48 overflow-y-auto custom-scrollbar p-2">
+                  {(() => {
+                    const maxFlavors = selectedProductForLaunch.pizzaSize === 'P' ? 2 : selectedProductForLaunch.pizzaSize === 'M' ? 3 : selectedProductForLaunch.pizzaSize === 'G' ? 4 : 2;
+                    const canSelectMore = pizzaFlavors.length + 1 < maxFlavors;
+                    return (
+                       <div className="w-full">
+                         <div className="flex justify-between items-center bg-blue-50 dark:bg-blue-900/20 p-3 rounded-xl mb-3">
+                           <span className="text-xs font-bold text-blue-800 dark:text-blue-300">Sabores permitidos: {maxFlavors}</span>
+                           <span className="text-xs font-black text-blue-600 dark:text-blue-400">Selecionados: {pizzaFlavors.length + 1}</span>
+                         </div>
+                         
+                         {pizzaFlavors.length > 0 && (
+                            <div className="mb-4 space-y-2">
+                              {pizzaFlavors.map((pf, idx) => (
+                                 <div key={idx} className="flex justify-between items-center bg-slate-50 dark:bg-slate-800 p-2 rounded-xl text-xs font-bold text-slate-600 dark:text-slate-300">
+                                   <span>{pf.name}</span>
+                                   <button onClick={() => setPizzaFlavors(prev => prev.filter((_, i) => i !== idx))} className="text-red-500 font-black px-2">X</button>
+                                 </div>
+                              ))}
+                            </div>
+                         )}
 
-            <div className="space-y-6">
-              <div>
-                <label className="text-[10px] font-black text-slate-500 dark:text-slate-400 uppercase tracking-widest mb-2 block">Deseja adicionar alguma observação?</label>
-                <input autoFocus type="text" placeholder="Ex: Sem sal, bem passado..." value={modalObservation} onChange={(e) => setModalObservation(e.target.value)} onKeyDown={(e) => e.key === 'Enter' && confirmLaunchProduct()} className="w-full p-4 bg-slate-100 dark:bg-slate-800 rounded-2xl border-none focus:ring-2 focus:ring-blue-600 dark:focus:ring-blue-500 font-bold text-sm outline-none placeholder:font-normal dark:text-white" maxLength={60} />
+                         {canSelectMore ? (
+                           <div className="space-y-2 max-h-[160px] overflow-y-auto custom-scrollbar pr-2 pb-2">
+                             {products.filter(p => p.isPizza && p.pizzaSize === selectedProductForLaunch.pizzaSize && p.id !== selectedProductForLaunch.id).map(p => (
+                               <button 
+                                 key={p.id}
+                                 onClick={() => setPizzaFlavors([...pizzaFlavors, p])}
+                                 className="w-full text-left p-3 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl hover:border-blue-400 transition-all text-xs font-bold dark:text-white"
+                               >
+                                 {p.name} - {formatCurrency(p.price)}
+                               </button>
+                             ))}
+                           </div>
+                         ) : (
+                           <div className="text-center p-3 text-[10px] font-bold text-slate-400">Limite de sabores atingido.</div>
+                         )}
+                         <button onClick={() => setIsPizzaSelectionMode(false)} className="w-full mt-4 bg-emerald-500 hover:bg-emerald-600 text-white p-4 rounded-2xl font-black text-xs uppercase shadow-xl hover:shadow-emerald-200 transition-all">Avançar →</button>
+                       </div>
+                    );
+                  })()}
+                </div>
               </div>
-              <div className="flex gap-2">
-                <button onClick={() => setSelectedProductForLaunch(null)} className="flex-1 py-4 font-black text-[10px] uppercase text-slate-400 dark:text-slate-500 hover:text-slate-600 dark:hover:text-slate-300 transition-colors">Cancelar</button>
-                <button onClick={confirmLaunchProduct} className="flex-1 py-4 bg-blue-600 hover:bg-blue-700 text-white rounded-xl font-black text-[10px] uppercase shadow-xl hover:shadow-blue-200 dark:hover:shadow-blue-900/40 transition-all active:scale-95">Confirmar ✓</button>
-              </div>
-            </div>
+            ) : (
+              <>
+                <div className="flex flex-col items-center justify-center p-3 bg-slate-50 dark:bg-slate-800 rounded-[1.5rem] border border-slate-100 dark:border-slate-700 mb-4 group/qt">
+                  <p className="text-[10px] font-black text-slate-400 dark:text-slate-500 uppercase tracking-widest mb-2">Defina a Quantidade</p>
+                  <div className="flex items-center gap-4">
+                    <button 
+                      onClick={() => setModalQuantity(prev => Math.max(1, prev - 1))}
+                      className="w-10 h-10 bg-white dark:bg-slate-700 hover:bg-red-50 dark:hover:bg-red-900/30 text-slate-400 dark:text-slate-500 hover:text-red-500 dark:hover:text-red-400 rounded-xl flex items-center justify-center font-black text-xl transition-all shadow-sm active:scale-90"
+                    >
+                      -
+                    </button>
+                    <span className="text-3xl font-black text-slate-800 dark:text-white tracking-tighter w-10 text-center select-none group-hover/qt:scale-110 transition-transform">{modalQuantity}</span>
+                    <button 
+                      onClick={() => setModalQuantity(prev => prev + 1)}
+                      className="w-10 h-10 bg-white dark:bg-slate-700 hover:bg-blue-50 dark:hover:bg-blue-900/30 text-slate-400 dark:text-slate-500 hover:text-blue-500 dark:hover:text-blue-400 rounded-xl flex items-center justify-center font-black text-xl transition-all shadow-sm active:scale-90"
+                    >
+                      +
+                    </button>
+                  </div>
+                  <div className="mt-3 pt-2 border-t border-slate-200/50 dark:border-slate-700/50 w-full text-center">
+                    <p className="text-[9px] font-bold text-slate-400 dark:text-slate-500 uppercase">Subtotal do Item</p>
+                    <p className="text-base font-black text-blue-600 dark:text-blue-400">
+                       {formatCurrency((pizzaFlavors.length > 0 ? (settings?.pizzaPriceRule === 'AVERAGE' ? ([selectedProductForLaunch.price, ...pizzaFlavors.map(f => f.price)].reduce((a,b)=>a+b,0)/(pizzaFlavors.length+1)) : Math.max(selectedProductForLaunch.price, ...pizzaFlavors.map(f=>f.price))) : selectedProductForLaunch.price) * modalQuantity)}
+                    </p>
+                  </div>
+                </div>
+
+                <div className="space-y-6">
+                  <div>
+                    <label className="text-[10px] font-black text-slate-500 dark:text-slate-400 uppercase tracking-widest mb-2 block">Deseja adicionar alguma observação?</label>
+                    <input autoFocus type="text" placeholder="Ex: Sem sal, bem passado..." value={modalObservation} onChange={(e) => setModalObservation(e.target.value)} onKeyDown={(e) => e.key === 'Enter' && confirmLaunchProduct()} className="w-full p-4 bg-slate-100 dark:bg-slate-800 rounded-2xl border-none focus:ring-2 focus:ring-blue-600 dark:focus:ring-blue-500 font-bold text-sm outline-none placeholder:font-normal dark:text-white" maxLength={60} />
+                  </div>
+                  <div className="flex gap-2">
+                    <button onClick={() => { setSelectedProductForLaunch(null); setPizzaFlavors([]); setIsPizzaSelectionMode(false); }} className="flex-1 py-4 font-black text-[10px] uppercase text-slate-400 dark:text-slate-500 hover:text-slate-600 dark:hover:text-slate-300 transition-colors">Cancelar</button>
+                    <button onClick={confirmLaunchProduct} className="flex-1 py-4 bg-blue-600 hover:bg-blue-700 text-white rounded-xl font-black text-[10px] uppercase shadow-xl hover:shadow-blue-200 dark:hover:shadow-blue-900/40 transition-all active:scale-95">Confirmar ✓</button>
+                  </div>
+                </div>
+              </>
+            )}
           </div>
         </div>
       )}

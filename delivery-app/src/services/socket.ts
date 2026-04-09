@@ -10,13 +10,19 @@ export const socket = io(SOCKET_URL, {
     reconnectionDelay: 1000,
     reconnectionDelayMax: 5000,
     reconnectionAttempts: Infinity,
-    transports: ['websocket', 'polling']
+    transports: ['websocket'],
+    withCredentials: true
 });
 
 socket.on('connect', () => {
-    console.log('App Cliente conectado ao Socket.io:', socket.id);
+    console.log('[SOCKET] App Cliente conectado:', socket.id);
+    console.log('[SOCKET] Transporte atual:', socket.io.engine.transport.name);
 });
 
-socket.on('disconnect', () => {
-    console.log('App Cliente desconectado do Socket.io.');
+socket.on('connect_error', (err) => {
+    console.error('[SOCKET] Erro de conexão:', err.message);
+});
+
+socket.on('disconnect', (reason) => {
+    console.log('[SOCKET] App Cliente desconectado. Motivo:', reason);
 });

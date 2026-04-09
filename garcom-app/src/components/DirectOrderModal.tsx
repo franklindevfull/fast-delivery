@@ -22,6 +22,15 @@ const DirectOrderModal: React.FC<DirectOrderModalProps> = ({ user, onClose, onRe
     const [showCartItems, setShowCartItems] = useState(false);
     const [loading, setLoading] = useState(false);
     const [showClientSelect, setShowClientSelect] = useState(false);
+    const [settings, setSettings] = useState<any>(null);
+
+    // Pizza States
+    const [selectedPizzaForLaunch, setSelectedPizzaForLaunch] = useState<Product | null>(null);
+    const [pizzaFlavors, setPizzaFlavors] = useState<Product[]>([]);
+    const [isPizzaSelectionMode, setIsPizzaSelectionMode] = useState(false);
+    const [pizzaModalQuantity, setPizzaModalQuantity] = useState(1);
+    const [pizzaObservation, setPizzaObservation] = useState('');
+
     const [modal, setModal] = useState<{
         isOpen: boolean;
         type: 'success' | 'error' | 'alert' | 'confirm';
@@ -35,6 +44,8 @@ const DirectOrderModal: React.FC<DirectOrderModalProps> = ({ user, onClose, onRe
             try {
                 const data = await db.getProducts();
                 setProducts(data);
+                const st = await db.getSettings();
+                setSettings(st);
             } catch (e) {
                 console.error(e);
             }
@@ -46,15 +57,33 @@ const DirectOrderModal: React.FC<DirectOrderModalProps> = ({ user, onClose, onRe
         setModal({ isOpen: true, title, message, type, onConfirm });
     };
 
-    const addToCart = (product: Product) => {
-        setCart(prev => [...prev, {
-            uid: `item-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
-            productId: product.id,
-            productName: product.name,
-            product,
-            quantity: 1,
-            price: product.price
-        }]);
+    const addToCart = (product: Product, quantity = 1, flavors?: Product[], observations?: string, price?: number) => {
+        setCart(prev => {
+            if (flavors?.length || observations) {
+                return [...prev, {
+                    uid: `item-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
+                    productId: product.id,
+                    productName: product.name,
+                    product,
+                    quantity,
+                    price: price || product.price,
+                    pizzaFlavors: flavors,
+                    observations
+                }];
+            }
+            const existing = prev.find(p => p.productId === product.id && !p.pizzaFlavors?.length && !p.observations);
+            if (existing) {
+                return prev.map(p => p.productId === product.id ? { ...p, quantity: p.quantity + quantity } : p);
+            }
+            return [...prev, {
+                uid: `item-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
+                productId: product.id,
+                productName: product.name,
+                product,
+                quantity,
+                price: price || product.price
+            }];
+        });
     };
 
     const updateCartQuantity = (productId: string, delta: number) => {
@@ -90,7 +119,8 @@ const DirectOrderModal: React.FC<DirectOrderModalProps> = ({ user, onClose, onRe
                     productId: item.productId,
                     quantity: item.quantity,
                     price: item.price,
-                    observations: item.observations
+                    observations: item.observations,
+                    pizzaFlavors: item.pizzaFlavors
                 }))
             };
 
@@ -177,7 +207,7 @@ const DirectOrderModal: React.FC<DirectOrderModalProps> = ({ user, onClose, onRe
                                             <span className="px-2 py-1 bg-red-100 text-red-600 rounded-lg text-[9px] font-black uppercase tracking-widest">
                                                 Esgotado
                                             </span>
-                                        ) : quantity > 0 ? (
+                                        ) : quantity > 0 && !product.isPizza ? (
                                             <div className="flex items-center bg-slate-50 rounded-lg p-0.5 gap-1 border border-slate-100">
                                                 <button
                                                     onClick={() => updateCartQuantity(product.id, -1)}
@@ -195,7 +225,17 @@ const DirectOrderModal: React.FC<DirectOrderModalProps> = ({ user, onClose, onRe
                                             </div>
                                         ) : (
                                             <button
-                                                onClick={() => addToCart(product)}
+                                                onClick={() => {
+                                                    if (product.isPizza) {
+                                                        setSelectedPizzaForLaunch(product);
+                                                        setPizzaFlavors([]);
+                                                        setPizzaModalQuantity(1);
+                                                        setIsPizzaSelectionMode(false);
+                                                        setPizzaObservation('');
+                                                    } else {
+                                                        addToCart(product);
+                                                    }
+                                                }}
                                                 className="w-10 h-10 bg-slate-900 text-white rounded-xl flex items-center justify-center shadow-lg active:scale-95"
                                             >
                                                 <Plus size={18} />
@@ -206,6 +246,105 @@ const DirectOrderModal: React.FC<DirectOrderModalProps> = ({ user, onClose, onRe
                             );
                         })}
                     </div>
+
+                    {/* Modal de Pizza */}
+                    {selectedPizzaForLaunch && (() => {
+                        const maxFlavors = selectedPizzaForLaunch.pizzaSize === 'P' ? 2 : selectedPizzaForLaunch.pizzaSize === 'M' ? 3 : selectedPizzaForLaunch.pizzaSize === 'G' ? 4 : 1;
+                        const availablePizzaProducts = products.filter(p => p.isPizza && p.pizzaSize === selectedPizzaForLaunch.pizzaSize && p.id !== selectedPizzaForLaunch.id && p.price > 0 && (p.maxAvailability === undefined || p.maxAvailability > 0));
+
+                        let modalSubTotal = selectedPizzaForLaunch.price;
+                        if (pizzaFlavors.length > 0) {
+                            if (settings?.pizzaPriceRule === 'AVERAGE') {
+                                const totalPrices = selectedPizzaForLaunch.price + pizzaFlavors.reduce((sum, f) => sum + f.price, 0);
+                                modalSubTotal = totalPrices / (pizzaFlavors.length + 1);
+                            } else {
+                                let highest = selectedPizzaForLaunch.price;
+                                pizzaFlavors.forEach(f => { if (f.price > highest) highest = f.price; });
+                                modalSubTotal = highest;
+                            }
+                        }
+                        modalSubTotal *= pizzaModalQuantity;
+
+                        return (
+                            <div className="fixed inset-0 z-[100] flex flex-col justify-end bg-slate-900/60 backdrop-blur-sm px-4 pb-[calc(1rem+env(safe-area-inset-bottom))] mb-20 animate-in fade-in duration-300">
+                                <div className="bg-white mx-auto w-full max-h-[85vh] rounded-[2rem] shadow-2xl flex flex-col animate-in slide-in-from-bottom border border-slate-100 overflow-hidden" onClick={e => e.stopPropagation()}>
+                                    <div className="p-5 border-b border-slate-100 flex justify-between items-start bg-slate-50 sticky top-0 z-10">
+                                        <div>
+                                            <span className="text-[9px] font-black uppercase text-blue-600 bg-blue-100 px-2.5 py-1 rounded-full mb-1.5 inline-block">
+                                                Pizza {selectedPizzaForLaunch.pizzaSize} (Até {maxFlavors} sabores)
+                                            </span>
+                                            <h3 className="text-lg font-black text-slate-800 leading-tight">
+                                                {selectedPizzaForLaunch.name}
+                                            </h3>
+                                        </div>
+                                        <button onClick={() => setSelectedPizzaForLaunch(null)} className="p-2 bg-white text-slate-400 rounded-full hover:bg-rose-50 hover:text-rose-500 shadow-sm">
+                                            <X size={16} />
+                                        </button>
+                                    </div>
+
+                                    <div className="flex-1 overflow-y-auto p-5 space-y-6">
+                                        {maxFlavors > 1 && !isPizzaSelectionMode && pizzaFlavors.length === 0 && (
+                                            <div className="p-5 bg-slate-50 rounded-[1.5rem] flex flex-col items-center text-center">
+                                                <p className="text-xs font-bold text-slate-700 mb-1">Deseja adicionar outros sabores?</p>
+                                                <p className="text-[9px] text-slate-400 font-medium uppercase mt-1 mb-4">Você pode adicionar até {maxFlavors - 1} sabores extras.</p>
+                                                <button onClick={() => setIsPizzaSelectionMode(true)} className="w-full py-3 bg-white border border-slate-200 rounded-xl font-black text-[10px] text-slate-700 uppercase">
+                                                    Sim, Dividir Pizza
+                                                </button>
+                                            </div>
+                                        )}
+
+                                        {(isPizzaSelectionMode || pizzaFlavors.length > 0) && (
+                                            <div className="space-y-4">
+                                                <h4 className="text-[9px] font-black text-slate-400 uppercase">Sabores Extras ({pizzaFlavors.length}/{maxFlavors - 1})</h4>
+                                                <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                                                    {availablePizzaProducts.map(p => {
+                                                        const isSelected = pizzaFlavors.find(f => f.id === p.id);
+                                                        const canAdd = pizzaFlavors.length < maxFlavors - 1;
+                                                        return (
+                                                            <div key={p.id} onClick={() => {
+                                                                if (isSelected) setPizzaFlavors(prev => prev.filter(f => f.id !== p.id));
+                                                                else if (canAdd) setPizzaFlavors(prev => [...prev, p]);
+                                                            }} className={`p-3 rounded-xl border flex justify-between items-center ${isSelected ? 'bg-blue-50 border-blue-500' : 'bg-white border-slate-200'} ${!isSelected && !canAdd ? 'opacity-50' : 'cursor-pointer'}`}>
+                                                                <span className="font-bold text-xs">{p.name}</span>
+                                                                <span className="text-[10px] font-black">{formatCurrency(p.price)}</span>
+                                                            </div>
+                                                        );
+                                                    })}
+                                                </div>
+                                            </div>
+                                        )}
+
+                                        <div className="space-y-2">
+                                            <h4 className="text-[9px] font-black text-slate-400 uppercase">Observações</h4>
+                                            <input type="text" placeholder="Ex: Sem cebola..." value={pizzaObservation} onChange={e => setPizzaObservation(e.target.value)} className="w-full bg-slate-50 border border-slate-200 p-3 rounded-xl font-bold text-xs" />
+                                        </div>
+
+                                        <div className="flex items-center justify-between bg-slate-50 border border-slate-200 p-2 rounded-xl">
+                                            <button onClick={() => setPizzaModalQuantity(Math.max(1, pizzaModalQuantity - 1))} className="w-10 h-10 bg-white shadow rounded-lg font-bold">-</button>
+                                            <span className="font-black text-sm">{pizzaModalQuantity}</span>
+                                            <button onClick={() => setPizzaModalQuantity(pizzaModalQuantity + 1)} className="w-10 h-10 bg-white shadow rounded-lg font-bold">+</button>
+                                        </div>
+                                    </div>
+
+                                    <div className="p-5 bg-white border-t border-slate-100">
+                                        <button onClick={() => {
+                                            let finalObs = pizzaObservation;
+                                            if (settings?.pizzaNfeRule === 'OBSERVATION') {
+                                                const flavoursStr = [selectedPizzaForLaunch.name, ...pizzaFlavors.map(f => f.name)].join(', ');
+                                                if (finalObs) finalObs = `${flavoursStr} | Obs: ${finalObs}`;
+                                                else finalObs = `${flavoursStr}`;
+                                            }
+                                            addToCart(selectedPizzaForLaunch, pizzaModalQuantity, pizzaFlavors, finalObs || undefined, modalSubTotal / pizzaModalQuantity);
+                                            setSelectedPizzaForLaunch(null);
+                                        }} className="w-full bg-blue-600 text-white py-4 rounded-xl font-black uppercase text-[10px] tracking-widest flex justify-between px-5">
+                                            <span>Adicionar</span>
+                                            <span>R$ {modalSubTotal.toFixed(2)}</span>
+                                        </button>
+                                    </div>
+                                </div>
+                            </div>
+                        );
+                    })()}
                 </main>
 
                 {/* Footer Actions */}

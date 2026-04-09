@@ -205,6 +205,7 @@ class DeliveryApiService {
     logout() {
         localStorage.removeItem('delivery_app_token');
         localStorage.removeItem('delivery_app_client');
+        localStorage.removeItem('delivery_app_login_time');
     }
 }
 

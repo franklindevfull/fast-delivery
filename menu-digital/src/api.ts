@@ -48,7 +48,13 @@ export const MOCK_CATEGORIES = ['Lanches', 'Porções', 'Bebidas', 'Sobremesas',
 
 export interface OrderPayload {
     tableNumber: number;
-    items: { productId: string; quantity: number }[];
+    items: { 
+        productId: string; 
+        quantity: number;
+        price: number;
+        observations?: string | null;
+        pizzaFlavors?: any;
+    }[];
     observations?: string;
     clientName?: string;
     clientLat?: number;
@@ -163,5 +169,15 @@ export const fetchActivePromotions = async () => {
     } catch (error: any) {
         console.error('Error fetching promotions', error);
         return [];
+    }
+};
+
+export const fetchSettings = async () => {
+    try {
+        const response = await axios.get(`${BASE_URL}/settings`);
+        return response.data;
+    } catch (error: any) {
+        console.error('Error fetching settings', error);
+        return null;
     }
 };

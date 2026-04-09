@@ -247,7 +247,7 @@ model OrderItem {
   orderId        String?
   tableSessionId Int?
   productId      String
-  quantity       Int
+  quantity       Float
   price          Float
   isReady        Boolean       @default(false)
   readyAt        DateTime?
