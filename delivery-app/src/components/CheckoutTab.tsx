@@ -37,7 +37,6 @@ const CheckoutTab: React.FC<{ onOrderPlaced: () => void }> = ({ onOrderPlaced })
     const [appliedCoupon, setAppliedCoupon] = useState<any>(null);
     const [couponError, setCouponError] = useState('');
     const [isValidatingCoupon, setIsValidatingCoupon] = useState(false);
-    const [settings, setSettings] = useState<any>(null);
 
     useEffect(() => {
         const init = async () => {
@@ -67,7 +66,6 @@ const CheckoutTab: React.FC<{ onOrderPlaced: () => void }> = ({ onOrderPlaced })
                 const fee = parseFloat(sanitizedFee) || 0;
                 setDeliveryFee(fee);
                 setStoreStatus(status as StoreStatus);
-                setSettings(s);
 
             } catch (err) {
                 console.error('Error fetching settings or client:', err);

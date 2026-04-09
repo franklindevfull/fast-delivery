@@ -1,6 +1,6 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import { CartItem } from '../types';
-import { submitOrder, StoreStatus, fetchSettings } from '../api';
+import { submitOrder, StoreStatus } from '../api';
 
 interface CartModalProps {
     isOpen: boolean;
@@ -21,13 +21,7 @@ const CartModal: React.FC<CartModalProps> = ({ isOpen, onClose, cart, tableNumbe
     const [success, setSuccess] = useState(false);
     const [showClearConfirm, setShowClearConfirm] = useState(false);
     const [errorModal, setErrorModal] = useState<{ message: string, isPinError: boolean, title?: string } | null>(null);
-    const [settings, setSettings] = useState<any>(null);
 
-    useEffect(() => {
-        if (isOpen) {
-            fetchSettings().then(setSettings);
-        }
-    }, [isOpen]);
 
     if (!isOpen) return null;
 
