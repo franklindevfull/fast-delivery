@@ -120,6 +120,27 @@ const Inventory: React.FC = () => {
     setIsProdModalOpen(true);
   };
 
+  const copyProd = (product: Product) => {
+    setEditingProduct(null);
+    setProdFormData({
+      name: `${product.name} Cópia`,
+      price: product.price,
+      category: product.category,
+      imageUrl: product.imageUrl || '',
+      stock: product.stock,
+      ncm: product.ncm || '',
+      cfop: product.cfop || '',
+      cest: product.cest || '',
+      preparation: product.preparation || '',
+      isCombo: (product.comboItems?.length ?? 0) > 0,
+      isPizza: product.isPizza || false,
+      pizzaSize: product.pizzaSize || ''
+    });
+    setTempRecipe(product.recipe ? [...product.recipe] : []);
+    setTempComboItems(product.comboItems ? [...product.comboItems] : []);
+    setIsProdModalOpen(true);
+  };
+
   const handleFileUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (file) {
@@ -232,7 +253,10 @@ const Inventory: React.FC = () => {
               <div className="flex gap-2 mt-auto min-w-0">
                 <button onClick={() => openProdModal(product)} className="flex-1 min-w-0 py-3 px-2 bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-600 dark:text-slate-300 rounded-2xl text-[9px] font-black uppercase transition-all flex items-center justify-center gap-1.5" title="Editar">
                   <Icons.Edit className="w-3.5 h-3.5 flex-shrink-0" />
-                  <span className="truncate">Editar / Ficha</span>
+                  <span className="truncate">Editar</span>
+                </button>
+                <button onClick={() => copyProd(product)} className="w-11 h-11 shrink-0 bg-blue-50 dark:bg-blue-900/20 hover:bg-blue-100 dark:hover:bg-blue-900/40 text-blue-600 dark:text-blue-400 rounded-2xl transition-all flex items-center justify-center" title="Copiar">
+                  <Icons.Copy className="w-4 h-4" />
                 </button>
                 <button onClick={() => deleteProd(product.id)} className="w-11 h-11 shrink-0 bg-red-50 dark:bg-red-900/20 hover:bg-red-100 dark:hover:bg-red-900/40 text-red-600 dark:text-red-400 rounded-2xl transition-all flex items-center justify-center" title="Excluir">
                   <Icons.Delete className="w-4 h-4" />

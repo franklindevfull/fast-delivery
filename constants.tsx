@@ -5,7 +5,8 @@ import {
   MessageSquareMore, 
   LayoutDashboard,
   BanknoteArrowUp,
-  BanknoteArrowDown
+  BanknoteArrowDown,
+  Copy
 } from 'lucide-react';
 
 export const COLORS = {
@@ -269,5 +270,6 @@ export const Icons = {
       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M12 6v12M6 12h12" />
     </svg>
   ),
-  Megaphone: (props: any) => <MessageSquareMore className="w-5 h-5" {...props} />
+  Megaphone: (props: any) => <MessageSquareMore className="w-5 h-5" {...props} />,
+  Copy: (props: any) => <Copy className="w-5 h-5" {...props} />
 };
