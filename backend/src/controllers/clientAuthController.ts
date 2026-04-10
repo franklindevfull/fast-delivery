@@ -94,13 +94,20 @@ export const loginClient = async (req: ExpressRequest, res: ExpressResponse) => 
             return res.status(401).json({ message: 'Credenciais inválidas ou conta não ativada via App.' });
         }
 
+        if (!client.id || client.id.trim() === '') {
+            console.error('[AUTH-ERROR] Cliente encontrado com ID inválido:', client.phone);
+            return res.status(500).json({ message: 'Erro na consistência de dados da conta. Por favor, contate o suporte.' });
+        }
+
         const valid = await bcrypt.compare(password, client.password);
         if (!valid) {
             return res.status(401).json({ message: 'Senha incorreta.' });
         }
 
+        // Remove a senha do objeto e garante que todos os campos (incluindo id) sejam preservados
+        const { password: _, ...clientData } = client;
         const clientResponse = {
-            ...client,
+            ...clientData,
             mustChangePassword: client.mustChangePassword || (await bcrypt.compare('123', client.password))
         };
 

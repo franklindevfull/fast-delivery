@@ -348,6 +348,13 @@ class APIDBService {
     });
   }
 
+  public async updateOrderDeliveryFee(orderId: string, deliveryFee: number, user: User) {
+    await this.request(`/orders/${orderId}/delivery-fee`, {
+      method: 'PATCH',
+      body: JSON.stringify({ deliveryFee, user })
+    });
+  }
+
   public async transferTable(from: number, to: number, waiterId: string, userPermissions?: string[]) {
     return this.request('/tables/transfer', {
       method: 'POST',

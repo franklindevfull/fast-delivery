@@ -35,6 +35,29 @@ const DeliveryOrders: React.FC<DeliveryOrdersProps> = ({ currentUser }) => {
     const [newMessage, setNewMessage] = useState('');
     const [isSending, setIsSending] = useState(false);
     const chatEndRef = useRef<HTMLDivElement>(null);
+    const [deliveryFeeInputs, setDeliveryFeeInputs] = useState<Record<string, string>>({});
+
+    const handleUpdateDeliveryFee = async (orderId: string) => {
+        const feeStr = deliveryFeeInputs[orderId];
+        const fee = parseFloat(feeStr);
+        if (isNaN(fee)) {
+            addToast({ title: 'Valor Inválido', message: 'Por favor insira um valor válido para o frete', type: 'WARNING' });
+            return;
+        }
+
+        try {
+            await db.updateOrderDeliveryFee(orderId, fee, currentUser);
+            addToast({ title: 'Frete Atualizado', message: 'Valor do frete atualizado com sucesso.', type: 'SUCCESS' });
+            setDeliveryFeeInputs(prev => { 
+                const newState = { ...prev }; 
+                delete newState[orderId]; 
+                return newState; 
+            });
+            fetchOrders();
+        } catch (e: any) {
+            addToast({ title: 'Erro ao Aprovar Frete', message: e.message || 'Erro inesperado.', type: 'DANGER' });
+        }
+    };
 
     const [alertConfig, setAlertConfig] = useState<{
         isOpen: boolean;
@@ -332,25 +355,49 @@ const DeliveryOrders: React.FC<DeliveryOrdersProps> = ({ currentUser }) => {
                                                 ))}
                                             </div>
                                         </div>
-                                        <div className="flex gap-3 mt-auto pt-4 border-t border-slate-50 dark:border-slate-800">
-                                            {order.status === 'PENDING' ? (
-                                                <>
-                                                    <button onClick={() => approveOrder(order.id)} className="flex-1 py-4 bg-indigo-600 text-white rounded-2xl font-black uppercase text-[10px] tracking-widest shadow-lg shadow-indigo-100 dark:shadow-indigo-900/20 transition-all">Aceitar</button>
-                                                    <button 
-                                                        onClick={() => addToast({
-                                                            title: 'EDITAR PEDIDO',
-                                                            message: 'Controle de itens em desenvolvimento para este módulo.',
-                                                            type: 'INFO'
-                                                        })} 
-                                                        className="w-12 h-12 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-400 dark:text-slate-500 hover:text-indigo-600 dark:hover:text-indigo-400 rounded-2xl flex items-center justify-center transition-all"
-                                                    >
-                                                        <Icons.Edit className="w-5 h-5" />
-                                                    </button>
-                                                    <button onClick={() => rejectOrder(order.id)} className="w-12 h-12 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-rose-400 hover:bg-rose-50 dark:hover:bg-rose-900/40 rounded-2xl flex items-center justify-center transition-all"><Icons.Delete className="w-5 h-5" /></button>
-                                                </>
-                                            ) : (
-                                                <button onClick={() => handlePrint(order)} className="flex-1 py-4 bg-indigo-600 text-white rounded-2xl font-black uppercase text-[10px] tracking-widest shadow-lg flex items-center justify-center gap-2"><Icons.Print className="w-4 h-4" /> Cupom</button>
+                                        <div className="flex gap-3 mt-auto pt-4 border-t border-slate-50 dark:border-slate-800 flex-col">
+                                            {order.status === 'PENDING' && order.deliveryFeeNeedsReview && (
+                                                <div className="flex flex-col gap-2 mb-2 bg-amber-50 dark:bg-amber-900/20 p-4 rounded-2xl border border-amber-100 dark:border-amber-800/30">
+                                                    <p className="text-[10px] font-black text-amber-600 dark:text-amber-500 uppercase tracking-widest text-center mb-1">Definir Frete Manual</p>
+                                                    <div className="flex gap-2">
+                                                        <input 
+                                                            type="number" 
+                                                            step="0.01" 
+                                                            placeholder="R$ 0,00" 
+                                                            className="w-full bg-white dark:bg-slate-800 border-none rounded-xl px-4 py-3 text-sm font-bold shadow-sm text-slate-800 dark:text-white"
+                                                            value={deliveryFeeInputs[order.id] || ''}
+                                                            onChange={(e) => setDeliveryFeeInputs(prev => ({ ...prev, [order.id]: e.target.value }))}
+                                                        />
+                                                        <button 
+                                                            onClick={() => handleUpdateDeliveryFee(order.id)}
+                                                            className="px-6 bg-amber-500 text-white rounded-xl font-black uppercase text-xs shadow-lg shadow-amber-200 dark:shadow-amber-900/20 hover:bg-amber-600 transition-all"
+                                                        >
+                                                            Salvar
+                                                        </button>
+                                                    </div>
+                                                </div>
                                             )}
+                                            
+                                            <div className="flex gap-3 w-full">
+                                                {order.status === 'PENDING' ? (
+                                                    <>
+                                                        <button onClick={() => approveOrder(order.id)} className="flex-1 py-4 bg-indigo-600 text-white rounded-2xl font-black uppercase text-[10px] tracking-widest shadow-lg shadow-indigo-100 dark:shadow-indigo-900/20 transition-all disabled:opacity-50" disabled={order.deliveryFeeNeedsReview}>Aceitar</button>
+                                                        <button 
+                                                            onClick={() => addToast({
+                                                                title: 'EDITAR PEDIDO',
+                                                                message: 'Controle de itens em desenvolvimento para este módulo.',
+                                                                type: 'INFO'
+                                                            })} 
+                                                            className="w-12 h-12 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-400 dark:text-slate-500 hover:text-indigo-600 dark:hover:text-indigo-400 rounded-2xl flex items-center justify-center transition-all"
+                                                        >
+                                                            <Icons.Edit className="w-5 h-5" />
+                                                        </button>
+                                                        <button onClick={() => rejectOrder(order.id)} className="w-12 h-12 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-rose-400 hover:bg-rose-50 dark:hover:bg-rose-900/40 rounded-2xl flex items-center justify-center transition-all"><Icons.Delete className="w-5 h-5" /></button>
+                                                    </>
+                                                ) : (
+                                                    <button onClick={() => handlePrint(order)} className="flex-1 py-4 bg-indigo-600 text-white rounded-2xl font-black uppercase text-[10px] tracking-widest shadow-lg flex items-center justify-center gap-2"><Icons.Print className="w-4 h-4" /> Cupom</button>
+                                                )}
+                                            </div>
                                         </div>
                                     </div>
                                 ))}

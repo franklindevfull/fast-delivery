@@ -232,7 +232,7 @@ const Login: React.FC = () => {
             console.log('[DEBUG-RESET] Pending Client Data:', pendingLoginData.client);
 
             if (!pendingLoginData.client.id || pendingLoginData.client.id.trim() === '') {
-                throw new Error('ID do cliente não encontrado. Entre em contato com o suporte para corrigir seu cadastro.');
+                throw new Error('Houve uma inconsistência nos dados da sua conta (ID não encontrado). Por favor, entre em contato com o suporte para regularizar seu acesso.');
             }
 
             // Atualiza a senha no backend usando o overrideToken temporário

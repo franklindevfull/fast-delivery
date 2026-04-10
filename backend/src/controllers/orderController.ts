@@ -932,6 +932,53 @@ export const updateOrderStatus = async (req: Request, res: Response) => {
     }
 };
 
+export const updateOrderDeliveryFee = async (req: Request, res: Response) => {
+    const id = req.params.id as string;
+    const { deliveryFee, user } = req.body;
+
+    try {
+        const order = await prisma.$transaction(async (tx: any) => {
+            const oldOrder = await tx.order.findUnique({
+                where: { id }
+            });
+            if (!oldOrder) throw new Error('Pedido não encontrado');
+
+            const oldFee = oldOrder.deliveryFee || 0;
+            const newFee = parseFloat(deliveryFee) || 0;
+            const newTotal = oldOrder.total - oldFee + newFee;
+
+            const updatedOrder = await tx.order.update({
+                where: { id },
+                data: {
+                    deliveryFee: newFee,
+                    deliveryFeeNeedsReview: false,
+                    total: newTotal
+                },
+                include: { items: { include: { product: true } } }
+            });
+
+            if (user) {
+                await tx.auditLog.create({
+                    data: {
+                        userId: user.id || 'SYSTEM',
+                        userName: user.name || 'Sistema',
+                        action: 'UPDATE_DELIVERY_FEE',
+                        details: `Frete do pedido ${id} atualizado. R$ ${oldFee.toFixed(2)} -> R$ ${newFee.toFixed(2)}`
+                    }
+                });
+            }
+
+            return updatedOrder;
+        }, { timeout: 30000 });
+
+        getIO().emit('newOrder', { action: 'refresh', id: order.id, type: order.type });
+        res.json(mapOrderResponse(order));
+
+    } catch (error: any) {
+        res.status(500).json({ error: error.message });
+    }
+};
+
 export const updateOrderItems = async (req: Request, res: Response) => {
     const id = req.params.id as string;
     const { items, user } = req.body;

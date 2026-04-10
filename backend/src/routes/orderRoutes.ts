@@ -10,6 +10,7 @@ router.patch('/:id/status', orderController.updateOrderStatus);
 router.patch('/:id/items/ready', orderController.markItemsReady);
 router.patch('/:id/payment', orderController.updateOrderPaymentMethod);
 router.patch('/:id/service-fee', orderController.updateOrderServiceFee);
+router.patch('/:id/delivery-fee', orderController.updateOrderDeliveryFee);
 router.put('/:id/items', orderController.updateOrderItems);
 
 router.get('/:id/messages', orderController.getOrderMessages);

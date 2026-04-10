@@ -15,8 +15,8 @@ export const saveClient = async (req: Request, res: Response) => {
     }
     let newPassword = undefined;
 
-    // Check if client is new
-    const clientId = data.id && data.id.trim() !== '' ? data.id : undefined;
+    // Check if client is new - Explicitly handle empty strings as undefined to trigger new UUID generation
+    const clientId = (data.id && typeof data.id === 'string' && data.id.trim() !== '') ? data.id : undefined;
 
     // Check if new password is needed (new client or explicit reset)
     if (!clientId) {
