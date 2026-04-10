@@ -250,6 +250,7 @@ export interface Order {
   deliveryDriverId?: string;
   assignedAt?: string;
   deliveryFee?: number;
+  deliveryFeeNeedsReview?: boolean;
   tableNumber?: number;
   waiterId?: string;
   isOriginDigitalMenu?: boolean;

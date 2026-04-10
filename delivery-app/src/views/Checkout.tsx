@@ -46,6 +46,9 @@ const Checkout: React.FC = () => {
     const [couponError, setCouponError] = useState('');
     const [isValidatingCoupon, setIsValidatingCoupon] = useState(false);
     const [copied, setCopied] = useState(false);
+    const [zones, setZones] = useState<any[]>([]);
+    const [deliveryFeeNeedsReview, setDeliveryFeeNeedsReview] = useState(false);
+    const [selectedNeighborhood, setSelectedNeighborhood] = useState('');
 
     const navigate = useNavigate();
 
@@ -71,22 +74,16 @@ const Checkout: React.FC = () => {
                     }
                 }
 
+                // Fetch Zones
+                const z = await api.getDeliveryZones();
+                setZones(z);
+
                 // Fetch Settings & Status
                 const [s, status] = await Promise.all([
                     api.getSettings(),
                     api.getStoreStatus()
                 ]);
 
-                // Robust parsing for 'R$ 10,00', '10.00', '10,00', etc.
-                const rawFee = (s.deliveryFee || '0').toString();
-                const sanitizedFee = rawFee
-                    .replace('R$', '')
-                    .replace(/\./g, '') // Remove thousands separator if any
-                    .replace(',', '.')  // Change decimal comma to dot
-                    .trim();
-
-                const fee = parseFloat(sanitizedFee) || 0;
-                setDeliveryFee(fee);
                 setStoreStatus(status as StoreStatus);
                 setBusinessSettings(s);
 
@@ -96,6 +93,38 @@ const Checkout: React.FC = () => {
         };
         init();
     }, []);
+
+    // Neighborhood matching logic
+    useEffect(() => {
+        let neighborhoodToMatch = '';
+        if (useNewAddress) {
+            neighborhoodToMatch = newAddress.neighborhood;
+        } else if (savedAddress) {
+            // Attempt to extract from savedAddress string (split by comma/last part)
+            const parts = savedAddress.split(',').map(p => p.trim());
+            if (parts.length >= 3) {
+                // Common format: Street, Number, Neighborhood, City...
+                neighborhoodToMatch = parts[2];
+            } else if (parts.length === 2 && parts[1].includes('-')) {
+                // Format: Street, Number - Neighborhood
+                neighborhoodToMatch = parts[1].split('-')[1]?.trim();
+            }
+        }
+
+        if (neighborhoodToMatch) {
+            const match = zones.find(z => z.name.toUpperCase() === neighborhoodToMatch.toUpperCase());
+            if (match) {
+                setDeliveryFee(match.fee);
+                setDeliveryFeeNeedsReview(false);
+                setSelectedNeighborhood(match.name);
+            } else {
+                setDeliveryFeeNeedsReview(true);
+                // Keep current deliveryFee as "pre-estimation" if user selects one
+            }
+        } else {
+            setDeliveryFeeNeedsReview(true);
+        }
+    }, [savedAddress, useNewAddress, newAddress.neighborhood, zones]);
 
     useEffect(() => {
         socket.on('store_status_changed', (newStatus: StoreStatus) => {
@@ -239,6 +268,7 @@ const Checkout: React.FC = () => {
                         })),
                         total: finalTotal,
                         deliveryFee: deliveryFee,
+                        deliveryFeeNeedsReview: deliveryFeeNeedsReview,
                         couponCode: appliedCoupon?.code || null,
                         type: 'OWN_DELIVERY',
                         status: 'PENDING'
@@ -403,6 +433,46 @@ const Checkout: React.FC = () => {
                                 >
                                     <Icons.X className="w-5 h-5" />
                                 </button>
+
+                                </button>
+
+                                {deliveryFeeNeedsReview && (
+                                    <div className="mx-2 mb-6 p-5 bg-amber-50 dark:bg-amber-900/20 border-2 border-amber-200 dark:border-amber-800/50 rounded-[2rem] flex items-start gap-4 animate-pulse-subtle">
+                                        <div className="w-10 h-10 bg-amber-500 rounded-xl flex items-center justify-center shrink-0">
+                                            <Icons.AlertTriangle className="w-5 h-5 text-white" />
+                                        </div>
+                                        <div>
+                                            <h4 className="text-[10px] font-black text-amber-800 dark:text-amber-400 uppercase tracking-widest leading-none mb-1.5">Ajuste de Frete</h4>
+                                            <p className="text-[11px] font-medium text-amber-700 dark:text-amber-500 leading-relaxed uppercase">Não localizamos seu bairro para cálculo automático. O valor será verificado e atualizado pela loja após o pedido.</p>
+                                        </div>
+                                    </div>
+                                )}
+
+                                {deliveryFeeNeedsReview && (
+                                    <div className="mx-2 mb-6 space-y-2">
+                                        <label className="text-[9px] font-black text-slate-400 dark:text-slate-500 uppercase tracking-widest ml-1">Para estimativa, selecione um bairro próximo:</label>
+                                        <div className="relative group">
+                                            <select
+                                                className="w-full p-4 bg-white dark:bg-slate-900 border-2 border-slate-100 dark:border-slate-800 rounded-[1.5rem] outline-none font-black text-[13px] text-slate-700 dark:text-slate-200 appearance-none shadow-sm focus:border-indigo-500 transition-all uppercase"
+                                                onChange={(e) => {
+                                                    const zone = zones.find(z => z.id === e.target.value);
+                                                    if (zone) {
+                                                        setDeliveryFee(zone.fee);
+                                                        setSelectedNeighborhood(zone.name);
+                                                    }
+                                                }}
+                                            >
+                                                <option value="">SELECIONE UM BAIRRO</option>
+                                                {zones.map(z => (
+                                                    <option key={z.id} value={z.id}>{z.name} - R$ {z.fee.toFixed(2)}</option>
+                                                ))}
+                                            </select>
+                                            <div className="absolute right-4 top-1/2 -translate-y-1/2 pointer-events-none text-slate-400">
+                                                <Icons.ArrowRight className="w-4 h-4 rotate-90" />
+                                            </div>
+                                        </div>
+                                    </div>
+                                )}
 
                                 <div className="mb-6 px-2">
                                     <h3 className="text-[10px] font-black text-slate-400 dark:text-slate-500 uppercase tracking-[0.2em]">Editar Endereço</h3>

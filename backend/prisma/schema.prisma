@@ -157,6 +157,7 @@ model Order {
   clientStreet        String?
   couponId            String?
   deliveryFee         Float?
+  deliveryFeeNeedsReview Boolean          @default(false)
   digitalPin          String?
   digitalToken        String?
   discountValue       Float?           @default(0)
@@ -417,6 +418,15 @@ model OrderMessage {
   text      String
   createdAt DateTime @default(now())
   order     Order    @relation(fields: [orderId], references: [id])
+}
+
+model DeliveryZone {
+  id        String   @id @default(uuid())
+  name      String   @unique
+  fee       Float
+  active    Boolean  @default(true)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @default(now()) @updatedAt
 }
 
 enum OrderStatus {

@@ -649,6 +649,33 @@ class APIDBService {
     });
   }
 
+  // Delivery Zones
+  public async getDeliveryZones(): Promise<DeliveryZone[]> {
+    return this.request('/delivery-zones');
+  }
+
+  public async saveDeliveryZone(zone: DeliveryZone): Promise<DeliveryZone> {
+    const isNew = !zone.id || zone.id.startsWith('new-');
+    if (isNew) {
+      const { id, ...data } = zone;
+      return this.request('/delivery-zones', {
+        method: 'POST',
+        body: JSON.stringify(data),
+      });
+    } else {
+      return this.request(`/delivery-zones/${zone.id}`, {
+        method: 'PUT',
+        body: JSON.stringify(zone),
+      });
+    }
+  }
+
+  public async deleteDeliveryZone(id: string): Promise<void> {
+    return this.request(`/delivery-zones/${id}`, {
+      method: 'DELETE',
+    });
+  }
+
   // Removed legacy Thermal Printing API as per project standardization to window.print()
 }
 

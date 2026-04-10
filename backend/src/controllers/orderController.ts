@@ -476,6 +476,7 @@ export const saveOrder = async (req: Request, res: Response) => {
                     paymentStatus: order.paymentStatus !== undefined ? order.paymentStatus : undefined,
                     couponId: validatedCouponId,
                     discountValue: discountValue,
+                    deliveryFeeNeedsReview: order.deliveryFeeNeedsReview !== undefined ? !!order.deliveryFeeNeedsReview : false,
                     items: {
                         deleteMany: {},
                         create: (order.items || []).map((item: any) => ({
@@ -525,6 +526,7 @@ export const saveOrder = async (req: Request, res: Response) => {
                     paymentStatus: order.paymentStatus || 'PENDING',
                     couponId: validatedCouponId,
                     discountValue: discountValue,
+                    deliveryFeeNeedsReview: !!order.deliveryFeeNeedsReview,
                     items: {
                         create: (order.items || []).map((item: any) => ({
                             id: item.uid || item.id,
@@ -741,6 +743,11 @@ export const updateOrderStatus = async (req: Request, res: Response) => {
             const oldStatus = oldOrder?.status;
             const newStatus = status;
 
+            // NEW: Block kitchen sending (PREPARING) if delivery fee needs review
+            if (newStatus === 'PREPARING' && oldOrder.deliveryFeeNeedsReview) {
+                throw new Error('Não é possível enviar para a cozinha: o frete deste pedido precisa ser revisado.');
+            }
+
             // 1. Inventory Sync
             if (newStatus === 'DELIVERED' && oldStatus !== 'DELIVERED') {
                 console.log(`[OrderController] Processing inventory impact (DECREMENT) for order ${id}`);
@@ -785,7 +792,8 @@ export const updateOrderStatus = async (req: Request, res: Response) => {
             const updateData: any = {
                 status: status || oldOrder.status,
                 driverId: resolvedDriverId,
-                paymentMethod: paymentMethod ? paymentMethod.toString().toUpperCase() : undefined
+                paymentMethod: paymentMethod ? paymentMethod.toString().toUpperCase() : undefined,
+                deliveryFeeNeedsReview: req.body.deliveryFeeNeedsReview !== undefined ? !!req.body.deliveryFeeNeedsReview : undefined
             };
 
             // Preserve waiterId if it's not already in updateData and exists in oldOrder

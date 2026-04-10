@@ -1,7 +1,7 @@
 
 import React, { useState, useEffect } from 'react';
 import { db } from '../services/db';
-import { User, Waiter, DeliveryDriver, BusinessSettings } from '../types';
+import { User, Waiter, DeliveryDriver, BusinessSettings, DeliveryZone } from '../types';
 import { Icons } from '../constants';
 import CustomAlert from '../components/CustomAlert';
 import { useTheme } from '../components/ThemeProvider';
@@ -530,6 +530,149 @@ const EntregadoresManagement: React.FC = () => {
     );
 };
 
+// Sub-componente para Gestão de Zonas de Entrega
+const DeliveryZoneManagement: React.FC = () => {
+    const [zones, setZones] = useState<DeliveryZone[]>([]);
+    const [isModalOpen, setIsModalOpen] = useState(false);
+    const [showErrors, setShowErrors] = useState(false);
+    const [editingZone, setEditingZone] = useState<DeliveryZone | null>(null);
+    const [formData, setFormData] = useState({ name: '', fee: 0, active: true });
+    const { addToast } = useToast();
+
+    const refresh = async () => {
+        try {
+            const z = await db.getDeliveryZones();
+            setZones(z);
+        } catch (e) {
+            console.error("Error fetching zones:", e);
+        }
+    };
+    useEffect(() => { refresh(); }, []);
+
+    const handleSave = async (e?: React.FormEvent) => {
+        if (e) e.preventDefault();
+        if (!formData.name.trim()) {
+            setShowErrors(true);
+            addToast({ title: "CAMPOS OBRIGATÓRIOS", message: "O nome do bairro é obrigatório.", type: "DANGER" });
+            return;
+        }
+
+        try {
+            await db.saveDeliveryZone({
+                id: editingZone?.id || `new-${Date.now()}`,
+                ...formData,
+                name: formData.name.toUpperCase()
+            });
+            setIsModalOpen(false);
+            refresh();
+            setFormData({ name: '', fee: 0, active: true });
+            addToast({ title: "SUCESSO", message: "Configuração de frete salva!", type: "SUCCESS" });
+        } catch (error) {
+            addToast({ title: "ERRO", message: "Erro ao salvar zona", type: "DANGER" });
+        }
+    };
+
+    const handleDelete = async (id: string) => {
+        if (window.confirm('Tem certeza que deseja excluir esta zona? Os clientes deste bairro passarão a precisar de revisão manual de frete.')) {
+            try {
+                await db.deleteDeliveryZone(id);
+                refresh();
+                addToast({ title: "SUCESSO", message: "Zona removida com sucesso.", type: "SUCCESS" });
+            } catch (e) {
+                addToast({ title: "ERRO", message: "Não foi possível remover a zona.", type: "DANGER" });
+            }
+        }
+    };
+
+    return (
+        <div className="space-y-6">
+            <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 bg-white dark:bg-slate-900 p-6 sm:p-8 rounded-3xl border border-slate-100 dark:border-slate-800 shadow-sm transition-colors">
+                <div>
+                    <h3 className="text-xl font-black text-slate-800 dark:text-white uppercase tracking-tighter">Zonas de Entrega</h3>
+                    <p className="text-[10px] text-slate-400 dark:text-slate-500 font-bold uppercase tracking-widest leading-relaxed">Gerencie bairros e valores de frete dinâmicos</p>
+                </div>
+                <button
+                    onClick={() => { setEditingZone(null); setFormData({ name: '', fee: 0, active: true }); setIsModalOpen(true); }}
+                    className="w-full sm:w-auto bg-blue-600 hover:bg-blue-700 text-white px-5 py-2.5 rounded-xl font-bold text-sm transition-all flex items-center justify-center gap-2 shadow-lg shadow-blue-500/20 active:scale-95 shrink-0"
+                >
+                    <Icons.Plus size={18} strokeWidth={3} />
+                    Nova Zona
+                </button>
+            </div>
+
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-6">
+                {zones.map(z => (
+                    <div key={z.id} className={`bg-white dark:bg-slate-900 p-5 rounded-3xl border border-slate-100 dark:border-slate-800 flex flex-col group hover:shadow-xl transition-all ${!z.active ? 'opacity-50 grayscale' : ''}`}>
+                        <div className="flex items-center justify-between mb-4">
+                            <div className="flex items-center gap-3">
+                                <div className="w-10 h-10 bg-blue-50 dark:bg-blue-900/20 text-blue-600 rounded-xl flex items-center justify-center"><Icons.MapPin size={20} /></div>
+                                <div>
+                                    <h4 className="font-black text-slate-800 dark:text-white uppercase text-xs tracking-tight">{z.name}</h4>
+                                    <p className="text-sm font-black text-blue-600">R$ {z.fee.toFixed(2)}</p>
+                                </div>
+                            </div>
+                            <div className="flex gap-2">
+                                <button onClick={() => { setEditingZone(z); setFormData({ name: z.name, fee: z.fee, active: z.active }); setIsModalOpen(true); }} className="p-2.5 bg-slate-50 dark:bg-slate-800 text-blue-600 rounded-xl hover:bg-blue-600 hover:text-white transition-all"><Icons.Edit size={16} /></button>
+                                <button onClick={() => handleDelete(z.id)} className="p-2.5 bg-slate-50 dark:bg-slate-800 text-red-600 rounded-xl hover:bg-red-600 hover:text-white transition-all"><Icons.Delete size={16} /></button>
+                            </div>
+                        </div>
+                    </div>
+                ))}
+            </div>
+
+            {isModalOpen && (
+                <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-sm animate-in fade-in duration-200">
+                    <div className="bg-white dark:bg-slate-900 rounded-[2rem] shadow-2xl w-full max-w-md border border-white/20 dark:border-slate-800 overflow-hidden animate-in zoom-in duration-300">
+                        <div className="p-6 border-b border-slate-50 dark:border-slate-800 flex justify-between items-center">
+                            <div>
+                                <h4 className="text-xl font-black text-slate-800 dark:text-white uppercase tracking-tighter">{editingZone ? 'Editar Zona' : 'Nova Zona'}</h4>
+                                <p className="text-[10px] text-slate-400 font-bold uppercase tracking-widest">Defina o valor base para o bairro</p>
+                            </div>
+                            <div className="flex items-center gap-3">
+                                <button 
+                                    onClick={() => handleSave()}
+                                    className="w-10 h-10 bg-emerald-500 hover:bg-emerald-600 text-white rounded-full flex items-center justify-center shadow-lg shadow-emerald-500/20 transition-all active:scale-95"
+                                    title="Salvar"
+                                >
+                                    <Icons.Check size={20} strokeWidth={3} />
+                                </button>
+                                <button onClick={() => setIsModalOpen(false)} className="p-2 text-slate-400 hover:text-red-500 transition-colors"><Icons.X size={20} /></button>
+                            </div>
+                        </div>
+                        <form onSubmit={handleSave} className="p-6 space-y-6">
+                            <div className="space-y-1">
+                                <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">Bairro / Região (Exato)</label>
+                                <input 
+                                    type="text" 
+                                    value={formData.name} 
+                                    onChange={e => setFormData({ ...formData, name: e.target.value.toUpperCase() })} 
+                                    className="w-full p-4 bg-slate-50 dark:bg-slate-800 rounded-2xl outline-none font-black text-sm border-2 border-transparent focus:border-blue-500 transition-all uppercase text-slate-900 dark:text-white placeholder:text-slate-500/40" 
+                                    placeholder="CENTRO" 
+                                />
+                            </div>
+                            <div className="space-y-1">
+                                <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">Taxa de Entrega (R$)</label>
+                                <div className="relative">
+                                    <span className="absolute left-4 top-1/2 -translate-y-1/2 font-black text-slate-400 text-sm">R$</span>
+                                    <input 
+                                        type="number" 
+                                        step="0.01" 
+                                        value={formData.fee} 
+                                        onChange={e => setFormData({ ...formData, fee: parseFloat(e.target.value) || 0 })} 
+                                        className="w-full p-4 pl-12 bg-slate-50 dark:bg-slate-800 rounded-2xl outline-none font-black text-sm border-2 border-transparent focus:border-blue-500 transition-all text-slate-900 dark:text-white placeholder:text-slate-500/40" 
+                                        placeholder="8.00" 
+                                    />
+                                </div>
+                            </div>
+                        </form>
+                    </div>
+                </div>
+            )}
+        </div>
+    );
+};
+
+
 // Sub-componente para Gestão de Usuários
 const UserManagementInternal: React.FC = () => {
     const [users, setUsers] = useState<User[]>([]);
@@ -913,7 +1056,7 @@ interface SettingsProps {
 }
 
 const Settings: React.FC<SettingsProps> = ({ settings, setSettings, onReset }) => {
-    const [activeSubTab, setActiveSubTab] = useState<'EMPRESA' | 'HORARIOS' | 'PAGAMENTOS' | 'FISCAL' | 'GARCONS' | 'FROTAS' | 'USUARIOS' | 'QR_CODES' | 'AUDITORIA' | 'AVANCADO' | 'APARENCIA'>('EMPRESA');
+    const [activeSubTab, setActiveSubTab] = useState<'EMPRESA' | 'HORARIOS' | 'PAGAMENTOS' | 'FISCAL' | 'GARCONS' | 'FROTAS' | 'ZONAS' | 'USUARIOS' | 'QR_CODES' | 'AUDITORIA' | 'AVANCADO' | 'APARENCIA'>('EMPRESA');
     const { addToast } = useToast();
     const [storeStatus, setStoreStatus] = useState<{ status: string, is_manually_closed: boolean } | null>(null);
     const { theme, setTheme } = useTheme();
@@ -953,9 +1096,10 @@ const Settings: React.FC<SettingsProps> = ({ settings, setSettings, onReset }) =
         { id: 'HORARIOS', label: 'Horários', icon: Icons.Clock },
         { id: 'PAGAMENTOS', label: 'Pagamentos', icon: Icons.DollarSign },
         { id: 'FISCAL', label: 'Fiscal (NFC-e)', icon: Icons.View },
-        { id: 'GARCONS', label: 'Garçons', icon: Icons.CRM },
+        { id: 'GARCONS', label: 'Garçons', icon: Icons.User },
         { id: 'FROTAS', label: 'Entregadores', icon: Icons.Logistics },
-        { id: 'USUARIOS', label: 'Usuários', icon: Icons.POS },
+        { id: 'ZONAS', label: 'Zonas de Entrega', icon: Icons.MapPin },
+        { id: 'USUARIOS', label: 'Usuários', icon: Icons.Lock },
         { id: 'QR_CODES', label: 'QR Codes', icon: Icons.QrCode },
         { id: 'AUDITORIA', label: 'Auditoria', icon: Icons.View },
         { id: 'AVANCADO', label: 'Avançado', icon: Icons.Settings },
@@ -1008,10 +1152,6 @@ const Settings: React.FC<SettingsProps> = ({ settings, setSettings, onReset }) =
                                 <div className="space-y-2">
                                     <h4 className="text-[10px] font-black text-slate-400 dark:text-slate-500 uppercase tracking-widest ml-1">Quantidade de Mesas</h4>
                                     <input type="number" className="w-full p-4 bg-slate-50 dark:bg-slate-800 border-none rounded-2xl focus:ring-4 focus:ring-blue-50 dark:focus:ring-blue-900/20 transition-all font-bold text-sm text-slate-800 dark:text-white" value={settings.tableCount} onChange={e => setSettings({ ...settings, tableCount: parseInt(e.target.value) || 0 })} />
-                                </div>
-                                <div className="space-y-2">
-                                    <h4 className="text-[10px] font-black text-slate-400 dark:text-slate-500 uppercase tracking-widest ml-1">Taxa de Entrega (Ex: R$ 8,00)</h4>
-                                    <input type="text" className="w-full p-4 bg-slate-50 dark:bg-slate-800 border-none rounded-2xl focus:ring-4 focus:ring-blue-50 dark:focus:ring-blue-900/20 transition-all font-bold text-sm text-slate-800 dark:text-white" value={settings.deliveryFee} onChange={e => setSettings({ ...settings, deliveryFee: e.target.value })} />
                                 </div>
                                 <div className="space-y-2">
                                     <h4 className="text-[10px] font-black text-slate-400 dark:text-slate-500 uppercase tracking-widest ml-1">Tempo de Rejeição Automática (Minutos)</h4>
@@ -1417,6 +1557,7 @@ const Settings: React.FC<SettingsProps> = ({ settings, setSettings, onReset }) =
 
                 {activeSubTab === 'GARCONS' && <WaiterManagement />}
                 {activeSubTab === 'FROTAS' && <EntregadoresManagement />}
+                {activeSubTab === 'ZONAS' && <DeliveryZoneManagement />}
                 {activeSubTab === 'USUARIOS' && <UserManagementInternal />}
                 {activeSubTab === 'QR_CODES' && <QRCodes />}
                 {activeSubTab === 'AUDITORIA' && <div className="bg-white dark:bg-slate-900 p-8 rounded-[3rem] border border-slate-100 dark:border-slate-800 transition-colors"><AuditLogs /></div>}

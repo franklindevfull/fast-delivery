@@ -159,6 +159,18 @@ const OrderHistory: React.FC = () => {
                                 </span>
                             </div>
 
+                            {order.deliveryFeeNeedsReview && (
+                                <div className="mt-4 p-4 bg-amber-50 dark:bg-amber-900/20 border border-amber-100 dark:border-amber-800 rounded-2xl flex items-start gap-4 animate-pulse-subtle">
+                                    <div className="w-10 h-10 bg-amber-500 rounded-xl flex items-center justify-center shrink-0">
+                                        <Icons.AlertTriangle className="w-5 h-5 text-white" />
+                                    </div>
+                                    <div>
+                                        <h4 className="text-[10px] font-black text-amber-800 dark:text-amber-400 uppercase tracking-widest leading-none mb-1.5">Aguardando Revisão de Frete</h4>
+                                        <p className="text-[11px] font-medium text-amber-700 dark:text-amber-500 leading-relaxed uppercase">O estabelecimento está confirmando o valor da entrega para seu bairro. Por favor, aguarde a atualização do valor para realizar o pagamento.</p>
+                                    </div>
+                                </div>
+                            )}
+
                             <div className="py-4 border-y border-dashed border-slate-100 dark:border-slate-700 space-y-3">
                                 {order.items.map((item: any, idx) => (
                                     <div key={idx} className="flex justify-between items-center text-sm">
@@ -171,8 +183,8 @@ const OrderHistory: React.FC = () => {
                                 ))}
                             </div>
 
-                            {/* Pix Payment Instructions for Pending Orders */}
-                            {order.status === 'PENDING' && order.paymentMethod === 'PIX' && businessSettings?.pixKey && (
+                            {/* Pix Payment Instructions - Restricted if needs review */}
+                            {order.status === 'PENDING' && order.paymentMethod === 'PIX' && businessSettings?.pixKey && !order.deliveryFeeNeedsReview && (
                                 <div className="mt-4 p-4 bg-indigo-50 dark:bg-indigo-900/20 border border-indigo-100 dark:border-indigo-800 rounded-2xl animate-in slide-in-from-top-2 duration-500">
                                     <div className="flex items-center justify-between mb-3">
                                         <div className="flex items-center gap-2 text-indigo-600 dark:text-indigo-400">

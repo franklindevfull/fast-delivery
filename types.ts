@@ -130,6 +130,15 @@ export interface Waiter {
   active: boolean;
 }
 
+export interface DeliveryZone {
+  id: string;
+  name: string;
+  fee: number;
+  active: boolean;
+  createdAt?: string;
+  updatedAt?: string;
+}
+
 export interface Client {
   id: string;
   name: string;
@@ -275,6 +284,7 @@ export interface Order {
   deliveryDriverId?: string;
   assignedAt?: string;
   deliveryFee?: number;
+  deliveryFeeNeedsReview?: boolean;
   tableNumber?: number;
   waiterId?: string;
   isOriginDigitalMenu?: boolean;

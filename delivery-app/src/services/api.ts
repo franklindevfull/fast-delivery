@@ -98,6 +98,12 @@ class DeliveryApiService {
         return this.request<StoreStatus>(`/public/store-status?t=${Date.now()}`);
     }
 
+    async getDeliveryZones() {
+        return this.request<any[]>('/delivery-zones', {
+            method: 'GET'
+        });
+    }
+
     // Orders
     async createOrder(orderData: any) {
         return this.request('/orders', {

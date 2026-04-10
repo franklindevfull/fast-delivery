@@ -113,6 +113,8 @@ const POS: React.FC<POSProps> = ({ currentUser }) => {
   } | null>(null);
   const [showCatalog, setShowCatalog] = useState(false);
   const [productSearchTerm, setProductSearchTerm] = useState('');
+  const [deliveryZones, setDeliveryZones] = useState<any[]>([]);
+
 
   const showAlert = (title: string, message: string, type: 'INFO' | 'DANGER' | 'SUCCESS' = 'INFO') => {
     setAlertConfig({ isOpen: true, title, message, onConfirm: () => setAlertConfig(prev => ({ ...prev, isOpen: false })), onCancel: undefined, type });
@@ -164,19 +166,21 @@ const POS: React.FC<POSProps> = ({ currentUser }) => {
 
 
   const refreshAllData = async () => {
-    const [p, o, s, c, ts, cs, recs] = await Promise.all([
+    const [p, o, s, c, ts, cs, recs, dz] = await Promise.all([
       db.getProducts(),
       db.getOrders(),
       db.getSettings(),
       db.getClients(),
       db.getTableSessions(),
       db.getActiveCashSession(),
-      db.getReceivables()
+      db.getReceivables(),
+      db.getDeliveryZones()
     ]);
     setProducts(p);
     setOrders(o);
     setBusinessSettings(s);
     setClients(c);
+    setDeliveryZones(dz || []);
     setPendingTables(ts.filter(t => t.status === 'billing'));
     setPendingCounterOrders(o.filter(order => order.type === SaleType.COUNTER && order.status === OrderStatus.READY));
     setPendingReceivables(recs?.filter((r: any) => r.status === 'PROCESSING') || []);
@@ -1296,6 +1300,17 @@ const POS: React.FC<POSProps> = ({ currentUser }) => {
                             setClientSearch(c.name);
                             setShowClientList(false);
                             setIsClientModalOpen(false);
+
+                            // Automatic delivery fee matching
+                            if (saleType === SaleType.OWN_DELIVERY && c.neighborhood) {
+                                const matchedZone = deliveryZones.find(z => 
+                                    z.active && z.name.trim().toUpperCase() === c.neighborhood?.trim().toUpperCase()
+                                );
+                                if (matchedZone) {
+                                    setManualDeliveryFee(matchedZone.fee);
+                                    addToast({ title: "FRETE AUTOMÁTICO", message: `Bairro "${matchedZone.name}" identificado. Taxa: R$ ${matchedZone.fee.toFixed(2)}`, type: "SUCCESS" });
+                                }
+                            }
                           }}
                           className="w-full text-left p-4 bg-slate-50 dark:bg-slate-800 hover:bg-blue-50 dark:hover:bg-blue-900/40 border border-slate-100 dark:border-slate-700 hover:border-blue-200 dark:hover:border-blue-500 rounded-2xl transition-all group"
                         >
@@ -1764,17 +1779,43 @@ const POS: React.FC<POSProps> = ({ currentUser }) => {
 
           <div className="p-4 lg:p-6 xl:p-8 bg-slate-50 dark:bg-slate-900 border-t border-slate-100 dark:border-slate-800 shrink-0">
             {saleType === SaleType.OWN_DELIVERY && (
-              <div className="flex justify-between items-center mb-3 bg-blue-50/50 dark:bg-blue-900/20 p-3 rounded-2xl border border-blue-100/50 dark:border-blue-500/20">
-                <span className="text-[10px] font-black text-blue-600/60 dark:text-blue-400/60 uppercase tracking-widest">Taxa de Entrega</span>
-                <div className="flex items-center gap-2">
-                  <span className="text-xs font-black text-blue-600/40 dark:text-blue-400/40">R$</span>
-                  <input
-                    type="number"
-                    step="0.01"
-                    value={deliveryFeeValue}
-                    onChange={(e) => setManualDeliveryFee(parseFloat(e.target.value) || 0)}
-                    className="w-20 bg-transparent border-b border-blue-200 dark:border-blue-800 focus:border-blue-600 dark:focus:border-blue-400 outline-none text-right font-black text-blue-600 dark:text-blue-400 text-sm"
-                  />
+              <div className="space-y-3 mb-4 bg-blue-50/50 dark:bg-blue-900/20 p-4 rounded-3xl border border-blue-100/50 dark:border-blue-500/20">
+                <div className="space-y-1">
+                  <label className="text-[10px] font-black text-blue-600/60 dark:text-blue-400/60 uppercase tracking-widest ml-1">Zona / Bairro de Entrega</label>
+                  <select 
+                    className="w-full p-3 bg-white dark:bg-slate-900 rounded-xl border border-blue-100 dark:border-blue-800 text-[11px] font-black uppercase outline-none focus:ring-2 focus:ring-blue-500 transition-all dark:text-white"
+                    onChange={(e) => {
+                      const zoneId = e.target.value;
+                      if (!zoneId) return;
+                      const zone = deliveryZones.find(z => z.id === zoneId);
+                      if (zone) {
+                        setManualDeliveryFee(zone.fee);
+                        addToast({ title: "ZONA SELECIONADA", message: `Taxa para ${zone.name} aplicada: R$ ${zone.fee.toFixed(2)}`, type: "SUCCESS" });
+                      }
+                    }}
+                    value={deliveryZones.find(z => z.fee === manualDeliveryFee)?.id || ""}
+                  >
+                    <option value="">-- Selecionar Bairro --</option>
+                    {deliveryZones.filter(z => z.active).map(zone => (
+                      <option key={zone.id} value={zone.id}>
+                        {zone.name} (R$ {zone.fee.toFixed(2)})
+                      </option>
+                    ))}
+                  </select>
+                </div>
+
+                <div className="flex justify-between items-center bg-white/50 dark:bg-slate-900/50 p-2.5 rounded-xl border border-blue-100/30 dark:border-blue-800/30">
+                  <span className="text-[10px] font-black text-blue-600/60 dark:text-blue-400/60 uppercase tracking-widest">Valor do Frete</span>
+                  <div className="flex items-center gap-2">
+                    <span className="text-xs font-black text-blue-600/40 dark:text-blue-400/40">R$</span>
+                    <input
+                      type="number"
+                      step="0.01"
+                      value={deliveryFeeValue}
+                      onChange={(e) => setManualDeliveryFee(parseFloat(e.target.value) || 0)}
+                      className="w-20 bg-transparent border-b border-blue-200 dark:border-blue-800 focus:border-blue-600 dark:focus:border-blue-400 outline-none text-right font-black text-blue-600 dark:text-blue-400 text-sm"
+                    />
+                  </div>
                 </div>
               </div>
             )}
