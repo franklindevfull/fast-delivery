@@ -1,4 +1,4 @@
-import { Ticket, Check, Bell, Fingerprint, Zap, MoreHorizontal, Copy } from 'lucide-react';
+import { Ticket, Check, Bell, Fingerprint, Zap, MoreHorizontal, Copy, AlertTriangle, ArrowRight } from 'lucide-react';
 
 export const Icons = {
     Smartphone: ({ className }: { className?: string }) => (
@@ -132,4 +132,6 @@ export const Icons = {
     Zap: (props: any) => <Zap {...props} />,
     MoreHorizontal: (props: any) => <MoreHorizontal {...props} />,
     Copy: (props: any) => <Copy {...props} />,
+    AlertTriangle: (props: any) => <AlertTriangle {...props} />,
+    ArrowRight: (props: any) => <ArrowRight {...props} />,
 };

@@ -761,14 +761,14 @@ const Checkout: React.FC = () => {
                             )}
                         </span>
                     </button>
-                    <style>{`
+                    <style dangerouslySetInnerHTML={{ __html: `
                         @keyframes shimmer {
                             100% { transform: translateX(100%); }
                         }
-                    `}</style>
+                    ` }} />
                 </div>
             </form>
-        </div >
+        </div>
     );
 };
 
