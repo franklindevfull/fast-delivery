@@ -539,18 +539,20 @@ const Tables: React.FC<TablesProps> = ({ currentUser }) => {
 
   // Lógica de agrupamento para exibição em cupons de mesa
   const getGroupedItems = (items: OrderItem[]) => {
-    const grouped: Record<string, { product: Product | undefined, quantity: number, price: number, allReady: boolean }> = {};
+    const grouped: Record<string, { product: Product | undefined, quantity: number, price: number, allReady: boolean, observations?: string }> = {};
     items.forEach(item => {
-      if (!grouped[item.productId]) {
-        grouped[item.productId] = {
+      const gKey = item.productId + (item.observations || '');
+      if (!grouped[gKey]) {
+        grouped[gKey] = {
           product: products.find(p => p.id === item.productId),
           quantity: 0,
           price: item.price,
-          allReady: true
+          allReady: true,
+          observations: item.observations
         };
       }
-      grouped[item.productId].quantity += (item.quantity || 1);
-      if (!item.isReady) grouped[item.productId].allReady = false;
+      grouped[gKey].quantity += (item.quantity || 1);
+      if (!item.isReady) grouped[gKey].allReady = false;
     });
     return Object.values(grouped);
   };
@@ -907,9 +909,16 @@ const Tables: React.FC<TablesProps> = ({ currentUser }) => {
                     <div className="bg-slate-50 dark:bg-slate-800/50 rounded-[2rem] p-8 border border-slate-100 dark:border-slate-700 space-y-3 font-receipt shadow-inner">
                       {getGroupedItems(getSessForTable(selectedTable)?.items || []).map((it, idx) => (
                         <div key={idx} className="flex justify-between border-b border-dashed border-slate-200 dark:border-slate-700 pb-2">
-                          <div className="flex items-center flex-1 pr-4">
-                            <span className="text-slate-300 dark:text-slate-600 font-bold text-[13px] mr-3 font-mono">{it.quantity}x</span>
-                            <p className="text-[13px] font-bold text-slate-800 dark:text-slate-200 uppercase tracking-tight line-clamp-1">{it.product?.name}</p>
+                          <div className="flex flex-col flex-1 pr-4 min-w-0">
+                            <div className="flex items-center">
+                              <span className="text-slate-300 dark:text-slate-600 font-bold text-[13px] mr-3 font-mono">{it.quantity}x</span>
+                              <p className="text-[13px] font-bold text-slate-800 dark:text-slate-200 uppercase tracking-tight line-clamp-1">{it.product?.name}</p>
+                            </div>
+                            {it.observations && (
+                              <p className="text-[10px] text-slate-400 dark:text-slate-500 font-medium uppercase mt-0.5 ml-8 italic leading-tight">
+                                {it.observations}
+                              </p>
+                            )}
                           </div>
                           <span className="font-black text-[13px] dark:text-slate-100">{formatCurrency(it.quantity * it.price)}</span>
                         </div>
@@ -1075,9 +1084,16 @@ const Tables: React.FC<TablesProps> = ({ currentUser }) => {
               </div>
               <div className="mb-2 border-t border-dashed border-black pt-1">
                 {getGroupedItems((isConfirmingBilling ? printingPreBill : getSessForTable(selectedTable!))?.items || []).map((it, i) => (
-                  <div key={i} className="flex justify-between font-bold uppercase py-0.5 text-[9px]">
-                    <span>{it.quantity}x {it.product?.name.substring(0, 15)}</span>
-                  <span>{formatCurrency(it.quantity * it.price)}</span>
+                  <div key={i} className="flex flex-col border-b border-dotted border-black/10 py-1">
+                    <div className="flex justify-between font-bold uppercase text-[9px]">
+                      <span>{it.quantity}x {it.product?.name.substring(0, 20)}</span>
+                      <span>{formatCurrency(it.quantity * it.price)}</span>
+                    </div>
+                    {it.observations && (
+                      <p className="text-[7px] font-bold uppercase mt-0.5 ml-2 italic">
+                        * {it.observations}
+                      </p>
+                    )}
                   </div>
                 ))}
               </div>
@@ -1152,6 +1168,11 @@ const Tables: React.FC<TablesProps> = ({ currentUser }) => {
                         <p className={`text-[11px] font-black uppercase truncate ${it.allReady ? 'text-slate-800 dark:text-white' : 'text-slate-400'}`}>
                           {it.quantity}x {it.product?.name.toUpperCase()}
                         </p>
+                        {it.observations && (
+                          <p className="text-[9px] font-bold text-slate-400 dark:text-slate-500 uppercase mt-0.5 italic leading-tight">
+                            {it.observations}
+                          </p>
+                        )}
                       </div>
                       <div className="flex items-center gap-3">
                         {it.allReady && <span className="text-emerald-500 font-black text-xs">✓</span>}

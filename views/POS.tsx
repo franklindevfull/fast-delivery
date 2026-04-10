@@ -877,17 +877,19 @@ const POS: React.FC<POSProps> = ({ currentUser }) => {
   };
 
   const groupedCart = useMemo(() => {
-    const grouped: Record<string, { product: Product | undefined, quantity: number, price: number }> = {};
+    const grouped: Record<string, { product: Product | undefined, quantity: number, price: number, observations?: string }> = {};
     if (Array.isArray(cart)) {
       cart.forEach(item => {
-        if (!grouped[item.productId]) {
-          grouped[item.productId] = {
+        const gKey = item.productId + (item.observations || '');
+        if (!grouped[gKey]) {
+          grouped[gKey] = {
             product: products.find(p => p.id === item.productId),
             quantity: 0,
-            price: item.price
+            price: item.price,
+            observations: item.observations
           };
         }
-        grouped[item.productId].quantity += item.quantity;
+        grouped[gKey].quantity += item.quantity;
       });
     }
     return Object.entries(grouped);
@@ -1696,8 +1698,13 @@ const POS: React.FC<POSProps> = ({ currentUser }) => {
           <div className="flex-1 p-4 lg:p-6 xl:p-8 space-y-3 xl:space-y-4 font-receipt text-[11px]">
             {groupedCart.length > 0 ? groupedCart.map(([id, data]) => (
               <div key={id} className={`flex justify-between items-center border-b border-dotted dark:border-slate-700 pb-2 ${(currentOrderStatus === OrderStatus.PREPARING || currentOrderStatus === OrderStatus.PARTIALLY_READY) ? 'animate-moderate-blink text-orange-600 dark:text-orange-400' : ''}`}>
-                <div className="flex-1">
-                  <p className="font-black uppercase text-slate-800 dark:text-white">{data.product?.name || '...'}</p>
+                <div className="flex-1 min-w-0">
+                  <p className="font-black uppercase text-slate-800 dark:text-white truncate">{data.product?.name || '...'}</p>
+                  {data.observations && (
+                    <p className="text-[9px] font-bold text-slate-400 dark:text-slate-500 uppercase leading-tight italic mb-1">
+                      {data.observations}
+                    </p>
+                  )}
                   <p className="text-slate-400 dark:text-slate-500 font-bold">{data.quantity} x {formatCurrency(data.price, false)}</p>
                 </div>
                 {!isReceivingFiado && (
