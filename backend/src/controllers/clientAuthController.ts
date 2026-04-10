@@ -126,6 +126,11 @@ export const loginClient = async (req: ExpressRequest, res: ExpressResponse) => 
 export const updateClientProfile = async (req: ExpressRequest, res: ExpressResponse) => {
     try {
         const id = req.params.id as string;
+        const { 
+            name, email, phone, password, currentPassword, 
+            addresses, cep, street, addressNumber, 
+            neighborhood, city, state, complement, avatarUrl 
+        } = req.body;
 
         if (!id || id.trim() === '') {
             return res.status(400).json({ error: 'ID do cliente é obrigatório e não pode ser vazio.' });
