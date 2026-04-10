@@ -3,7 +3,7 @@ import { useCart } from '../CartContext';
 import { api } from '../services/api';
 import { socket } from '../services/socket';
 import { Icons } from '../constants';
-import { formatAddress, formatCurrency } from '../services/formatUtils';
+import { formatAddress, formatCurrency, normalizeNeighborhood } from '../services/formatUtils';
 import CustomAlert from './CustomAlert';
 import type { StoreStatus } from '../types';
 
@@ -27,6 +27,9 @@ const CheckoutTab: React.FC<{ onOrderPlaced: () => void }> = ({ onOrderPlaced })
         cep: '', street: '', number: '', complement: '', neighborhood: '', tag: 'Casa'
     });
     const [deliveryFee, setDeliveryFee] = useState(0);
+    const [deliveryFeeNeedsReview, setDeliveryFeeNeedsReview] = useState(false);
+    const [zones, setZones] = useState<any[]>([]);
+    const [selectedNeighborhood, setSelectedNeighborhood] = useState('');
     const [isLoading, setIsLoading] = useState(false);
     const [isFetchingCep, setIsFetchingCep] = useState(false);
     const [storeStatus, setStoreStatus] = useState<StoreStatus | null>(null);
@@ -50,29 +53,52 @@ const CheckoutTab: React.FC<{ onOrderPlaced: () => void }> = ({ onOrderPlaced })
                     if (initialAddress) setSavedAddress(initialAddress);
                 }
 
-                const [s, status] = await Promise.all([
+                const [s, status, zonesData] = await Promise.all([
                     api.getSettings(),
-                    api.getStoreStatus()
+                    api.getStoreStatus(),
+                    api.getDeliveryZones()
                 ]);
                 
-                // Robust parsing for 'R$ 10,00', '10.00', '10,00', etc.
-                const rawFee = (s.deliveryFee || '0').toString();
-                const sanitizedFee = rawFee
-                    .replace('R$', '')
-                    .replace(/\./g, '') // Remove thousands separator if any
-                    .replace(',', '.')  // Change decimal comma to dot
-                    .trim();
-                
-                const fee = parseFloat(sanitizedFee) || 0;
-                setDeliveryFee(fee);
+                // We no longer set deliveryFee from settings here.
+                // It will be calculated by the matching useEffect.
                 setStoreStatus(status as StoreStatus);
-
+                setZones(zonesData);
             } catch (err) {
                 console.error('Error fetching settings or client:', err);
             }
         };
         init();
     }, []);
+
+    useEffect(() => {
+        let neighborhoodToMatch = '';
+        if (useNewAddress) {
+            neighborhoodToMatch = newAddress.neighborhood;
+        } else if (savedAddress) {
+            // Tentativa de extrair bairro do formato "Rua, Num, Compl - Bairro, Cidade, UF"
+            const parts = savedAddress.split(' - ');
+            if (parts.length > 1) {
+                const subParts = parts[1].split(', ');
+                neighborhoodToMatch = subParts[0];
+            }
+        }
+
+        if (neighborhoodToMatch && zones.length > 0) {
+            const normalizedToMatch = normalizeNeighborhood(neighborhoodToMatch);
+            const match = zones.find(z => normalizeNeighborhood(z.name) === normalizedToMatch);
+            if (match) {
+                setDeliveryFee(match.fee);
+                setDeliveryFeeNeedsReview(false);
+                setSelectedNeighborhood(match.name);
+            } else {
+                setDeliveryFee(0);
+                setDeliveryFeeNeedsReview(true);
+            }
+        } else {
+            setDeliveryFee(0);
+            setDeliveryFeeNeedsReview(true);
+        }
+    }, [savedAddress, useNewAddress, newAddress.neighborhood, zones]);
 
     useEffect(() => {
         socket.on('store_status_changed', (newStatus: StoreStatus) => {
@@ -204,6 +230,7 @@ const CheckoutTab: React.FC<{ onOrderPlaced: () => void }> = ({ onOrderPlaced })
                         items: processedItems,
                         total: finalTotal,
                         deliveryFee: deliveryFee,
+                        deliveryFeeNeedsReview: deliveryFeeNeedsReview,
                         couponCode: appliedCoupon?.code || null,
                         type: 'OWN_DELIVERY',
                         status: 'PENDING'
@@ -292,8 +319,17 @@ const CheckoutTab: React.FC<{ onOrderPlaced: () => void }> = ({ onOrderPlaced })
                             </div>
                             <div className="flex justify-between items-center text-slate-500 dark:text-slate-400">
                                 <span className="text-[10px] font-black uppercase tracking-widest">Taxa de Entrega</span>
-                                <span className="text-xs font-bold">{formatCurrency(deliveryFee)}</span>
+                                <span className={`text-xs font-bold ${deliveryFeeNeedsReview ? 'text-amber-500' : ''}`}>
+                                    {deliveryFeeNeedsReview ? 'A ajustar' : formatCurrency(deliveryFee)}
+                                </span>
                             </div>
+                            {deliveryFeeNeedsReview && (
+                                <div className="bg-amber-50 dark:bg-amber-900/20 p-3 rounded-xl border border-amber-100 dark:border-amber-800">
+                                    <p className="text-[9px] font-bold text-amber-700 dark:text-amber-400 leading-tight">
+                                        📍 O frete para este bairro será calculado após o envio do pedido.
+                                    </p>
+                                </div>
+                            )}
                             {appliedCoupon && (
                                 <div className="flex justify-between items-center text-emerald-600 dark:text-emerald-400">
                                     <span className="text-[10px] font-black uppercase tracking-widest flex items-center gap-1 font-bold">

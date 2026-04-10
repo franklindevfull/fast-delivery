@@ -41,3 +41,16 @@ export const formatCurrency = (value: number, showSymbol = true): string => {
 
   return showSymbol ? `R$ ${formatted}` : formatted;
 };
+
+/**
+ * Normalizes a neighborhood name for comparison purposes.
+ * Removes accents, spaces, and converts to lowercase.
+ */
+export const normalizeNeighborhood = (name: string): string => {
+    if (!name) return '';
+    return name
+        .toLowerCase()
+        .normalize('NFD')
+        .replace(/[\u0300-\u036f]/g, "")
+        .replace(/\s+/g, '');
+};

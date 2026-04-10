@@ -4,7 +4,7 @@ import { useCart } from '../CartContext';
 import { api } from '../services/api';
 import { socket } from '../services/socket';
 import { Icons } from '../constants';
-import { formatAddress } from '../services/formatUtils';
+import { formatAddress, normalizeNeighborhood } from '../services/formatUtils';
 import CustomAlert from '../components/CustomAlert';
 import type { StoreStatus } from '../types';
 
@@ -112,14 +112,15 @@ const Checkout: React.FC = () => {
         }
 
         if (neighborhoodToMatch) {
-            const match = zones.find(z => z.name.toUpperCase() === neighborhoodToMatch.toUpperCase());
+            const normalizedToMatch = normalizeNeighborhood(neighborhoodToMatch);
+            const match = zones.find(z => normalizeNeighborhood(z.name) === normalizedToMatch);
             if (match) {
                 setDeliveryFee(match.fee);
                 setDeliveryFeeNeedsReview(false);
                 setSelectedNeighborhood(match.name);
             } else {
                 setDeliveryFeeNeedsReview(true);
-                // Keep current deliveryFee as "pre-estimation" if user selects one
+                // We no longer set a fallback fee here. deliveryFee remains 0.
             }
         } else {
             setDeliveryFeeNeedsReview(true);
@@ -366,10 +367,19 @@ const Checkout: React.FC = () => {
                                 <span className="text-[10px] font-black uppercase tracking-widest">Subtotal</span>
                                 <span className="text-xs font-bold">R$ {total.toFixed(2)}</span>
                             </div>
-                            <div className="flex justify-between items-center text-slate-500 dark:text-slate-400">
+                             <div className="flex justify-between items-center text-slate-500 dark:text-slate-400">
                                 <span className="text-[10px] font-black uppercase tracking-widest">Taxa de Entrega</span>
-                                <span className="text-xs font-bold">{deliveryFee.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}</span>
+                                <span className={`text-xs font-bold ${deliveryFeeNeedsReview ? 'text-amber-500' : ''}`}>
+                                    {deliveryFeeNeedsReview ? 'A ajustar' : deliveryFee.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}
+                                </span>
                             </div>
+                            {deliveryFeeNeedsReview && (
+                                <div className="bg-amber-50 dark:bg-amber-900/20 p-3 rounded-xl border border-amber-100 dark:border-amber-800 transition-colors">
+                                    <p className="text-[9px] font-bold text-amber-700 dark:text-amber-400 leading-tight">
+                                        📍 O frete será calculado pela loja após o envio do pedido.
+                                    </p>
+                                </div>
+                            )}
                             {appliedCoupon && (
                                 <div className="flex justify-between items-center text-emerald-600 dark:text-emerald-400">
                                     <span className="text-[10px] font-black uppercase tracking-widest flex items-center gap-1">
@@ -432,8 +442,6 @@ const Checkout: React.FC = () => {
                                     className="absolute top-6 right-6 w-10 h-10 bg-white dark:bg-slate-800 rounded-full flex items-center justify-center text-slate-400 dark:text-slate-500 hover:text-rose-500 transition-all shadow-sm border border-slate-100 dark:border-slate-700 active:scale-95"
                                 >
                                     <Icons.X className="w-5 h-5" />
-                                </button>
-
                                 </button>
 
                                 {deliveryFeeNeedsReview && (
