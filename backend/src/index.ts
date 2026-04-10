@@ -41,6 +41,7 @@ import campaignRoutes from './routes/campaignRoutes.js';
 import { initSocket } from './socket.js';
 import { startOrderTimeoutService } from './services/orderTimeoutService.js';
 import { loadSettingsToCache } from './storeStatusCache.js';
+import { warmupDatabase } from './prisma.js';
 import http from 'http';
 
 const app = express();
@@ -114,12 +115,21 @@ app.use('/api/campaigns', campaignRoutes);
 // app.use('/api/print', printRoutes);
 
 // Basic health check
-app.get('/health', (req, res) => {
-    res.json({ status: 'ok' });
+app.get('/health', async (req, res) => {
+    try {
+        await prisma.$queryRaw`SELECT 1`;
+        res.json({ status: 'ok', database: 'connected' });
+    } catch (e) {
+        res.status(503).json({ status: 'error', database: 'disconnected' });
+    }
 });
 
-server.listen(port, () => {
+server.listen(port, async () => {
     console.log(`Server running on port ${port}`);
+    
+    // Aguarda o banco de dados estar pronto antes de iniciar serviços críticos
+    await warmupDatabase();
+    
     loadSettingsToCache();
     startOrderTimeoutService();
     autoCloseCashSessions(); // Run on startup to catch missed closures
