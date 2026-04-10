@@ -226,13 +226,15 @@ const Dashboard: React.FC = () => {
               </div>
               <div className="grid grid-cols-2 sm:grid-cols-4 gap-6">
                 {paymentData.map((item, idx) => (
-                  <div key={idx} className="p-6 rounded-[2.5rem] bg-slate-50 dark:bg-slate-800/50 border border-slate-100 dark:border-slate-800 flex flex-col items-center text-center">
-                    <div className={`w-12 h-12 rounded-2xl mb-4 flex items-center justify-center`} style={{ backgroundColor: `${COLORS_PAYMENT[idx % COLORS_PAYMENT.length]}20`, color: COLORS_PAYMENT[idx % COLORS_PAYMENT.length] }}>
-                      <Icons.CreditCard size={24} />
+                  <div key={idx} className="p-6 rounded-[2.5rem] bg-slate-50 dark:bg-slate-800/50 border border-slate-100 dark:border-slate-800 flex flex-col items-center justify-center text-center transition-all hover:scale-[1.02] min-h-[200px]">
+                    <div className={`w-14 h-14 rounded-2xl mb-4 flex items-center justify-center shadow-sm`} style={{ backgroundColor: `${COLORS_PAYMENT[idx % COLORS_PAYMENT.length]}15`, color: COLORS_PAYMENT[idx % COLORS_PAYMENT.length], border: `1px solid ${COLORS_PAYMENT[idx % COLORS_PAYMENT.length]}30` }}>
+                      <Icons.CreditCard size={28} />
                     </div>
-                    <p className="text-[10px] font-black text-slate-400 dark:text-slate-500 uppercase tracking-widest">{item.name}</p>
-                    <p className="text-xl font-black text-slate-800 dark:text-white tracking-tighter mt-1">{formatCurrency(item.value)}</p>
-                    <div className="w-full h-1.5 bg-slate-200 dark:bg-slate-700 rounded-full mt-4 overflow-hidden">
+                    <div>
+                      <p className="text-[10px] font-black text-slate-400 dark:text-slate-500 uppercase tracking-[0.2em] mb-1">{item.name}</p>
+                      <p className="text-xl font-black text-slate-800 dark:text-white tracking-tighter leading-none">{formatCurrency(item.value)}</p>
+                    </div>
+                    <div className="w-full h-1.5 bg-slate-200 dark:bg-slate-700 rounded-full mt-6 overflow-hidden max-w-[80px]">
                       <div 
                         className="h-full rounded-full" 
                         style={{ 
@@ -252,18 +254,18 @@ const Dashboard: React.FC = () => {
                 <h3 className="text-slate-800 dark:text-white font-black uppercase tracking-tight text-lg">Canais de Vendas</h3>
                 <p className="text-[10px] text-slate-400 dark:text-slate-500 font-bold uppercase tracking-widest">Frequência mensal por canal</p>
               </div>
-              <div className="grid grid-cols-1 sm:grid-cols-3 gap-6">
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
                 {deliveryData.map((item, idx) => (
-                  <div key={idx} className="p-6 rounded-[2.5rem] bg-slate-50 dark:bg-slate-800/50 border border-slate-100 dark:border-slate-800 flex items-center gap-6">
-                    <div className="w-16 h-16 rounded-3xl flex items-center justify-center shrink-0" style={{ backgroundColor: `${item.color}20`, color: item.color }}>
-                      {item.name === 'Delivery' && <Icons.Truck size={32} />}
-                      {item.name === 'Balcão' && <Icons.User size={32} />}
-                      {item.name === 'Mesa' && <Icons.Coffee size={32} />}
+                  <div key={idx} className="p-8 rounded-[2.5rem] bg-slate-50 dark:bg-slate-800/50 border border-slate-100 dark:border-slate-800 flex flex-col items-center justify-center text-center transition-all hover:scale-[1.02] min-h-[220px]">
+                    <div className="w-20 h-20 rounded-[2.5rem] flex items-center justify-center shrink-0 mb-6 shadow-sm" style={{ backgroundColor: `${item.color}15`, color: item.color, border: `1px solid ${item.color}30` }}>
+                      {item.name === 'Delivery' && <Icons.Truck size={40} />}
+                      {item.name === 'Balcão' && <Icons.User size={40} />}
+                      {item.name === 'Mesa' && <Icons.Coffee size={40} />}
                     </div>
-                    <div>
-                      <p className="text-xs font-black text-slate-400 dark:text-slate-500 uppercase tracking-widest">{item.name}</p>
-                      <p className="text-3xl font-black text-slate-800 dark:text-white tracking-tighter">{item.value}</p>
-                      <p className="text-[10px] font-bold text-slate-400 dark:text-slate-500 uppercase tracking-widest">Pedidos</p>
+                    <div className="space-y-1">
+                      <p className="text-[11px] font-black text-slate-400 dark:text-slate-500 uppercase tracking-[0.2em]">{item.name}</p>
+                      <p className="text-4xl font-black text-slate-800 dark:text-white tracking-tighter leading-none">{item.value}</p>
+                      <p className="text-[10px] font-bold text-slate-400 dark:text-slate-500 uppercase tracking-widest opacity-60">Pedidos</p>
                     </div>
                   </div>
                 ))}
@@ -437,13 +439,13 @@ const MetricCard: React.FC<{ icon: React.ReactNode, label: string, value: string
   const isCurrency = value.includes('R$');
 
   return (
-    <div className="bg-white dark:bg-slate-900 p-6 sm:p-8 xl:p-6 2xl:p-8 rounded-[2.5rem] shadow-sm border border-slate-100 dark:border-slate-800 transition-all hover:scale-[1.02] hover:shadow-md dark:hover:border-slate-700 flex flex-col items-center justify-center text-center min-h-[180px]">
-      <div className={`w-12 h-12 sm:w-16 sm:h-16 xl:w-12 xl:h-12 2xl:w-16 2xl:h-16 rounded-2xl sm:rounded-3xl flex items-center justify-center shrink-0 mb-4 sm:mb-6 ${colors[color] || colors.blue}`}>
+    <div className="bg-white dark:bg-slate-900 p-6 sm:p-8 xl:p-6 2xl:p-8 rounded-[2.5rem] shadow-sm border border-slate-100 dark:border-slate-800 transition-all hover:scale-[1.02] hover:shadow-md dark:hover:border-slate-700 flex flex-col items-center justify-center text-center min-h-[200px]">
+      <div className={`w-14 h-14 sm:w-16 sm:h-16 xl:w-14 xl:h-14 2xl:w-16 2xl:h-16 rounded-2xl sm:rounded-[2rem] flex items-center justify-center shrink-0 mb-4 sm:mb-6 shadow-sm border border-current/10 ${colors[color] || colors.blue}`}>
         {React.cloneElement(icon as React.ReactElement, { size: 28 })}
       </div>
       <div className="w-full">
         <p className="text-[10px] sm:text-xs text-slate-400 dark:text-slate-500 font-bold uppercase tracking-[0.2em] mb-2 truncate">{label}</p>
-        <h3 className={`font-black text-slate-800 dark:text-white uppercase tracking-tighter whitespace-nowrap ${
+        <h3 className={`font-black text-slate-800 dark:text-white uppercase tracking-tighter whitespace-nowrap leading-none ${
           isCurrency 
             ? 'text-lg sm:text-2xl xl:text-lg 2xl:text-3xl' 
             : 'text-2xl sm:text-4xl xl:text-2xl 2xl:text-4xl'
