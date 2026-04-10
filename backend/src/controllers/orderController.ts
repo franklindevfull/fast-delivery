@@ -29,10 +29,10 @@ export const getAllOrders = async (req: Request, res: Response) => {
             lte: new Date(new Date(endDate as string).setHours(23, 59, 59, 999)).toISOString()
         };
     } else {
-        const sevenDaysAgo = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000);
+        const threeDaysAgo = new Date(Date.now() - 3 * 24 * 60 * 60 * 1000);
         whereClause.OR = [
             { status: { notIn: ['DELIVERED', 'CANCELLED'] } },
-            { createdAt: { gte: sevenDaysAgo.toISOString() } }
+            { createdAt: { gte: threeDaysAgo.toISOString() } }
         ];
     }
 

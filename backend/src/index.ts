@@ -72,8 +72,8 @@ app.use(cors({
     methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
     allowedHeaders: ['Content-Type', 'Authorization', 'Accept', 'Origin', 'X-Requested-With'],
 }));
-app.use(express.json({ limit: '50mb' }));
-app.use(express.urlencoded({ limit: '50mb', extended: true }));
+app.use(express.json({ limit: '5mb' }));
+app.use(express.urlencoded({ limit: '5mb', extended: true }));
 
 // Routes
 app.use('/api/auth', authRoutes);
@@ -111,8 +111,8 @@ server.listen(port, () => {
     startOrderTimeoutService();
     autoCloseCashSessions(); // Run on startup to catch missed closures
 
-    // Auto closure cron job (every minute)
-    cron.schedule('* * * * *', async () => {
+    // Auto closure cron job (every 10 minutes)
+    cron.schedule('*/10 * * * *', async () => {
         await autoCloseCashSessions();
     });
 });

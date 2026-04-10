@@ -183,4 +183,4 @@ setInterval(() => {
         lastCalculatedStatus = current.status;
         getIO().emit('store_status_changed', current);
     }
-}, 30000); // Check every 30 seconds for better precision
+}, 60000); // Check every 60 seconds for better precision

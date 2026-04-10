@@ -126,5 +126,5 @@ export const startOrderTimeoutService = () => {
         } catch (error: any) {
             console.error('CRITICAL Error in Order Timeout Service:', error.message);
         }
-    }, 15000);
+    }, 60000);
 };
