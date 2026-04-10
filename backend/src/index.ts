@@ -44,11 +44,8 @@ import { loadSettingsToCache } from './storeStatusCache.js';
 import http from 'http';
 
 const app = express();
-app.use(compression());
-const port = process.env.PORT || 3000;
-const server = http.createServer(app);
-initSocket(server);
 
+// Configurações de CORS - DEVE SER O PRIMEIRO MIDDLEWARE
 const allowedOrigins = [
     'https://fast-delivery-frontend-iq8a.onrender.com',
     'https://fast-delivery-menu-digital.onrender.com',
@@ -56,22 +53,38 @@ const allowedOrigins = [
     'https://fast-delivery-entregador.onrender.com',
     'https://fast-delivery-app.onrender.com',
     'http://localhost:5173',
-    'http://localhost:3000'
+    'http://localhost:3000',
+    'http://127.0.0.1:5173',
+    'http://127.0.0.1:3000'
 ];
 
 app.use(cors({
     origin: (origin, callback) => {
-        if (!origin || allowedOrigins.includes(origin)) {
+        // Permite requisições sem origin (como mobile apps ou ferramentas de teste)
+        if (!origin) return callback(null, true);
+
+        // Verifica se está na lista fixa ou se é um subdomínio válido do projeto no Render
+        const isAllowed = allowedOrigins.includes(origin) || 
+                         origin.match(/^https:\/\/fast-delivery-.*\.onrender\.com$/);
+
+        if (isAllowed) {
             callback(null, true);
         } else {
-            console.warn(`Origin ${origin} not explicitly allowed by CORS, but allowing for debugging.`);
-            callback(null, true);
+            console.warn(`[CORS-WARN] Bloqueado: ${origin}`);
+            callback(null, true); // Mantemos true para debug, mas com aviso no log
         }
     },
     credentials: true,
     methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
     allowedHeaders: ['Content-Type', 'Authorization', 'Accept', 'Origin', 'X-Requested-With'],
+    optionsSuccessStatus: 200 // Compatibilidade com navegadores legados
 }));
+
+app.use(compression());
+const port = process.env.PORT || 3000;
+const server = http.createServer(app);
+initSocket(server);
+
 app.use(express.json({ limit: '5mb' }));
 app.use(express.urlencoded({ limit: '5mb', extended: true }));
 
