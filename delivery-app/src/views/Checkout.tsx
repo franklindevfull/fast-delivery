@@ -641,7 +641,7 @@ const Checkout: React.FC = () => {
                                         </>
                                     ) : (
                                         <>
-                                            <Icons.Copy size={14} />
+                                            <Icons.Copy className="w-3.5 h-3.5" />
                                             Copiar
                                         </>
                                     )}
@@ -653,7 +653,7 @@ const Checkout: React.FC = () => {
                         <div className="p-5 bg-rose-50 dark:bg-rose-950/20 border border-rose-100 dark:border-rose-900/50 rounded-3xl animate-in shake duration-500 transition-all">
                             <div className="flex items-center gap-3 mb-2">
                                 <div className="p-2 bg-rose-500 rounded-xl text-white">
-                                    <Icons.Info size={18} />
+                                    <Icons.Info className="w-[18px] h-[18px]" />
                                 </div>
                                 <span className="text-[10px] font-black text-rose-800 dark:text-rose-400 uppercase tracking-widest">Atenção: Chave Pix não encontrada</span>
                             </div>

@@ -188,9 +188,9 @@ const OrderHistory: React.FC = () => {
                                             className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg transition-all font-black uppercase text-[8px] tracking-widest ${copiedId === order.id ? 'bg-emerald-500 text-white' : 'bg-white dark:bg-slate-700 text-indigo-600 dark:text-indigo-400 shadow-sm'}`}
                                         >
                                             {copiedId === order.id ? (
-                                                <><Icons.Check size={10} /> Copiado</>
+                                                <><Icons.Check className="w-2.5 h-2.5" /> Copiado</>
                                             ) : (
-                                                <><Icons.Copy size={10} /> Copiar Chave</>
+                                                <><Icons.Copy className="w-2.5 h-2.5" /> Copiar Chave</>
                                             )}
                                         </button>
                                     </div>
