@@ -48,8 +48,6 @@ const Checkout: React.FC = () => {
     const [copied, setCopied] = useState(false);
     const [zones, setZones] = useState<any[]>([]);
     const [deliveryFeeNeedsReview, setDeliveryFeeNeedsReview] = useState(false);
-    const [selectedNeighborhood, setSelectedNeighborhood] = useState('');
-
     const navigate = useNavigate();
 
     useEffect(() => {
@@ -117,7 +115,6 @@ const Checkout: React.FC = () => {
             if (match) {
                 setDeliveryFee(match.fee);
                 setDeliveryFeeNeedsReview(false);
-                setSelectedNeighborhood(match.name);
             } else {
                 setDeliveryFeeNeedsReview(true);
                 // We no longer set a fallback fee here. deliveryFee remains 0.
@@ -466,7 +463,6 @@ const Checkout: React.FC = () => {
                                                     const zone = zones.find(z => z.id === e.target.value);
                                                     if (zone) {
                                                         setDeliveryFee(zone.fee);
-                                                        setSelectedNeighborhood(zone.name);
                                                     }
                                                 }}
                                             >

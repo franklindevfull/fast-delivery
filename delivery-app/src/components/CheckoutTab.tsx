@@ -29,7 +29,6 @@ const CheckoutTab: React.FC<{ onOrderPlaced: () => void }> = ({ onOrderPlaced })
     const [deliveryFee, setDeliveryFee] = useState(0);
     const [deliveryFeeNeedsReview, setDeliveryFeeNeedsReview] = useState(false);
     const [zones, setZones] = useState<any[]>([]);
-    const [selectedNeighborhood, setSelectedNeighborhood] = useState('');
     const [isLoading, setIsLoading] = useState(false);
     const [isFetchingCep, setIsFetchingCep] = useState(false);
     const [storeStatus, setStoreStatus] = useState<StoreStatus | null>(null);
@@ -53,7 +52,7 @@ const CheckoutTab: React.FC<{ onOrderPlaced: () => void }> = ({ onOrderPlaced })
                     if (initialAddress) setSavedAddress(initialAddress);
                 }
 
-                const [s, status, zonesData] = await Promise.all([
+                const [, status, zonesData] = await Promise.all([
                     api.getSettings(),
                     api.getStoreStatus(),
                     api.getDeliveryZones()
@@ -89,7 +88,6 @@ const CheckoutTab: React.FC<{ onOrderPlaced: () => void }> = ({ onOrderPlaced })
             if (match) {
                 setDeliveryFee(match.fee);
                 setDeliveryFeeNeedsReview(false);
-                setSelectedNeighborhood(match.name);
             } else {
                 setDeliveryFee(0);
                 setDeliveryFeeNeedsReview(true);
