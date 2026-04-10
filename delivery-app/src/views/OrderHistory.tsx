@@ -59,7 +59,7 @@ const OrderHistory: React.FC = () => {
             }
         };
 
-        const handleOrderUpdate = (data?: any) => {
+        const handleOrderUpdate = () => {
             fetchData();
         };
 
