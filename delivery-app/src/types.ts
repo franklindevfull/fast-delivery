@@ -107,6 +107,16 @@ export interface BusinessSettings {
   printerType?: string;
   pizzaPriceRule?: 'HIGHEST' | 'AVERAGE';
   pizzaNfeRule?: 'OBSERVATION' | 'FRACTIONED';
+  paymentMethods?: {
+    CASH: boolean;
+    DEBIT: boolean;
+    CREDIT: boolean;
+    MEAL_VOUCHER: boolean;
+    FOOD_VOUCHER: boolean;
+    PIX: boolean;
+    CREDIARIO: boolean;
+  };
+  pixKey?: string;
 }
 
 export interface Coupon {

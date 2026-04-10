@@ -349,6 +349,8 @@ model BusinessSettings {
   notificationTermsTemplate String?
   pizzaPriceRule       String  @default("HIGHEST")
   pizzaNfeRule         String  @default("OBSERVATION")
+  paymentMethods       Json?
+  pixKey               String?
 }
 
 model ChatMessage {

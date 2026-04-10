@@ -913,7 +913,7 @@ interface SettingsProps {
 }
 
 const Settings: React.FC<SettingsProps> = ({ settings, setSettings, onReset }) => {
-    const [activeSubTab, setActiveSubTab] = useState<'EMPRESA' | 'HORARIOS' | 'FISCAL' | 'GARCONS' | 'FROTAS' | 'USUARIOS' | 'QR_CODES' | 'AUDITORIA' | 'AVANCADO' | 'APARENCIA'>('EMPRESA');
+    const [activeSubTab, setActiveSubTab] = useState<'EMPRESA' | 'HORARIOS' | 'PAGAMENTOS' | 'FISCAL' | 'GARCONS' | 'FROTAS' | 'USUARIOS' | 'QR_CODES' | 'AUDITORIA' | 'AVANCADO' | 'APARENCIA'>('EMPRESA');
     const { addToast } = useToast();
     const [storeStatus, setStoreStatus] = useState<{ status: string, is_manually_closed: boolean } | null>(null);
     const { theme, setTheme } = useTheme();
@@ -951,6 +951,7 @@ const Settings: React.FC<SettingsProps> = ({ settings, setSettings, onReset }) =
     const menuItems = [
         { id: 'EMPRESA', label: 'Empresa', icon: Icons.Dashboard },
         { id: 'HORARIOS', label: 'Horários', icon: Icons.Clock },
+        { id: 'PAGAMENTOS', label: 'Pagamentos', icon: Icons.DollarSign },
         { id: 'FISCAL', label: 'Fiscal (NFC-e)', icon: Icons.View },
         { id: 'GARCONS', label: 'Garçons', icon: Icons.CRM },
         { id: 'FROTAS', label: 'Entregadores', icon: Icons.Logistics },
@@ -1284,6 +1285,75 @@ const Settings: React.FC<SettingsProps> = ({ settings, setSettings, onReset }) =
                 )}
 
                 {activeSubTab === 'HORARIOS' && <OperatingHoursSettings settings={settings} setSettings={setSettings} onSave={handleSaveSettings} />}
+
+                {activeSubTab === 'PAGAMENTOS' && (
+                    <div className="bg-white dark:bg-slate-900 p-6 sm:p-10 rounded-3xl sm:rounded-[3rem] shadow-sm border border-slate-100 dark:border-slate-800 max-w-4xl animate-in fade-in transition-colors">
+                        <div className="mb-6 sm:mb-10">
+                            <h3 className="text-xl sm:text-2xl font-black text-slate-800 dark:text-white uppercase tracking-tighter">Formas de Pagamento</h3>
+                            <p className="text-[10px] text-slate-400 dark:text-slate-500 font-bold uppercase tracking-widest leading-relaxed">Gerencie quais formas de pagamento estarão disponíveis no PDV e no Delivery</p>
+                        </div>
+                        <form onSubmit={handleSaveSettings} className="space-y-8">
+                            <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
+                                {[
+                                    { id: 'CASH', label: 'Dinheiro', icon: Icons.DollarSign },
+                                    { id: 'DEBIT', label: 'Cartão de Débito', icon: Icons.CreditCard },
+                                    { id: 'CREDIT', label: 'Cartão de Crédito', icon: Icons.CreditCard },
+                                    { id: 'PIX', label: 'PIX', icon: Icons.Zap },
+                                    { id: 'MEAL_VOUCHER', label: 'Vale Refeição', icon: Icons.Coffee },
+                                    { id: 'FOOD_VOUCHER', label: 'Vale Alimentação', icon: Icons.ShoppingCart },
+                                    { id: 'CREDIARIO', label: 'Crediário', icon: Icons.BadgeDollarSign },
+                                ].map((method) => (
+                                    <div key={method.id} className="p-5 bg-slate-50 dark:bg-slate-800 rounded-3xl border border-slate-100 dark:border-slate-700 flex items-center justify-between gap-4">
+                                        <div className="flex items-center gap-3">
+                                            <div className="p-2 bg-white dark:bg-slate-900 rounded-xl text-blue-600 dark:text-blue-400">
+                                                <method.icon size={18} />
+                                            </div>
+                                            <span className="text-xs font-black text-slate-800 dark:text-white uppercase tracking-tight">{method.label}</span>
+                                        </div>
+                                        <button
+                                            type="button"
+                                            className={`w-12 h-6 rounded-full transition-all relative ${settings.paymentMethods?.[method.id as keyof typeof settings.paymentMethods] !== false ? 'bg-emerald-500' : 'bg-slate-200 dark:bg-slate-700'}`}
+                                            onClick={() => {
+                                                const currentMethods = settings.paymentMethods || {
+                                                    CASH: true, DEBIT: true, CREDIT: true, MEAL_VOUCHER: true, FOOD_VOUCHER: true, PIX: true, CREDIARIO: true
+                                                };
+                                                setSettings({
+                                                    ...settings,
+                                                    paymentMethods: {
+                                                        ...currentMethods,
+                                                        [method.id]: !currentMethods[method.id as keyof typeof currentMethods]
+                                                    }
+                                                });
+                                            }}
+                                        >
+                                            <div className={`absolute top-0.5 w-5 h-5 rounded-full bg-white transition-all ${settings.paymentMethods?.[method.id as keyof typeof settings.paymentMethods] !== false ? 'left-6.5' : 'left-0.5'}`}></div>
+                                        </button>
+                                    </div>
+                                ))}
+                            </div>
+
+                            <div className="pt-8 border-t border-slate-100 dark:border-slate-800 space-y-4">
+                                <div className="flex items-center gap-3">
+                                    <Icons.Zap size={20} className="text-blue-600 dark:text-blue-400" />
+                                    <h4 className="text-sm font-black text-slate-800 dark:text-white uppercase tracking-tighter">Configuração de Recebimento PIX</h4>
+                                </div>
+                                <div className="space-y-2">
+                                    <label className="text-[10px] font-black text-slate-400 dark:text-slate-500 uppercase tracking-widest ml-1">Sua Chave PIX (E-mail, CPF, CNPJ ou Aleatória)</label>
+                                    <input 
+                                        type="text" 
+                                        className="w-full p-4 bg-slate-50 dark:bg-slate-800 border-none rounded-2xl focus:ring-4 focus:ring-blue-50 dark:focus:ring-blue-900/20 transition-all font-bold text-sm text-slate-800 dark:text-white" 
+                                        value={settings.pixKey || ''} 
+                                        onChange={e => setSettings({ ...settings, pixKey: e.target.value })} 
+                                        placeholder="Digite sua chave PIX aqui..."
+                                    />
+                                    <p className="text-[9px] text-slate-400 dark:text-slate-500 font-bold uppercase tracking-widest ml-1">Esta chave será exibida para o cliente no App Delivery ao selecionar PIX.</p>
+                                </div>
+                            </div>
+
+                            <button type="submit" className="w-full md:w-auto bg-blue-600 text-white px-12 py-5 rounded-2xl font-black uppercase text-xs tracking-widest hover:bg-blue-700 transition-all shadow-2xl shadow-blue-100">Salvar Configurações de Pagamento</button>
+                        </form>
+                    </div>
+                )}
 
                 {activeSubTab === 'FISCAL' && (
                     <div className="bg-white dark:bg-slate-900 p-6 sm:p-10 rounded-3xl sm:rounded-[3rem] shadow-sm border border-slate-100 dark:border-slate-800 max-w-4xl animate-in fade-in transition-colors">

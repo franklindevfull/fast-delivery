@@ -20,7 +20,8 @@ interface AlertState {
 
 const Checkout: React.FC = () => {
     const { items, total, clearCart } = useCart();
-    const [paymentMethod, setPaymentMethod] = useState<'PIX' | 'CREDIT' | 'DEBIT' | 'CASH'>('PIX');
+    const [paymentMethod, setPaymentMethod] = useState<'PIX' | 'CREDIT' | 'DEBIT' | 'CASH' | 'MEAL_VOUCHER' | 'FOOD_VOUCHER' | 'CREDIARIO'>('PIX');
+    const [businessSettings, setBusinessSettings] = useState<any>(null);
 
     // Address UI State
     const [savedAddress, setSavedAddress] = useState('');
@@ -86,6 +87,7 @@ const Checkout: React.FC = () => {
                 const fee = parseFloat(sanitizedFee) || 0;
                 setDeliveryFee(fee);
                 setStoreStatus(status as StoreStatus);
+                setBusinessSettings(s);
 
             } catch (err) {
                 console.error('Error fetching settings or client:', err);
@@ -592,15 +594,51 @@ const Checkout: React.FC = () => {
                             onChange={e => setPaymentMethod(e.target.value as any)}
                             className="w-full p-5 bg-white dark:bg-slate-900 border border-slate-100 dark:border-slate-800 rounded-[2rem] font-black text-xs uppercase tracking-widest text-slate-600 dark:text-slate-300 shadow-sm appearance-none focus:ring-4 focus:ring-indigo-50 dark:focus:ring-indigo-900/20 focus:border-indigo-100 dark:focus:border-indigo-800 transition-all cursor-pointer outline-none"
                         >
-                            <option value="PIX">PIX (Rápido)</option>
-                            <option value="CREDIT">Cartão de Crédito</option>
-                            <option value="DEBIT">Cartão de Débito</option>
-                            <option value="CASH">Dinheiro</option>
+                            {[
+                                { value: 'PIX', label: 'PIX (Rápido)', key: 'PIX' },
+                                { value: 'CREDIT', label: 'Cartão de Crédito', key: 'CREDIT' },
+                                { value: 'DEBIT', label: 'Cartão de Débito', key: 'DEBIT' },
+                                { value: 'CASH', label: 'Dinheiro', key: 'CASH' },
+                                { value: 'MEAL_VOUCHER', label: 'Vale Refeição', key: 'MEAL_VOUCHER' },
+                                { value: 'FOOD_VOUCHER', label: 'Vale Alimentação', key: 'FOOD_VOUCHER' },
+                                { value: 'CREDIARIO', label: 'Crediário', key: 'CREDIARIO' },
+                            ].filter(opt => {
+                                if (!businessSettings?.paymentMethods) return true;
+                                return (businessSettings.paymentMethods as any)[opt.key] !== false;
+                            }).map(opt => (
+                                <option key={opt.value} value={opt.value}>{opt.label}</option>
+                            ))}
                         </select>
                         <div className="absolute right-6 top-1/2 -translate-y-1/2 pointer-events-none text-slate-400 dark:text-slate-500">
                             <Icons.ChevronDown className="w-5 h-5" />
                         </div>
                     </div>
+
+                    {paymentMethod === 'PIX' && businessSettings?.pixKey && (
+                        <div className="p-5 bg-blue-50 dark:bg-blue-900/20 border border-blue-100 dark:border-blue-800 rounded-3xl animate-in zoom-in-95 duration-300 transition-all">
+                            <div className="flex items-center gap-3 mb-3">
+                                <div className="p-2 bg-blue-500 rounded-xl text-white">
+                                    <Icons.Zap size={18} />
+                                </div>
+                                <span className="text-[10px] font-black text-blue-800 dark:text-blue-400 uppercase tracking-widest">Chave PIX Sugerida</span>
+                            </div>
+                            <div className="flex items-center justify-between bg-white dark:bg-slate-900 p-4 rounded-2xl border border-blue-100 dark:border-blue-800">
+                                <span className="text-sm font-black text-slate-800 dark:text-white break-all">{businessSettings.pixKey}</span>
+                                <button
+                                    type="button"
+                                    onClick={() => {
+                                        navigator.clipboard.writeText(businessSettings.pixKey);
+                                        // Optional: Add toast or feedback
+                                    }}
+                                    className="p-2 text-blue-600 dark:text-blue-400 hover:bg-blue-50 dark:hover:bg-blue-900/30 rounded-lg transition-all"
+                                    title="Copiar Chave"
+                                >
+                                    <Icons.MoreHorizontal size={18} />
+                                </button>
+                            </div>
+                            <p className="mt-3 text-[9px] font-bold text-blue-400 uppercase tracking-widest leading-relaxed">Pague agora para agilizar seu pedido. O comprovante será solicitado após a confirmação.</p>
+                        </div>
+                    )}
                 </div>
 
                 <div className="pt-6 pb-8">

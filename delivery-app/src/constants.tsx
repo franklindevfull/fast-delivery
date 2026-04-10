@@ -1,4 +1,4 @@
-import { Ticket, Check, Bell, Fingerprint } from 'lucide-react';
+import { Ticket, Check, Bell, Fingerprint, Zap, MoreHorizontal } from 'lucide-react';
 
 export const Icons = {
     Smartphone: ({ className }: { className?: string }) => (
@@ -129,4 +129,6 @@ export const Icons = {
     Ticket: (props: any) => <Ticket {...props} />,
     Check: (props: any) => <Check {...props} />,
     Bell: (props: any) => <Bell {...props} />,
+    Zap: (props: any) => <Zap {...props} />,
+    MoreHorizontal: (props: any) => <MoreHorizontal {...props} />,
 };

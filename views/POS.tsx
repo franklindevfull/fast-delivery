@@ -952,9 +952,9 @@ const POS: React.FC<POSProps> = ({ currentUser }) => {
       return showAlert("Método Duplicado", "Este método de pagamento já foi adicionado. Remova-o para ajustar o valor ou escolha outro.", "DANGER");
     }
 
-    // Validation for DINHEIRO, PIX, CRÉDITO, DÉBITO
+    // Validation for DINHEIRO, PIX, CRÉDITO, DÉBITO, REFEIÇÃO, ALIMENTAÇÃO
     let received: number | undefined = undefined;
-    if (['DINHEIRO', 'PIX', 'CRÉDITO', 'DÉBITO'].includes(paymentMethod)) {
+    if (['DINHEIRO', 'PIX', 'CRÉDITO', 'DÉBITO', 'REFEIÇÃO', 'ALIMENTAÇÃO'].includes(paymentMethod)) {
       received = parseFloat(paymentData.receivedAmount.replace(',', '.')) || 0;
       if (received <= 0) {
         return showAlert("Valor Recebido", `Para pagamentos em ${paymentMethod}, é obrigatório informar o valor recebido pelo cliente.`, "DANGER");
@@ -978,7 +978,7 @@ const POS: React.FC<POSProps> = ({ currentUser }) => {
       }
     }
 
-    const finalAmount = (['DINHEIRO', 'PIX', 'CRÉDITO', 'DÉBITO'].includes(paymentMethod) && received && received < amount) ? received : amount;
+    const finalAmount = (['DINHEIRO', 'PIX', 'CRÉDITO', 'DÉBITO', 'REFEIÇÃO', 'ALIMENTAÇÃO'].includes(paymentMethod) && received && received < amount) ? received : amount;
 
     setPayments(prev => [...prev, {
       method: paymentMethod,
@@ -1060,12 +1060,17 @@ const POS: React.FC<POSProps> = ({ currentUser }) => {
 
                   <div className="grid grid-cols-3 md:grid-cols-5 gap-1.5">
                     {[
-                      { id: 'DINHEIRO', label: 'Dinheiro', icon: Icons.Dashboard },
-                      { id: 'PIX', label: 'PIX', icon: Icons.QrCode },
-                      { id: 'CRÉDITO', label: 'Crédito', icon: Icons.CreditCard },
-                      { id: 'DÉBITO', label: 'Débito', icon: Icons.CreditCard },
-                      { id: 'FIADO', label: 'Crediário', icon: Icons.User }
-                    ].map(method => (
+                      { id: 'DINHEIRO', key: 'CASH', label: 'Dinheiro', icon: Icons.DollarSign },
+                      { id: 'PIX', key: 'PIX', label: 'PIX', icon: Icons.Zap },
+                      { id: 'CRÉDITO', key: 'CREDIT', label: 'Crédito', icon: Icons.CreditCard },
+                      { id: 'DÉBITO', key: 'DEBIT', label: 'Débito', icon: Icons.CreditCard },
+                      { id: 'REFEIÇÃO', key: 'MEAL_VOUCHER', label: 'Refeição', icon: Icons.Coffee },
+                      { id: 'ALIMENTAÇÃO', key: 'FOOD_VOUCHER', label: 'Alimentação', icon: Icons.ShoppingCart },
+                      { id: 'FIADO', key: 'CREDIARIO', label: 'Crediário', icon: Icons.BadgeDollarSign }
+                    ].filter(m => {
+                      if (!businessSettings?.paymentMethods) return true;
+                      return (businessSettings.paymentMethods as any)[m.key] !== false;
+                    }).map(method => (
                       <button
                         key={method.id}
                         disabled={method.id === 'FIADO' && !!isReceivingFiado}

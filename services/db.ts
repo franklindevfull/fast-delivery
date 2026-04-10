@@ -30,10 +30,19 @@ const DEFAULT_SETTINGS: BusinessSettings = {
   facebook: '',
   instagram: '',
   website: '',
-  campaignLogoUrl: '',
   appBannerUrl: '',
   appBannerUrl2: '',
-  appBannerUrl3: ''
+  appBannerUrl3: '',
+  paymentMethods: {
+    CASH: true,
+    DEBIT: true,
+    CREDIT: true,
+    MEAL_VOUCHER: true,
+    FOOD_VOUCHER: true,
+    PIX: true,
+    CREDIARIO: true,
+  },
+  pixKey: ''
 };
 
 class APIDBService {

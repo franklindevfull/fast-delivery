@@ -6,7 +6,10 @@ import {
   LayoutDashboard,
   BanknoteArrowUp,
   BanknoteArrowDown,
-  Copy
+  Copy,
+  Zap,
+  ShoppingCart,
+  BadgeDollarSign
 } from 'lucide-react';
 
 export const COLORS = {
@@ -292,5 +295,8 @@ export const Icons = {
     <svg xmlns="http://www.w3.org/2000/svg" className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" {...props}>
       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M18 8h1a4 4 0 010 8h-1M2 8h16v9a4 4 0 01-4 4H6a4 4 0 01-4-4V8zM6 1v3M10 1v3M14 1v3" />
     </svg>
-  )
+  ),
+  Zap: (props: any) => <Zap className="w-5 h-5" {...props} />,
+  ShoppingCart: (props: any) => <ShoppingCart className="w-5 h-5" {...props} />,
+  BadgeDollarSign: (props: any) => <BadgeDollarSign className="w-5 h-5" {...props} />,
 };
