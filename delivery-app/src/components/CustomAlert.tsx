@@ -67,7 +67,7 @@ const CustomAlert: React.FC<CustomAlertProps> = ({ isOpen, title, message, onCon
                   'bg-blue-600 dark:bg-indigo-600 shadow-blue-100 dark:shadow-none hover:bg-blue-700 dark:hover:bg-indigo-500'
               }`}
           >
-            {confirmText || (type === 'QUESTION' ? 'Sair Agora' : 'Confirmar')}
+            {confirmText || (type === 'QUESTION' ? 'Sair Agora' : 'Ciente')}
           </button>
         </div>
       </div>

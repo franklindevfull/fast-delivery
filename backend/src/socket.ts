@@ -13,10 +13,13 @@ export const initSocket = (server: http.Server) => {
                 'https://fast-delivery-entregador.onrender.com',
                 'https://fast-delivery-app.onrender.com',
                 'http://localhost:5173',
+                'http://localhost:5174',
                 'http://localhost:3000',
                 'http://127.0.0.1:5173',
+                'http://127.0.0.1:5174',
                 'http://127.0.0.1:3000',
                 'http://[::1]:5173',
+                'http://[::1]:5174',
                 'http://[::1]:3000'
             ],
             methods: ['GET', 'POST'],
@@ -35,17 +38,13 @@ export const initSocket = (server: http.Server) => {
             const ua = socket.handshake?.headers?.['user-agent'];
             const transport = socket.conn?.transport?.name || 'unknown';
             
-            console.log(`[SOCKET] Novo Cliente: ${socket.id}`);
-            console.log(`[SOCKET] Origem: ${origin || 'Desconhecida'}`);
-            console.log(`[SOCKET] Transporte: ${transport}`);
-            console.log(`[SOCKET] User-Agent: ${ua || 'N/A'}`);
+            console.log(`[SOCKET] Cliente Conectado: ${socket.id} | Origem: ${origin || 'Desconhecida'}`);
             
             (socket as any).connectedAt = Date.now();
 
             socket.on('join_chat', (driverId: string) => {
                 try {
                     socket.join(`chat_${driverId}`);
-                    console.log(`[SOCKET] ${socket.id} entrou chat motorista ${driverId} | Transporte: ${socket.conn.transport.name}`);
                 } catch (err: any) {
                     console.error(`[SOCKET ERROR] FAILED join_chat for ${socket.id}:`, err.message);
                 }
@@ -54,7 +53,6 @@ export const initSocket = (server: http.Server) => {
             socket.on('join_client', (clientId: string) => {
                 try {
                     socket.join(`client_${clientId}`);
-                    console.log(`[SOCKET] ${socket.id} entrou sala cliente ${clientId}`);
                 } catch (err: any) {
                     console.error(`[SOCKET ERROR] FAILED join_client for ${socket.id}:`, err.message);
                 }
@@ -65,7 +63,6 @@ export const initSocket = (server: http.Server) => {
                     const num = Number(tableNumber);
                     if (!isNaN(num)) {
                         socket.join(`table_${num}`);
-                        console.log(`[SOCKET] ${socket.id} entrou sala mesa ${num}`);
                     }
                 } catch (err: any) {
                     console.error(`[SOCKET ERROR] FAILED join_table for ${socket.id}:`, err.message);

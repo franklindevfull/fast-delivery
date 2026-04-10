@@ -19,6 +19,7 @@ const OrderHistory: React.FC = () => {
     const [isLoading, setIsLoading] = useState(true);
     const [printingOrder, setPrintingOrder] = useState<Order | null>(null);
     const [businessSettings, setBusinessSettings] = useState<any>(null);
+    const [copiedId, setCopiedId] = useState<string | null>(null);
     const navigate = useNavigate();
     const contentRef = useRef<HTMLDivElement>(null);
     const handlePrint = useReactToPrint({ contentRef });
@@ -174,6 +175,36 @@ const OrderHistory: React.FC = () => {
                                     </div>
                                 ))}
                             </div>
+
+                            {/* Pix Payment Instructions for Pending Orders */}
+                            {order.status === 'PENDING' && order.paymentMethod === 'PIX' && businessSettings?.pixKey && (
+                                <div className="mt-4 p-4 bg-indigo-50 dark:bg-indigo-900/20 border border-indigo-100 dark:border-indigo-800 rounded-2xl animate-in slide-in-from-top-2 duration-500">
+                                    <div className="flex items-center justify-between mb-3">
+                                        <div className="flex items-center gap-2 text-indigo-600 dark:text-indigo-400">
+                                            <Icons.Zap size={14} className="animate-pulse" />
+                                            <span className="text-[10px] font-black uppercase tracking-widest">Pagamento Via Pix</span>
+                                        </div>
+                                        <button
+                                            onClick={() => {
+                                                navigator.clipboard.writeText(businessSettings.pixKey);
+                                                setCopiedId(order.id);
+                                                setTimeout(() => setCopiedId(null), 2000);
+                                            }}
+                                            className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg transition-all font-black uppercase text-[8px] tracking-widest ${copiedId === order.id ? 'bg-emerald-500 text-white' : 'bg-white dark:bg-slate-700 text-indigo-600 dark:text-indigo-400 shadow-sm'}`}
+                                        >
+                                            {copiedId === order.id ? (
+                                                <><Icons.Check size={10} /> Copiado</>
+                                            ) : (
+                                                <><Icons.Copy size={10} /> Copiar Chave</>
+                                            )}
+                                        </button>
+                                    </div>
+                                    <div className="bg-white/50 dark:bg-slate-900/50 p-3 rounded-xl border border-indigo-100/50 dark:border-indigo-800/50 mb-1">
+                                        <span className="text-[11px] font-bold text-slate-600 dark:text-slate-300 break-all select-all">{businessSettings.pixKey}</span>
+                                    </div>
+                                    <p className="text-[8px] font-medium text-indigo-400 dark:text-indigo-500 uppercase tracking-widest">Pague agora para que seu pedido comece a ser preparado.</p>
+                                </div>
+                            )}
 
                             <div className="flex flex-col gap-2 pt-4">
                                 {((order.deliveryFee ?? 0) > 0) && (

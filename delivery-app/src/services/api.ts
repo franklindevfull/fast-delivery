@@ -30,11 +30,15 @@ class DeliveryApiService {
             }
 
             return response.json();
-        } catch (e) {
+        } catch (e: any) {
             if (retries > 0) {
                 // Erro de rede (ex: Failed to fetch) - tenta novamente
                 await new Promise(r => setTimeout(r, 2000));
                 return this.request(path, options, retries - 1);
+            }
+            // Traduz mensagens técnicas comuns para o usuário
+            if (e.message === 'Failed to fetch' || e.message.includes('NetworkError')) {
+                throw new Error('Não foi possível conectar ao servidor. Verifique sua internet ou tente novamente mais tarde.');
             }
             throw e;
         }

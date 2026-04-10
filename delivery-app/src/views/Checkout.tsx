@@ -89,6 +89,7 @@ const Checkout: React.FC = () => {
                 setDeliveryFee(fee);
                 setStoreStatus(status as StoreStatus);
                 setBusinessSettings(s);
+                console.log('[DEBUG] Business Settings loaded:', s);
 
             } catch (err) {
                 console.error('Error fetching settings or client:', err);
@@ -251,10 +252,10 @@ const Checkout: React.FC = () => {
                     navigate('/history');
 
                 } catch (err: any) {
+                    console.error('[DEBUG] Create Order Error:', err);
                     showAlert('Ops!', err.message, 'DANGER', () => {
-                        clearCart();
-                        navigate('/');
-                    }, undefined, 'OK');
+                        // Não limpamos o carrinho em caso de erro para permitir tentativa nova
+                    }, null, 'Ciente');
                 } finally {
                     setIsLoading(false);
                 }
@@ -615,7 +616,7 @@ const Checkout: React.FC = () => {
                         </div>
                     </div>
 
-                    {paymentMethod === 'PIX' && businessSettings?.pixKey && businessSettings.pixKey.trim() !== '' && (
+                    {paymentMethod === 'PIX' && businessSettings?.pixKey && businessSettings.pixKey.trim() !== '' ? (
                         <div className="p-5 bg-indigo-50 dark:bg-indigo-900/20 border border-indigo-100 dark:border-indigo-800 rounded-3xl animate-in zoom-in-95 duration-300 transition-all">
                             <div className="flex items-center gap-3 mb-3">
                                 <div className="p-2 bg-indigo-500 rounded-xl text-white shadow-lg shadow-indigo-200 dark:shadow-none">
@@ -648,6 +649,19 @@ const Checkout: React.FC = () => {
                                 </button>
                             </div>
                             <p className="mt-3 text-[9px] font-bold text-indigo-400 dark:text-indigo-500 uppercase tracking-widest leading-relaxed">Sua chave PIX para pagamento. Copie acima e pague no seu app do banco.</p>
+                        </div>
+                    ) : paymentMethod === 'PIX' && (
+                        <div className="p-5 bg-rose-50 dark:bg-rose-950/20 border border-rose-100 dark:border-rose-900/50 rounded-3xl animate-in shake duration-500 transition-all">
+                            <div className="flex items-center gap-3 mb-2">
+                                <div className="p-2 bg-rose-500 rounded-xl text-white">
+                                    <Icons.Info size={18} />
+                                </div>
+                                <span className="text-[10px] font-black text-rose-800 dark:text-rose-400 uppercase tracking-widest">Atenção: Chave Pix não encontrada</span>
+                            </div>
+                            <p className="text-[11px] font-bold text-rose-600 dark:text-rose-400 leading-tight">
+                                Selecionamos PIX, mas não há uma chave cadastrada nas configurações. 
+                                <span className="block mt-2 opacity-60">Por favor, escolha outra forma de pagamento ou entre em contato com o suporte.</span>
+                            </p>
                         </div>
                     )}
                 </div>

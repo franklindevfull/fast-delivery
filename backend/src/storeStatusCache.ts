@@ -96,7 +96,6 @@ const calculateCurrentStoreStatus = (): StoreStatus => {
 
         if (!todayConfig || !todayConfig.isOpen) {
             const result: StoreStatus = { status: 'offline', is_manually_closed: false, next_status_change: getNextOpenTime(hours, now), enableDigitalMenu: cachedSettings.enableDigitalMenu };
-            console.log(`[STATUS-CHECK] Result: OFFLINE | Day: ${currentDayNum} | Config: CLOSED`);
             return result;
         }
 
@@ -127,11 +126,9 @@ const calculateCurrentStoreStatus = (): StoreStatus => {
 
             const closingISO = `${y}-${String(m + 1).padStart(2, '0')}-${String(d).padStart(2, '0')}T${todayConfig.closeTime}:00-03:00`;
             const result: StoreStatus = { status: 'online', is_manually_closed: false, next_status_change: new Date(closingISO).toISOString(), enableDigitalMenu: cachedSettings.enableDigitalMenu };
-            console.log(`[STATUS-CHECK] Result: ONLINE | Time: ${hour}:${minute} | Day: ${currentDayNum}`);
             return result;
         } else {
             const result: StoreStatus = { status: 'offline', is_manually_closed: false, next_status_change: getNextOpenTime(hours, now), enableDigitalMenu: cachedSettings.enableDigitalMenu };
-            console.log(`[STATUS-CHECK] Result: OFFLINE | Time: ${hour}:${minute} | Day: ${currentDayNum}`);
             return result;
         }
     } catch (e) {

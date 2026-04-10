@@ -11,7 +11,25 @@ export const getSettings = async (req: Request, res: Response) => {
 };
 
 export const saveSettings = async (req: Request, res: Response) => {
-    const data = req.body;
+    const { 
+        key, name, cnpj, address, phone, deliveryFee, tableCount, 
+        restaurantLat, restaurantLng, geofenceRadius, isManuallyClosed, 
+        operatingHours, enableDeliveryApp, enableDigitalMenu, 
+        enableWaiterApp, enableDriverApp, orderTimeoutMinutes, maxChange,
+        serviceFeeStatus, serviceFeePercentage, printerIp, printerType,
+        pizzaPriceRule, pizzaNfeRule, paymentMethods, pixKey, ...rest 
+    } = req.body;
+
+    const data = {
+        name, cnpj, address, phone, deliveryFee, tableCount,
+        restaurantLat, restaurantLng, geofenceRadius, isManuallyClosed,
+        operatingHours, enableDeliveryApp, enableDigitalMenu,
+        enableWaiterApp, enableDriverApp, orderTimeoutMinutes, maxChange,
+        serviceFeeStatus, serviceFeePercentage, printerIp, printerType,
+        pizzaPriceRule, pizzaNfeRule, paymentMethods, pixKey,
+        ...rest
+    };
+
     const settings = await prisma.businessSettings.upsert({
         where: { key: 'main' },
         update: data,

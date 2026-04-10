@@ -515,78 +515,83 @@ const App: React.FC = () => {
                   </div>
                 </div>
 
-                <div className="flex justify-between items-center pt-2">
-                  <div className="flex flex-col">
+                <div className="flex justify-between items-center gap-4 pt-2">
+                  <div className="flex flex-col whitespace-nowrap">
                     <span className="text-[9px] font-black text-slate-400 uppercase tracking-widest">Total</span>
                     <span className="text-xl font-black text-slate-900">R$ {order.total.toFixed(2)}</span>
                   </div>
-                  <div className="flex gap-2">
-                    <div className="flex gap-2 items-center">
-                      <button onClick={() => setPrintingOrder(order)} className="p-3 bg-slate-900 text-white rounded-2xl shadow-xl active:scale-90 transition-all">
-                        <Icons.Print className="w-5 h-5" />
-                      </button>
-                      {order.status === OrderStatus.READY ? (
-                        <div className="flex flex-col gap-3">
-                          {order.assignedAt && (
-                            <CheckoutTimer 
-                              assignedAt={order.assignedAt} 
-                              timeoutMinutes={settings?.orderTimeoutMinutes || 5} 
-                            />
-                          )}
-                          <div className="flex gap-2">
-                            <button
-                              onClick={() => updateDeliveryStatus(order.id, OrderStatus.READY, '')}
-                              className="px-4 py-3 bg-slate-100 text-slate-500 rounded-2xl font-black uppercase text-[10px] tracking-widest active:scale-95 transition-all"
-                            >
-                              Rejeitar
-                            </button>
-                            <button
-                              onClick={() => updateDeliveryStatus(order.id, OrderStatus.OUT_FOR_DELIVERY, driver.id)}
-                              className="px-6 py-3 bg-blue-600 text-white rounded-2xl font-black uppercase text-[10px] tracking-widest shadow-xl shadow-blue-500/30 active:scale-95 transition-all flex-1"
-                            >
-                              Aceitar
-                            </button>
-                          </div>
-                        </div>
-                      ) : (
-                        <div className="flex flex-col gap-2 items-end">
-                          {(!order.paymentMethod || order.paymentMethod === "") ? (
-                            <div className="flex flex-col gap-1 items-end mb-1">
-                              <span className="text-[8px] font-black text-slate-400 uppercase tracking-widest mr-1">Selecionar Pagamento:</span>
-                              <div className="flex gap-1">
-                                {['DINHEIRO', 'PIX', 'CARTÃO', 'FIADO'].map(m => (
-                                  <button
-                                    key={m}
-                                    onClick={() => setSelectedPayments(prev => ({ ...prev, [order.id]: m }))}
-                                    className={`px-3 py-1.5 rounded-lg text-[8px] font-black uppercase transition-all ${selectedPayments[order.id] === m ? 'bg-blue-600 text-white shadow-md' : 'bg-slate-100 text-slate-400'}`}
-                                  >
-                                    {m}
-                                  </button>
-                                ))}
-                              </div>
-                            </div>
-                          ) : (
-                            <div className="flex flex-col items-end mb-1">
-                              <span className="text-[8px] font-black text-slate-400 uppercase tracking-widest mr-1">Pagamento Definido:</span>
-                              <span className="text-[10px] font-black text-blue-600 uppercase tracking-widest">{(paymentLabels[(order.paymentMethod || '').toUpperCase()] || order.paymentMethod || 'Não Informado').toUpperCase()}</span>
-                            </div>
-                          )}
 
+                  <div className="flex-1 flex justify-center">
+                    <button 
+                      onClick={() => setPrintingOrder(order)} 
+                      className="p-3 bg-slate-900 text-white rounded-2xl shadow-xl active:scale-90 transition-all flex items-center justify-center"
+                    >
+                      <Icons.Print className="w-5 h-5" />
+                    </button>
+                  </div>
+
+                  <div className="flex flex-col items-start gap-2">
+                    {order.status === OrderStatus.READY ? (
+                      <div className="flex flex-col gap-3 items-start w-full">
+                        {order.assignedAt && (
+                          <CheckoutTimer 
+                            assignedAt={order.assignedAt} 
+                            timeoutMinutes={settings?.orderTimeoutMinutes || 5} 
+                          />
+                        )}
+                        <div className="flex gap-2 w-full">
                           <button
-                            onClick={() => {
-                              const payMethod = order.paymentMethod || selectedPayments[order.id];
-                              if (!payMethod) {
-                                return alert("Por favor, selecione a forma de pagamento antes de finalizar.");
-                              }
-                              updateDeliveryStatus(order.id, OrderStatus.DELIVERED, undefined, payMethod);
-                            }}
-                            className="px-6 py-3 bg-emerald-500 text-white rounded-2xl font-black uppercase text-[10px] tracking-widest shadow-xl shadow-emerald-500/30 active:scale-95 transition-all w-full"
+                            onClick={() => updateDeliveryStatus(order.id, OrderStatus.READY, '')}
+                            className="px-4 py-3 bg-slate-100 text-slate-500 rounded-2xl font-black uppercase text-[10px] tracking-widest active:scale-95 transition-all"
                           >
-                            Finalizar
+                            Rejeitar
+                          </button>
+                          <button
+                            onClick={() => updateDeliveryStatus(order.id, OrderStatus.OUT_FOR_DELIVERY, driver.id)}
+                            className="px-6 py-3 bg-blue-600 text-white rounded-2xl font-black uppercase text-[10px] tracking-widest shadow-xl shadow-blue-500/30 active:scale-95 transition-all flex-1"
+                          >
+                            Aceitar
                           </button>
                         </div>
-                      )}
-                    </div>
+                      </div>
+                    ) : (
+                      <div className="flex flex-col gap-2 items-start w-full min-w-[140px]">
+                        {(!order.paymentMethod || order.paymentMethod === "") ? (
+                          <div className="flex flex-col gap-1 items-start mb-1">
+                            <span className="text-[8px] font-black text-slate-400 uppercase tracking-widest">Selecionar Pagamento:</span>
+                            <div className="flex gap-1 flex-wrap">
+                              {['DINHEIRO', 'PIX', 'CARTÃO', 'FIADO'].map(m => (
+                                <button
+                                  key={m}
+                                  onClick={() => setSelectedPayments(prev => ({ ...prev, [order.id]: m }))}
+                                  className={`px-3 py-1.5 rounded-lg text-[8px] font-black uppercase transition-all ${selectedPayments[order.id] === m ? 'bg-blue-600 text-white shadow-md' : 'bg-slate-100 text-slate-400'}`}
+                                >
+                                  {m}
+                                </button>
+                              ))}
+                            </div>
+                          </div>
+                        ) : (
+                          <div className="flex flex-col items-start mb-1">
+                            <span className="text-[8px] font-black text-slate-400 uppercase tracking-widest">Pagamento Definido:</span>
+                            <span className="text-[10px] font-black text-blue-600 uppercase tracking-widest">{(paymentLabels[(order.paymentMethod || '').toUpperCase()] || order.paymentMethod || 'Não Informado').toUpperCase()}</span>
+                          </div>
+                        )}
+
+                        <button
+                          onClick={() => {
+                            const payMethod = order.paymentMethod || selectedPayments[order.id];
+                            if (!payMethod) {
+                              return alert("Por favor, selecione a forma de pagamento antes de finalizar.");
+                            }
+                            updateDeliveryStatus(order.id, OrderStatus.DELIVERED, undefined, payMethod);
+                          }}
+                          className="px-6 py-3 bg-emerald-500 text-white rounded-2xl font-black uppercase text-[10px] tracking-widest shadow-xl shadow-emerald-500/30 active:scale-95 transition-all w-full"
+                        >
+                          Finalizar
+                        </button>
+                      </div>
+                    )}
                   </div>
                 </div>
               </div>

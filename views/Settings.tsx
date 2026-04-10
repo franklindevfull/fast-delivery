@@ -1350,7 +1350,7 @@ const Settings: React.FC<SettingsProps> = ({ settings, setSettings, onReset }) =
                                 </div>
                             </div>
 
-                            <button type="submit" className="w-full md:w-auto bg-blue-600 text-white px-12 py-5 rounded-2xl font-black uppercase text-xs tracking-widest hover:bg-blue-700 transition-all shadow-2xl shadow-blue-100">Salvar Configurações de Pagamento</button>
+                            <button type="submit" className="w-full md:w-auto bg-blue-600 text-white px-12 py-5 rounded-2xl font-black uppercase text-xs tracking-widest hover:bg-blue-700 active:scale-95 transition-all shadow-2xl shadow-blue-100 dark:shadow-none">Salvar Configurações de Pagamento</button>
                         </form>
                     </div>
                 )}
