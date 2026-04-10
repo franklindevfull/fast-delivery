@@ -32,7 +32,6 @@ const OrderHistory: React.FC = () => {
 
         const joinRoom = () => {
             if (client && client.id) {
-                console.log(`[Socket] Joining client room: client_${client.id}`);
                 socket.emit('join_client', client.id);
             }
         };
@@ -40,7 +39,6 @@ const OrderHistory: React.FC = () => {
         const fetchData = async () => {
             if (!isMounted) return;
             try {
-                console.log('[Polling] Fetching fresh data...');
                 const [ordersData, settingsData] = await Promise.all([
                     api.getMyOrders(),
                     api.getSettings().catch(() => null)
@@ -49,10 +47,9 @@ const OrderHistory: React.FC = () => {
                 if (isMounted) {
                     setOrders(ordersData);
                     setBusinessSettings(settingsData);
-                    console.log(`[Polling] Success: ${ordersData.length} orders found.`);
                 }
             } catch (err) {
-                console.error('[Polling] Error fetching data:', err);
+                console.error('Error fetching data:', err);
             } finally {
                 if (isMounted) {
                     setIsLoading(false);
@@ -63,7 +60,6 @@ const OrderHistory: React.FC = () => {
         };
 
         const handleOrderUpdate = (data?: any) => {
-            console.log('[Socket] sinal de atualização em tempo real recebido:', data);
             fetchData();
         };
 
@@ -71,7 +67,6 @@ const OrderHistory: React.FC = () => {
         fetchData();
 
         socket.on('connect', () => {
-            console.log('[Socket] Conectado, reentrando na sala...');
             joinRoom();
         });
 

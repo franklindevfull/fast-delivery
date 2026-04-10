@@ -89,7 +89,6 @@ const Checkout: React.FC = () => {
                 setDeliveryFee(fee);
                 setStoreStatus(status as StoreStatus);
                 setBusinessSettings(s);
-                console.log('[DEBUG] Business Settings loaded:', s);
 
             } catch (err) {
                 console.error('Error fetching settings or client:', err);
