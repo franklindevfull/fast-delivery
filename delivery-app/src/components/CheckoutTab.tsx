@@ -18,7 +18,7 @@ interface AlertState {
 }
 
 const CheckoutTab: React.FC<{ onOrderPlaced: () => void }> = ({ onOrderPlaced }) => {
-    const { items, total, clearCart } = useCart();
+    const { items, total, clearCart, excludeFromCart } = useCart();
     const [paymentMethod, setPaymentMethod] = useState<'PIX' | 'CREDIT' | 'DEBIT' | 'CASH'>('PIX');
     const [savedAddress, setSavedAddress] = useState('');
     const [useNewAddress, setUseNewAddress] = useState(false);
@@ -295,19 +295,28 @@ const CheckoutTab: React.FC<{ onOrderPlaced: () => void }> = ({ onOrderPlaced })
                         </div>
                         <div className="bg-white dark:bg-slate-800 rounded-[2rem] p-6 shadow-sm border border-slate-100 dark:border-slate-700 space-y-4">
                         {items.map(item => (
-                            <div key={item.product.id} className="flex gap-4 items-center">
-                                <div className="w-12 h-12 bg-indigo-50 dark:bg-indigo-900/30 text-indigo-600 dark:text-indigo-400 font-black rounded-xl flex items-center justify-center shrink-0">{item.quantity}x</div>
-                                <div className="flex-1">
-                                    <h3 className="text-sm font-bold text-slate-800 dark:text-slate-100 line-clamp-1">{item.product.name}</h3>
+                            <div key={item.cartId} className="flex gap-4 items-center group/item px-1 py-0.5 rounded-xl hover:bg-slate-50/50 dark:hover:bg-slate-800/30 transition-all">
+                                <div className="w-10 h-10 bg-indigo-50 dark:bg-indigo-900/30 text-indigo-600 dark:text-indigo-400 font-black rounded-xl flex items-center justify-center shrink-0 text-xs">{item.quantity}x</div>
+                                <div className="flex-1 min-w-0">
+                                    <h3 className="text-[13px] font-bold text-slate-800 dark:text-slate-100 line-clamp-1">{item.product.name}</h3>
                                     {item.pizzaFlavors && item.pizzaFlavors.length > 0 && (
-                                        <p className="text-[10px] font-bold text-indigo-500 line-clamp-1">+ {item.pizzaFlavors.map(f => f.name).join(', ')}</p>
+                                        <p className="text-[9px] font-bold text-indigo-500 line-clamp-1">+ {item.pizzaFlavors.map(f => f.name).join(', ')}</p>
                                     )}
                                     {item.observations && (
-                                        <p className="text-[10px] italic text-slate-400 dark:text-slate-500 line-clamp-1">Obs: {item.observations}</p>
+                                        <p className="text-[9px] italic text-slate-400 dark:text-slate-500 line-clamp-1">Obs: {item.observations}</p>
                                     )}
-                                    <p className="text-[10px] font-bold text-slate-400 dark:text-slate-500 mt-0.5">{formatCurrency(item.product.price)}/un</p>
+                                    <p className="text-[9px] font-bold text-slate-400 dark:text-slate-500 mt-0.5">{formatCurrency(item.product.price)}/un</p>
                                 </div>
-                                <span className="text-sm font-black text-slate-800 dark:text-slate-100">{formatCurrency(item.product.price * item.quantity)}</span>
+                                <div className="flex items-center gap-2">
+                                    <span className="text-[13px] font-black text-slate-800 dark:text-slate-100 whitespace-nowrap">{formatCurrency(item.product.price * item.quantity)}</span>
+                                    <button
+                                        type="button"
+                                        onClick={() => excludeFromCart(item.cartId)}
+                                        className="w-7 h-7 rounded-full flex items-center justify-center text-slate-300 dark:text-slate-600 hover:text-rose-500 hover:bg-rose-50 dark:hover:bg-rose-900/20 transition-all active:scale-90"
+                                    >
+                                        <Icons.Trash className="w-3.5 h-3.5" />
+                                    </button>
+                                </div>
                             </div>
                         ))}
                         <div className="pt-4 border-t border-slate-100 dark:border-slate-700 space-y-3">

@@ -19,7 +19,7 @@ interface AlertState {
 }
 
 const Checkout: React.FC = () => {
-    const { items, total, clearCart } = useCart();
+    const { items, total, clearCart, excludeFromCart } = useCart();
     const [paymentMethod, setPaymentMethod] = useState<'PIX' | 'CREDIT' | 'DEBIT' | 'CASH' | 'MEAL_VOUCHER' | 'FOOD_VOUCHER' | 'CREDIARIO'>('PIX');
     const [businessSettings, setBusinessSettings] = useState<any>(null);
 
@@ -347,15 +347,25 @@ const Checkout: React.FC = () => {
                     </h2>
                     <div className="bg-white dark:bg-slate-900 rounded-[2rem] p-6 shadow-sm border border-slate-100 dark:border-slate-800 space-y-4 transition-colors">
                         {items.map(item => (
-                            <div key={item.product.id} className="flex gap-4 items-center">
-                                <div className="w-12 h-12 bg-indigo-50 dark:bg-indigo-900/20 text-indigo-600 dark:text-indigo-400 font-black rounded-xl flex items-center justify-center shrink-0 transition-colors">
+                            <div key={item.cartId} className="flex gap-4 items-center group/item transition-all duration-300 hover:bg-slate-50/50 dark:hover:bg-slate-800/30 -mx-2 px-2 py-1 rounded-xl">
+                                <div className="w-10 h-10 bg-indigo-50 dark:bg-indigo-900/20 text-indigo-600 dark:text-indigo-400 font-black rounded-xl flex items-center justify-center shrink-0 transition-colors text-[13px]">
                                     {item.quantity}x
                                 </div>
-                                <div className="flex-1">
-                                    <h3 className="text-sm font-bold text-slate-800 dark:text-slate-100 line-clamp-1">{item.product.name}</h3>
-                                    <p className="text-[10px] font-bold text-slate-400 dark:text-slate-500 mt-0.5">R$ {item.product.price.toFixed(2)}/un</p>
+                                <div className="flex-1 min-w-0">
+                                    <h3 className="text-[13px] font-bold text-slate-800 dark:text-slate-100 line-clamp-1">{item.product.name}</h3>
+                                    <p className="text-[9px] font-bold text-slate-400 dark:text-slate-500">R$ {item.product.price.toFixed(2)}/un</p>
                                 </div>
-                                <span className="text-sm font-black text-slate-800 dark:text-slate-100">R$ {(item.product.price * item.quantity).toFixed(2)}</span>
+                                <div className="flex items-center gap-3">
+                                    <span className="text-[13px] font-black text-slate-800 dark:text-slate-100 whitespace-nowrap">R$ {(item.product.price * item.quantity).toFixed(2)}</span>
+                                    <button
+                                        type="button"
+                                        onClick={() => excludeFromCart(item.cartId)}
+                                        className="w-8 h-8 rounded-full flex items-center justify-center text-slate-300 dark:text-slate-600 hover:text-rose-500 hover:bg-rose-50 dark:hover:bg-rose-900/20 transition-all opacity-0 group-hover/item:opacity-100 active:scale-90"
+                                        title="Remover item"
+                                    >
+                                        <Icons.Trash className="w-4 h-4" />
+                                    </button>
+                                </div>
                             </div>
                         ))}
 
