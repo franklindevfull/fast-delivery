@@ -45,6 +45,7 @@ const Checkout: React.FC = () => {
     const [appliedCoupon, setAppliedCoupon] = useState<any>(null);
     const [couponError, setCouponError] = useState('');
     const [isValidatingCoupon, setIsValidatingCoupon] = useState(false);
+    const [copied, setCopied] = useState(false);
 
     const navigate = useNavigate();
 
@@ -614,29 +615,39 @@ const Checkout: React.FC = () => {
                         </div>
                     </div>
 
-                    {paymentMethod === 'PIX' && businessSettings?.pixKey && (
-                        <div className="p-5 bg-blue-50 dark:bg-blue-900/20 border border-blue-100 dark:border-blue-800 rounded-3xl animate-in zoom-in-95 duration-300 transition-all">
+                    {paymentMethod === 'PIX' && businessSettings?.pixKey && businessSettings.pixKey.trim() !== '' && (
+                        <div className="p-5 bg-indigo-50 dark:bg-indigo-900/20 border border-indigo-100 dark:border-indigo-800 rounded-3xl animate-in zoom-in-95 duration-300 transition-all">
                             <div className="flex items-center gap-3 mb-3">
-                                <div className="p-2 bg-blue-500 rounded-xl text-white">
+                                <div className="p-2 bg-indigo-500 rounded-xl text-white shadow-lg shadow-indigo-200 dark:shadow-none">
                                     <Icons.Zap size={18} />
                                 </div>
-                                <span className="text-[10px] font-black text-blue-800 dark:text-blue-400 uppercase tracking-widest">Chave PIX Sugerida</span>
+                                <span className="text-[10px] font-black text-indigo-800 dark:text-indigo-400 uppercase tracking-widest">Pague via PIX</span>
                             </div>
-                            <div className="flex items-center justify-between bg-white dark:bg-slate-900 p-4 rounded-2xl border border-blue-100 dark:border-blue-800">
+                            <div className="flex items-center justify-between bg-white dark:bg-slate-900 p-4 rounded-2xl border border-indigo-100 dark:border-indigo-800 group transition-all hover:border-indigo-300 dark:hover:border-indigo-600">
                                 <span className="text-sm font-black text-slate-800 dark:text-white break-all">{businessSettings.pixKey}</span>
                                 <button
                                     type="button"
                                     onClick={() => {
                                         navigator.clipboard.writeText(businessSettings.pixKey);
-                                        // Optional: Add toast or feedback
+                                        setCopied(true);
+                                        setTimeout(() => setCopied(false), 2000);
                                     }}
-                                    className="p-2 text-blue-600 dark:text-blue-400 hover:bg-blue-50 dark:hover:bg-blue-900/30 rounded-lg transition-all"
-                                    title="Copiar Chave"
+                                    className={`flex items-center gap-2 px-4 py-2 rounded-xl transition-all font-black uppercase text-[9px] tracking-widest ${copied ? 'bg-emerald-500 text-white' : 'bg-indigo-50 dark:bg-indigo-900/30 text-indigo-600 dark:text-indigo-400 hover:bg-indigo-100 dark:hover:bg-indigo-800'}`}
                                 >
-                                    <Icons.MoreHorizontal size={18} />
+                                    {copied ? (
+                                        <>
+                                            <Icons.Check size={14} />
+                                            Copiado!
+                                        </>
+                                    ) : (
+                                        <>
+                                            <Icons.Copy size={14} />
+                                            Copiar
+                                        </>
+                                    )}
                                 </button>
                             </div>
-                            <p className="mt-3 text-[9px] font-bold text-blue-400 uppercase tracking-widest leading-relaxed">Pague agora para agilizar seu pedido. O comprovante será solicitado após a confirmação.</p>
+                            <p className="mt-3 text-[9px] font-bold text-indigo-400 dark:text-indigo-500 uppercase tracking-widest leading-relaxed">Sua chave PIX para pagamento. Copie acima e pague no seu app do banco.</p>
                         </div>
                     )}
                 </div>
