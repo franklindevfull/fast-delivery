@@ -26,6 +26,7 @@ const Kitchen: React.FC = () => {
   const [businessSettings, setBusinessSettings] = useState<BusinessSettings | null>(null);
   const [printingOrder, setPrintingOrder] = useState<Order | null>(null);
   const [viewingItemsOrder, setViewingItemsOrder] = useState<Order | null>(null);
+  const [excludedFichas, setExcludedFichas] = useState<Set<string>>(new Set());
 
   // Controle de seleção local por pedido: { orderId: [uids selecionados] }
   const [selectedItems, setSelectedItems] = useState<Record<string, string[]>>({});
@@ -173,6 +174,7 @@ const Kitchen: React.FC = () => {
 
   const handlePrint = (order: Order) => {
     setPrintingOrder(order);
+    setExcludedFichas(new Set()); // Reset exclusions on new print
   };
 
 
@@ -299,42 +301,67 @@ const Kitchen: React.FC = () => {
                                   )}
                                   
                                   {/* Ficha Técnica / Instruções de Preparo */}
-                                  {(product?.recipe && product.recipe.length > 0 || product?.preparation) && (
-                                    <div className="mt-3 bg-slate-50 dark:bg-slate-900/60 p-3 rounded-xl border border-slate-100 dark:border-slate-800 shadow-inner">
-                                      {product?.recipe && product.recipe.length > 0 && (
-                                        <div className="mb-2 last:mb-0">
-                                          <p className="text-[9px] font-black text-slate-500 dark:text-slate-400 uppercase tracking-widest mb-1.5 flex items-center gap-1.5">
-                                            <Icons.Alert size={10} className="text-slate-400" /> Ficha Técnica
-                                          </p>
-                                          <div className="space-y-1">
-                                            {product.recipe.map((r, idx) => {
-                                              const invItem = inventory.find(inv => inv.id === r.inventoryItemId);
-                                              const totalQty = r.quantity * item.quantity;
-                                              return (
-                                                <div key={idx} className="flex items-center gap-2 pl-1">
-                                                  <div className="w-1 h-1 rounded-full bg-blue-500/40" />
-                                                  <p className="text-[10px] font-bold text-slate-600 dark:text-slate-300 uppercase tracking-tight">
-                                                    {invItem?.name}: <span className="text-blue-600 dark:text-blue-400 font-black">{totalQty} {invItem?.unit}</span>
-                                                  </p>
-                                                </div>
-                                              );
-                                            })}
-                                          </div>
-                                        </div>
-                                      )}
+                                  {(() => {
+                                    const itemsToRender = [];
+                                    
+                                    // Adiciona o produto principal se tiver ficha
+                                    if ((product?.recipe && product.recipe.length > 0) || product?.preparation) {
+                                      itemsToRender.push({ name: product?.name, recipe: product?.recipe, preparation: product?.preparation });
+                                    }
+                                    
+                                    // Adiciona sabores se houver
+                                    if (item.pizzaFlavors && Array.isArray(item.pizzaFlavors)) {
+                                      item.pizzaFlavors.forEach((pf: any) => {
+                                        const flavorProd = products.find(p => p.id === pf.productId);
+                                        if ((flavorProd?.recipe && flavorProd.recipe.length > 0) || flavorProd?.preparation) {
+                                          itemsToRender.push({ name: flavorProd?.name, recipe: flavorProd?.recipe, preparation: flavorProd?.preparation });
+                                        }
+                                      });
+                                    }
 
-                                      {product?.preparation && (
-                                        <div className="mt-2 pt-2 border-t border-slate-200/50 dark:border-slate-700/50">
-                                          <p className="text-[9px] font-black text-blue-600 dark:text-blue-400 uppercase tracking-widest mb-1.5 flex items-center gap-1.5">
-                                            <Icons.View size={10} /> Instruções de Preparo
-                                          </p>
-                                          <p className="text-[10px] text-slate-600 dark:text-slate-300 font-medium leading-relaxed whitespace-pre-wrap pl-1 italic">
-                                            {product.preparation}
-                                          </p>
-                                        </div>
-                                      )}
-                                    </div>
-                                  )}
+                                    if (itemsToRender.length === 0) return null;
+
+                                    return (
+                                      <div className="mt-3 space-y-3">
+                                        {itemsToRender.map((info, idx) => (
+                                          <div key={idx} className="bg-slate-50 dark:bg-slate-900/60 p-3 rounded-xl border border-slate-100 dark:border-slate-800 shadow-inner">
+                                            {info.recipe && info.recipe.length > 0 && (
+                                              <div className="mb-2 last:mb-0">
+                                                <p className="text-[9px] font-black text-slate-500 dark:text-slate-400 uppercase tracking-widest mb-1.5 flex items-center gap-1.5">
+                                                  <Icons.Alert size={10} className="text-slate-400" /> Ficha Técnica: {info.name}
+                                                </p>
+                                                <div className="space-y-1">
+                                                  {info.recipe.map((r, rIdx) => {
+                                                    const invItem = inventory.find(inv => inv.id === r.inventoryItemId);
+                                                    const totalQty = r.quantity * item.quantity;
+                                                    return (
+                                                      <div key={rIdx} className="flex items-center gap-2 pl-1">
+                                                        <div className="w-1 h-1 rounded-full bg-blue-500/40" />
+                                                        <p className="text-[10px] font-bold text-slate-600 dark:text-slate-300 uppercase tracking-tight">
+                                                          {invItem?.name}: <span className="text-blue-600 dark:text-blue-400 font-black">{totalQty} {invItem?.unit}</span>
+                                                        </p>
+                                                      </div>
+                                                    );
+                                                  })}
+                                                </div>
+                                              </div>
+                                            )}
+
+                                            {info.preparation && (
+                                              <div className="mt-2 pt-2 border-t border-slate-200/50 dark:border-slate-700/50">
+                                                <p className="text-[9px] font-black text-blue-600 dark:text-blue-400 uppercase tracking-widest mb-1.5 flex items-center gap-1.5">
+                                                  <Icons.View size={10} /> Preparo: {info.name}
+                                                </p>
+                                                <p className="text-[10px] text-slate-600 dark:text-slate-300 font-medium leading-relaxed whitespace-pre-wrap pl-1 italic">
+                                                  {info.preparation}
+                                                </p>
+                                              </div>
+                                            )}
+                                          </div>
+                                        ))}
+                                      </div>
+                                    );
+                                  })()}
                                 </div>
                               </div>
                             </label>
@@ -511,8 +538,63 @@ const Kitchen: React.FC = () => {
       )}
 
       {printingOrder && businessSettings && (
-        <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-slate-900/80 backdrop-blur-md">
-          <div ref={contentRef} className="is-receipt cupom animate-in zoom-in duration-200">
+        <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-slate-900/80 backdrop-blur-md overflow-hidden">
+          <div className="flex flex-col md:flex-row gap-6 max-w-5xl w-full max-h-[90vh]">
+            {/* Controle de Seleção */}
+            <div className="bg-white dark:bg-slate-900 rounded-[2rem] p-6 shadow-2xl border border-slate-100 dark:border-slate-800 flex-1 overflow-y-auto no-print">
+              <h3 className="text-lg font-black text-slate-800 dark:text-white uppercase tracking-tighter mb-4">Opções de Impressão</h3>
+              <p className="text-[10px] text-slate-400 dark:text-slate-500 font-bold uppercase tracking-widest mb-6">Selecione quais fichas técnicas deseja imprimir:</p>
+              
+              <div className="space-y-6">
+                {printingOrder.items.map((it, itIdx) => {
+                  const product = products.find(p => p.id === it.productId);
+                  const fichas = [];
+                  
+                  if ((product?.recipe && product.recipe.length > 0) || product?.preparation) {
+                    fichas.push({ id: `${it.uid}-main`, name: product?.name });
+                  }
+                  
+                  if (it.pizzaFlavors && Array.isArray(it.pizzaFlavors)) {
+                    it.pizzaFlavors.forEach((pf: any, pfIdx: number) => {
+                      const flavorProd = products.find(p => p.id === pf.productId);
+                      if ((flavorProd?.recipe && flavorProd.recipe.length > 0) || flavorProd?.preparation) {
+                        fichas.push({ id: `${it.uid}-${pf.productId}`, name: flavorProd?.name });
+                      }
+                    });
+                  }
+
+                  if (fichas.length === 0) return null;
+
+                  return (
+                    <div key={itIdx} className="space-y-3">
+                      <p className="text-[11px] font-black text-blue-600 dark:text-blue-400 uppercase">{it.quantity}X {product?.name}</p>
+                      <div className="grid grid-cols-1 gap-2">
+                        {fichas.map(ficha => (
+                          <label key={ficha.id} className="flex items-center gap-3 p-3 bg-slate-50 dark:bg-slate-800/50 rounded-xl border border-slate-100 dark:border-slate-700 cursor-pointer hover:bg-slate-100 dark:hover:bg-slate-800 transition-all">
+                            <input 
+                              type="checkbox" 
+                              checked={!excludedFichas.has(ficha.id)} 
+                              onChange={() => {
+                                setExcludedFichas(prev => {
+                                  const next = new Set(prev);
+                                  if (next.has(ficha.id)) next.delete(ficha.id);
+                                  else next.add(ficha.id);
+                                  return next;
+                                });
+                              }}
+                              className="w-4 h-4 rounded-md border-slate-300 text-blue-600 focus:ring-blue-500"
+                            />
+                            <span className="text-xs font-bold text-slate-700 dark:text-slate-300 uppercase tracking-tight">{ficha.name}</span>
+                          </label>
+                        ))}
+                      </div>
+                    </div>
+                  )
+                })}
+              </div>
+            </div>
+
+            <div ref={contentRef} className="is-receipt cupom animate-in zoom-in duration-200 shadow-2xl overflow-y-auto">
             <div className="text-center mb-1">
               <h2 className="font-bold text-[10px] uppercase tracking-tighter mb-0">{businessSettings.name}</h2>
               <p className="text-[8px] font-black uppercase">
@@ -555,37 +637,58 @@ const Kitchen: React.FC = () => {
                       </p>
                     )}
 
-                    {/* Ficha Técnica no Cupom - MANTIDA LEGÍVEL */}
-                    {(product?.recipe && product.recipe.length > 0 || product?.preparation) && (
-                      <div className="mt-1 ml-1 p-1 border-l-2 border-black/20 bg-slate-50">
-                        <p className="text-[9px] font-black uppercase mb-0.5 border-b border-black/10">Ficha Técnica</p>
-                        
-                        {/* Ingredientes */}
-                        {product?.recipe && product.recipe.length > 0 && (
-                          <div className="mb-1">
-                            {product.recipe.map((r, rIdx) => {
-                              const invItem = inventory.find(inv => inv.id === r.inventoryItemId);
-                              const totalQty = r.quantity * it.quantity;
-                              return (
-                                <p key={rIdx} className="text-[10px] font-bold leading-tight m-0">
-                                  - {invItem?.name}: {totalQty} {invItem?.unit}
-                                </p>
-                              );
-                            })}
-                          </div>
-                        )}
+                    {/* Ficha Técnica no Cupom com Suporte a Múltiplos Sabores e Filtro */}
+                    {(() => {
+                      const itemsWithRecipe = [];
+                      
+                      const mainProdId = `${it.uid}-main`;
+                      if (!excludedFichas.has(mainProdId) && ((product?.recipe && product.recipe.length > 0) || product?.preparation)) {
+                        itemsWithRecipe.push({ name: product?.name, recipe: product?.recipe, preparation: product?.preparation });
+                      }
 
-                        {/* Modo de Preparo */}
-                        {product?.preparation && (
-                          <div className="mt-1 pt-1 border-t border-black/5">
-                            <p className="text-[10px] font-extrabold uppercase mb-0.5">Preparo:</p>
-                            <p className="text-[10px] leading-tight m-0 italic whitespace-pre-wrap font-medium">
-                              {product.preparation}
-                            </p>
-                          </div>
-                        )}
-                      </div>
-                    )}
+                      if (it.pizzaFlavors && Array.isArray(it.pizzaFlavors)) {
+                        it.pizzaFlavors.forEach((pf: any) => {
+                          const flavorProdId = `${it.uid}-${pf.productId}`;
+                          if (!excludedFichas.has(flavorProdId)) {
+                            const flavorProd = products.find(p => p.id === pf.productId);
+                            if ((flavorProd?.recipe && flavorProd.recipe.length > 0) || flavorProd?.preparation) {
+                              itemsWithRecipe.push({ name: flavorProd?.name, recipe: flavorProd?.recipe, preparation: flavorProd?.preparation });
+                            }
+                          }
+                        });
+                      }
+
+                      if (itemsWithRecipe.length === 0) return null;
+
+                      return itemsWithRecipe.map((info, infoIdx) => (
+                        <div key={infoIdx} className="mt-1 ml-1 p-1 border-l-2 border-black/20 bg-slate-50">
+                          <p className="text-[9px] font-black uppercase mb-0.5 border-b border-black/10">Ficha Técnica: {info.name}</p>
+                          
+                          {info.recipe && info.recipe.length > 0 && (
+                            <div className="mb-1">
+                              {info.recipe.map((r, rIdx) => {
+                                const invItem = inventory.find(inv => inv.id === r.inventoryItemId);
+                                const totalQty = r.quantity * it.quantity;
+                                return (
+                                  <p key={rIdx} className="text-[10px] font-bold leading-tight m-0">
+                                    - {invItem?.name}: {totalQty} {invItem?.unit}
+                                  </p>
+                                );
+                              })}
+                            </div>
+                          )}
+
+                          {info.preparation && (
+                            <div className="mt-1 pt-1 border-t border-black/5">
+                              <p className="text-[10px] font-extrabold uppercase mb-0.5">Preparo: {info.name}</p>
+                              <p className="text-[10px] leading-tight m-0 italic whitespace-pre-wrap font-medium">
+                                {info.preparation}
+                              </p>
+                            </div>
+                          )}
+                        </div>
+                      ));
+                    })()}
                   </div>
                 );
               })}
@@ -625,7 +728,8 @@ const Kitchen: React.FC = () => {
             </div>
           </div>
         </div>
-      )}
+      </div>
+    )}
     </div>
   );
 };
