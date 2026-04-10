@@ -16,13 +16,16 @@ export const saveClient = async (req: Request, res: Response) => {
     let newPassword = undefined;
 
     // Check if client is new
-    if (data.id) {
-        const existingById = await prisma.client.findUnique({ where: { id: data.id } });
+    const clientId = data.id && data.id.trim() !== '' ? data.id : undefined;
+
+    // Check if new password is needed (new client or explicit reset)
+    if (!clientId) {
+        newPassword = await bcrypt.hash('123', 10);
+    } else {
+        const existingById = await prisma.client.findUnique({ where: { id: clientId } });
         if (!existingById) {
             newPassword = await bcrypt.hash('123', 10);
         }
-    } else {
-        newPassword = await bcrypt.hash('123', 10);
     }
 
     // Validation: Duplicate phone or email
@@ -30,9 +33,9 @@ export const saveClient = async (req: Request, res: Response) => {
         where: {
             OR: [
                 { phone: data.phone },
-                data.email ? { email: data.email } : {}
+                (data.email && data.email.trim() !== '') ? { email: data.email } : {}
             ],
-            NOT: data.id ? { id: data.id } : undefined
+            NOT: clientId ? { id: clientId } : undefined
         }
     });
 
@@ -45,11 +48,15 @@ export const saveClient = async (req: Request, res: Response) => {
         ...data,
         pin: data.pin || Math.floor(1000 + Math.random() * 9000).toString(),
         ...(newPassword && { password: newPassword }),
-        // Map any remaining fields explicitly if needed, but ...data should cover them if keys match
     };
 
+    // Remover ID do clientData para permitir geração automática se for undefined
+    if (!clientId) {
+        delete clientData.id;
+    }
+
     const client = await prisma.client.upsert({
-        where: { id: data.id || '' },
+        where: { id: clientId || 'new-client-placeholder' },
         update: clientData,
         create: clientData
     });

@@ -228,6 +228,12 @@ const Login: React.FC = () => {
         setIsLoading(true);
         try {
             if (!pendingLoginData) throw new Error('Dados de login perdidos.');
+            
+            console.log('[DEBUG-RESET] Pending Client Data:', pendingLoginData.client);
+
+            if (!pendingLoginData.client.id || pendingLoginData.client.id.trim() === '') {
+                throw new Error('ID do cliente não encontrado. Entre em contato com o suporte para corrigir seu cadastro.');
+            }
 
             // Atualiza a senha no backend usando o overrideToken temporário
             await api.updateClient(

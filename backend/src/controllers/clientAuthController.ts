@@ -126,7 +126,10 @@ export const loginClient = async (req: ExpressRequest, res: ExpressResponse) => 
 export const updateClientProfile = async (req: ExpressRequest, res: ExpressResponse) => {
     try {
         const id = req.params.id as string;
-        const { name, email, phone, addresses, cep, street, addressNumber, neighborhood, city, state, complement, currentPassword, password, avatarUrl } = req.body;
+
+        if (!id || id.trim() === '') {
+            return res.status(400).json({ error: 'ID do cliente é obrigatório e não pode ser vazio.' });
+        }
 
         const client = await prisma.client.findUnique({
             where: { id }
