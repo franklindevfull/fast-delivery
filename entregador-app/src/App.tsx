@@ -119,6 +119,7 @@ const App: React.FC = () => {
   const [hasUnreadChat, setHasUnreadChat] = useState(false);
   const [newMessage, setNewMessage] = useState('');
   const chatEndRef = useRef<HTMLDivElement>(null);
+  const [processingOrders, setProcessingOrders] = useState<Set<string>>(new Set());
 
   const previousOrderCount = useRef(-1);
 
@@ -293,10 +294,20 @@ const App: React.FC = () => {
   };
 
   const updateDeliveryStatus = async (orderId: string, status: OrderStatus, forceDriverId?: string | null, paymentMethod?: string) => {
-    if (!currentUser) return;
-    // Fix: Allow empty string to pass through for de-assignment
-    await db.updateOrderStatus(orderId, status, currentUser, forceDriverId === undefined ? undefined : (forceDriverId as string), paymentMethod);
-    refreshData();
+    if (!currentUser || processingOrders.has(orderId)) return;
+    
+    setProcessingOrders(prev => new Set(prev).add(orderId));
+    try {
+      // Fix: Allow empty string to pass through for de-assignment
+      await db.updateOrderStatus(orderId, status, currentUser, forceDriverId === undefined ? undefined : (forceDriverId as string), paymentMethod);
+      await refreshData();
+    } finally {
+      setProcessingOrders(prev => {
+        const next = new Set(prev);
+        next.delete(orderId);
+        return next;
+      });
+    }
   };
 
   const groupedPrintingItems = useMemo(() => {

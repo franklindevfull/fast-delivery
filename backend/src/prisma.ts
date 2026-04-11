@@ -6,7 +6,7 @@ const databaseUrl = process.env.DATABASE_URL || '';
 // No plano free do Render somos obrigados a usar poucas conexões.
 // Localmente aumentamos o limite para evitar timeouts durante o desenvolvimento.
 const isRender = !!process.env.RENDER;
-const connectionLimit = isRender ? 1 : 10;
+const connectionLimit = isRender ? 3 : 10;
 const poolTimeout = 30;
 const connectTimeout = 20; // Aumentado para lidar com Cold Starts no Render
 

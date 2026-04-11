@@ -36,6 +36,8 @@ const DeliveryOrders: React.FC<DeliveryOrdersProps> = ({ currentUser }) => {
     const [isSending, setIsSending] = useState(false);
     const chatEndRef = useRef<HTMLDivElement>(null);
     const [deliveryFeeInputs, setDeliveryFeeInputs] = useState<Record<string, string>>({});
+    const [saveToZonesInputs, setSaveToZonesInputs] = useState<Record<string, boolean>>({});
+    const [neighborhoodNameInputs, setNeighborhoodNameInputs] = useState<Record<string, string>>({});
 
     const handleUpdateDeliveryFee = async (orderId: string) => {
         const feeStr = deliveryFeeInputs[orderId];
@@ -45,14 +47,17 @@ const DeliveryOrders: React.FC<DeliveryOrdersProps> = ({ currentUser }) => {
             return;
         }
 
+        const neighborhood = neighborhoodNameInputs[orderId] || activeOrders.find(o => o.id === orderId)?.clientNeighborhood;
+        const saveToZones = !!saveToZonesInputs[orderId];
+
         try {
-            await db.updateOrderDeliveryFee(orderId, fee, currentUser);
-            addToast({ title: 'Frete Atualizado', message: 'Valor do frete atualizado com sucesso.', type: 'SUCCESS' });
-            setDeliveryFeeInputs(prev => { 
-                const newState = { ...prev }; 
-                delete newState[orderId]; 
-                return newState; 
-            });
+            await db.updateOrderDeliveryFee(orderId, fee, currentUser, saveToZones, neighborhood);
+            addToast({ title: 'Frete Atualizado', message: saveToZones ? 'Valor atualizado e salvo nas Zonas de Entrega.' : 'Valor atualizado com sucesso.', type: 'SUCCESS' });
+            
+            setDeliveryFeeInputs(prev => { const n = { ...prev }; delete n[orderId]; return n; });
+            setSaveToZonesInputs(prev => { const n = { ...prev }; delete n[orderId]; return n; });
+            setNeighborhoodNameInputs(prev => { const n = { ...prev }; delete n[orderId]; return n; });
+            
             fetchOrders();
         } catch (e: any) {
             addToast({ title: 'Erro ao Aprovar Frete', message: e.message || 'Erro inesperado.', type: 'DANGER' });
@@ -357,23 +362,56 @@ const DeliveryOrders: React.FC<DeliveryOrdersProps> = ({ currentUser }) => {
                                         </div>
                                         <div className="flex gap-3 mt-auto pt-4 border-t border-slate-50 dark:border-slate-800 flex-col">
                                             {order.status === 'PENDING' && order.deliveryFeeNeedsReview && (
-                                                <div className="flex flex-col gap-2 mb-2 bg-amber-50 dark:bg-amber-900/20 p-4 rounded-2xl border border-amber-100 dark:border-amber-800/30">
-                                                    <p className="text-[10px] font-black text-amber-600 dark:text-amber-500 uppercase tracking-widest text-center mb-1">Definir Frete Manual</p>
-                                                    <div className="flex gap-2">
-                                                        <input 
-                                                            type="number" 
-                                                            step="0.01" 
-                                                            placeholder="R$ 0,00" 
-                                                            className="w-full bg-white dark:bg-slate-800 border-none rounded-xl px-4 py-3 text-sm font-bold shadow-sm text-slate-800 dark:text-white"
-                                                            value={deliveryFeeInputs[order.id] || ''}
-                                                            onChange={(e) => setDeliveryFeeInputs(prev => ({ ...prev, [order.id]: e.target.value }))}
-                                                        />
-                                                        <button 
-                                                            onClick={() => handleUpdateDeliveryFee(order.id)}
-                                                            className="px-6 bg-amber-500 text-white rounded-xl font-black uppercase text-xs shadow-lg shadow-amber-200 dark:shadow-amber-900/20 hover:bg-amber-600 transition-all"
-                                                        >
-                                                            Salvar
-                                                        </button>
+                                                <div className="flex flex-col gap-3 mb-2 bg-amber-50 dark:bg-amber-900/20 p-5 rounded-3xl border border-amber-100 dark:border-amber-800/30 shadow-sm">
+                                                    <div className="flex items-center gap-2 mb-1">
+                                                        <div className="w-2 h-2 bg-amber-500 rounded-full animate-pulse" />
+                                                        <p className="text-[10px] font-black text-amber-600 dark:text-amber-500 uppercase tracking-widest">Bairro Sem Taxa Localizado</p>
+                                                    </div>
+                                                    
+                                                    <div className="space-y-2">
+                                                        <div className="flex flex-col gap-1">
+                                                            <label className="text-[8px] font-black text-slate-400 dark:text-slate-500 uppercase ml-1">Confirmar Bairro:</label>
+                                                            <input 
+                                                                type="text" 
+                                                                className="w-full bg-white dark:bg-slate-800 border-none rounded-xl px-4 py-2.5 text-xs font-bold shadow-sm text-slate-800 dark:text-white border border-transparent focus:border-amber-200 transition-all uppercase"
+                                                                value={neighborhoodNameInputs[order.id] !== undefined ? neighborhoodNameInputs[order.id] : (order.clientNeighborhood || '')}
+                                                                onChange={(e) => setNeighborhoodNameInputs(prev => ({ ...prev, [order.id]: e.target.value }))}
+                                                                placeholder="NOME DO BAIRRO"
+                                                            />
+                                                        </div>
+
+                                                        <div className="flex flex-col gap-1">
+                                                            <label className="text-[8px] font-black text-slate-400 dark:text-slate-500 uppercase ml-1">Valor da Entrega:</label>
+                                                            <div className="flex gap-2">
+                                                                <div className="relative flex-1">
+                                                                    <span className="absolute left-4 top-1/2 -translate-y-1/2 text-[10px] font-black text-slate-400">R$</span>
+                                                                    <input 
+                                                                        type="number" 
+                                                                        step="0.01" 
+                                                                        placeholder="0,00" 
+                                                                        className="w-full bg-white dark:bg-slate-800 border-none rounded-xl pl-9 pr-4 py-3 text-sm font-bold shadow-sm text-slate-800 dark:text-white"
+                                                                        value={deliveryFeeInputs[order.id] || ''}
+                                                                        onChange={(e) => setDeliveryFeeInputs(prev => ({ ...prev, [order.id]: e.target.value }))}
+                                                                    />
+                                                                </div>
+                                                                <button 
+                                                                    onClick={() => handleUpdateDeliveryFee(order.id)}
+                                                                    className="px-6 bg-amber-500 text-white rounded-xl font-black uppercase text-xs shadow-lg shadow-amber-200 dark:shadow-amber-900/20 hover:bg-amber-600 transition-all active:scale-95"
+                                                                >
+                                                                    Salvar
+                                                                </button>
+                                                            </div>
+                                                        </div>
+
+                                                        <label className="flex items-center gap-2 mt-2 p-2 bg-white/50 dark:bg-slate-800/50 rounded-xl cursor-pointer hover:bg-white dark:hover:bg-slate-800 transition-all group">
+                                                            <input 
+                                                                type="checkbox" 
+                                                                className="w-4 h-4 rounded border-slate-300 text-amber-500 focus:ring-amber-500"
+                                                                checked={!!saveToZonesInputs[order.id]}
+                                                                onChange={(e) => setSaveToZonesInputs(prev => ({ ...prev, [order.id]: e.target.checked }))}
+                                                            />
+                                                            <span className="text-[9px] font-black text-slate-500 dark:text-slate-400 uppercase tracking-widest group-hover:text-amber-600 transition-colors">Cadastrar como regra de zona</span>
+                                                        </label>
                                                     </div>
                                                 </div>
                                             )}

@@ -729,6 +729,22 @@ export const updateOrderStatus = async (req: Request, res: Response) => {
     console.log(`[OrderController] FULL BODY:`, JSON.stringify(req.body));
 
     try {
+        // Pre-check outside transaction to save connection pool
+        const preCheck = await prisma.order.findUnique({
+            where: { id: id as string },
+            select: { status: true, driverId: true, paymentMethod: true }
+        });
+
+        if (preCheck && preCheck.status === status && (!driverId || preCheck.driverId === driverId) && (!paymentMethod || preCheck.paymentMethod === paymentMethod)) {
+             console.log(`[OrderController] Pre-check: Order ${id} is already in state ${status}. Skipping transaction.`);
+             const fullOrder = await prisma.order.findUnique({
+                 where: { id: id as string },
+                 include: { items: { include: { product: true } } }
+             });
+             res.json(mapOrderResponse(fullOrder));
+             return;
+        }
+
         const result = await prisma.$transaction(async (tx: any) => {
             const oldOrder = await tx.order.findUnique({
                 where: { id: id as string },
@@ -740,8 +756,13 @@ export const updateOrderStatus = async (req: Request, res: Response) => {
                 throw new Error('Pedido não encontrado');
             }
 
-            const oldStatus = oldOrder?.status;
-            const newStatus = status;
+            const oldStatus = oldOrder.status;
+            const newStatus = status || oldStatus;
+
+            // Double check inside transaction
+            if (oldStatus === newStatus && (!driverId || oldOrder.driverId === driverId) && (!paymentMethod || oldOrder.paymentMethod === paymentMethod)) {
+                return oldOrder;
+            }
 
             // NEW: Block kitchen sending (PREPARING) if delivery fee needs review
             if (newStatus === 'PREPARING' && oldOrder.deliveryFeeNeedsReview) {
@@ -934,7 +955,7 @@ export const updateOrderStatus = async (req: Request, res: Response) => {
 
 export const updateOrderDeliveryFee = async (req: Request, res: Response) => {
     const id = req.params.id as string;
-    const { deliveryFee, user } = req.body;
+    const { deliveryFee, user, saveToZones, neighborhoodName } = req.body;
 
     try {
         const order = await prisma.$transaction(async (tx: any) => {
@@ -946,6 +967,16 @@ export const updateOrderDeliveryFee = async (req: Request, res: Response) => {
             const oldFee = oldOrder.deliveryFee || 0;
             const newFee = parseFloat(deliveryFee) || 0;
             const newTotal = oldOrder.total - oldFee + newFee;
+
+            // Upsert DeliveryZone if requested
+            if (saveToZones && neighborhoodName) {
+                const normalizedName = neighborhoodName.toUpperCase().trim();
+                await tx.deliveryZone.upsert({
+                    where: { name: normalizedName },
+                    update: { fee: newFee, active: true },
+                    create: { name: normalizedName, fee: newFee, active: true }
+                });
+            }
 
             const updatedOrder = await tx.order.update({
                 where: { id },
@@ -963,7 +994,7 @@ export const updateOrderDeliveryFee = async (req: Request, res: Response) => {
                         userId: user.id || 'SYSTEM',
                         userName: user.name || 'Sistema',
                         action: 'UPDATE_DELIVERY_FEE',
-                        details: `Frete do pedido ${id} atualizado. R$ ${oldFee.toFixed(2)} -> R$ ${newFee.toFixed(2)}`
+                        details: `Frete do pedido ${id} atualizado${saveToZones ? ' e salvo nas Zonas' : ''}. R$ ${oldFee.toFixed(2)} -> R$ ${newFee.toFixed(2)}`
                     }
                 });
             }
