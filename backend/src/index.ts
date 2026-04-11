@@ -44,6 +44,7 @@ import { startOrderTimeoutService } from './services/orderTimeoutService.js';
 import { loadSettingsToCache } from './storeStatusCache.js';
 import { warmupDatabase } from './prisma.js';
 import http from 'http';
+import https from 'https';
 
 const app = express();
 
@@ -142,4 +143,33 @@ server.listen(port, async () => {
     cron.schedule('*/10 * * * *', async () => {
         await autoCloseCashSessions();
     });
+
+    // SISTEMA DE ESTABILIDADE RENDER FREE
+    if (process.env.RENDER) {
+        const PUBLIC_URL = process.env.PUBLIC_URL || 'https://fast-delivery-frontend-iq8a.onrender.com'; // Fallback ou config necessária
+        
+        console.log(`[STABILITY] Iniciando Keep-Alive para: ${PUBLIC_URL}`);
+
+        // 1. Self-Ping (Evitar Suspensão do App) - A cada 10 minutos
+        cron.schedule('*/10 * * * *', () => {
+            const url = PUBLIC_URL.replace('frontend', 'backend'); // Tentativa de inferir a URL do backend se não configurado
+            https.get(url, (res) => {
+                console.log(`[STABILITY] Self-Ping status: ${res.statusCode}`);
+            }).on('error', (err) => {
+                console.warn(`[STABILITY] Self-Ping failed: ${err.message}`);
+            });
+        });
+
+        // 2. Database Ping (Evitar Suspensão do Banco) - A cada 14 minutos (Render Free suspende após 15)
+        cron.schedule('*/14 * * * *', async () => {
+            try {
+                await prisma.$queryRaw`SELECT 1`;
+                console.log('[STABILITY] Database Ping: OK');
+            } catch (err: any) {
+                console.warn(`[STABILITY] Database Ping FAILED: ${err.message}`);
+                // Tenta forçar reconexão se falhar
+                await warmupDatabase(2, 5000);
+            }
+        });
+    }
 });

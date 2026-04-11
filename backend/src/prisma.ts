@@ -6,9 +6,13 @@ const databaseUrl = process.env.DATABASE_URL || '';
 // No plano free do Render somos obrigados a usar poucas conexões.
 // Localmente aumentamos o limite para evitar timeouts durante o desenvolvimento.
 const isRender = !!process.env.RENDER;
-const connectionLimit = isRender ? 3 : 10;
-const poolTimeout = 30;
-const connectTimeout = 20; // Aumentado para lidar com Cold Starts no Render
+
+// No plano free do Render somos obrigados a usar pouquíssimas conexões.
+// Reduzimos o connection_limit para 2 no Render para evitar que o pool fique "viciado" em conexões mortas durante o Cold Start.
+// Aumentamos o connect_timeout drasticamente para lidar com bancos suspensos que levam tempo para acordar.
+const connectionLimit = isRender ? 2 : 10;
+const poolTimeout = isRender ? 15 : 30; // Timeout menor no Render para descartar conexões duvidosas rápido
+const connectTimeout = 40; // Dobrado para 40s para lidar com suspensão do Render PG
 
 const finalUrl = databaseUrl.includes('connection_limit')
     ? databaseUrl
@@ -19,7 +23,9 @@ export const prisma = new PrismaClient({
         db: {
             url: finalUrl
         }
-    }
+    },
+    // Log de queries lentas ou erros de conexão no Render
+    log: isRender ? ['error', 'warn'] : ['error']
 });
 
 /**
