@@ -323,13 +323,6 @@ class APIDBService {
     });
   }
 
-  public async updateOrderDeliveryFee(orderId: string, fee: number, user: User, saveToZones?: boolean, neighborhood?: string) {
-    await this.request(`/orders/${orderId}/delivery-fee`, {
-      method: 'PATCH',
-      body: JSON.stringify({ fee, user, saveToZones, neighborhood })
-    });
-  }
-
   public async getOrderById(id: string): Promise<Order> {
     return this.request<Order>(`/orders/${id}`);
   }
