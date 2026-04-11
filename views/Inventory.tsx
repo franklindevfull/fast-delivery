@@ -27,7 +27,8 @@ const Inventory: React.FC = () => {
 
   const [prodFormData, setProdFormData] = useState({
     name: '', price: 0, category: '', imageUrl: '', stock: 0,
-    ncm: '', cfop: '', cest: '', preparation: '', isCombo: false, isPizza: false, pizzaSize: ''
+    ncm: '', cfop: '', cest: '', preparation: '', isCombo: false, isPizza: false, pizzaSize: '',
+    isFeatured: false, showInMenu: true
   });
 
   const [tempRecipe, setTempRecipe] = useState<RecipeItem[]>([]);
@@ -107,13 +108,15 @@ const Inventory: React.FC = () => {
         preparation: product.preparation || '',
         isCombo: (product.comboItems?.length ?? 0) > 0,
         isPizza: product.isPizza || false,
-        pizzaSize: product.pizzaSize || ''
+        pizzaSize: product.pizzaSize || '',
+        isFeatured: product.isFeatured || false,
+        showInMenu: product.showInMenu !== false // Default true
       });
       setTempRecipe(product.recipe || []);
       setTempComboItems(product.comboItems?.map(ci => ({ productId: ci.productId, quantity: ci.quantity })) || []);
     } else {
       setEditingProduct(null);
-      setProdFormData({ name: '', price: 0, category: 'Geral', imageUrl: '', stock: 0, ncm: '', cfop: '', cest: '', preparation: '', isCombo: false, isPizza: false, pizzaSize: '' });
+      setProdFormData({ name: '', price: 0, category: 'Geral', imageUrl: '', stock: 0, ncm: '', cfop: '', cest: '', preparation: '', isCombo: false, isPizza: false, pizzaSize: '', isFeatured: false, showInMenu: true });
       setTempRecipe([]);
       setTempComboItems([]);
     }
@@ -134,7 +137,9 @@ const Inventory: React.FC = () => {
       preparation: product.preparation || '',
       isCombo: (product.comboItems?.length ?? 0) > 0,
       isPizza: product.isPizza || false,
-      pizzaSize: product.pizzaSize || ''
+      pizzaSize: product.pizzaSize || '',
+      isFeatured: product.isFeatured || false,
+      showInMenu: product.showInMenu !== false
     });
     setTempRecipe(product.recipe ? [...product.recipe] : []);
     setTempComboItems(product.comboItems ? [...product.comboItems] : []);
@@ -247,6 +252,16 @@ const Inventory: React.FC = () => {
             <div key={product.id} className="bg-white dark:bg-slate-900 rounded-3xl shadow-sm border border-slate-100 dark:border-slate-800 p-4 flex flex-col group hover:shadow-xl hover:border-blue-100 dark:hover:border-blue-900 transition-all">
               <div className="relative mb-3 bg-slate-50 dark:bg-slate-800 rounded-2xl overflow-hidden aspect-square flex items-center justify-center border border-slate-50 dark:border-slate-800 group-hover:scale-[1.02] transition-transform">
                 <img src={formatImageUrl(product.imageUrl)} onError={e => e.currentTarget.src = PLACEHOLDER_FOOD_IMAGE} className="w-full h-full object-contain" />
+                {product.isFeatured && (
+                  <div className="absolute top-2 right-2 bg-amber-400 text-white p-1.5 rounded-full shadow-lg animate-pulse" title="Produto em Destaque">
+                    <Icons.Star size={14} fill="currentColor" />
+                  </div>
+                )}
+                {!product.showInMenu && (
+                  <div className="absolute top-2 left-2 bg-slate-900/80 text-white px-2 py-1 rounded-lg text-[8px] font-black uppercase tracking-widest border border-slate-700">
+                    Oculto
+                  </div>
+                )}
               </div>
               <h4 className="font-black text-slate-800 dark:text-white text-xs uppercase mb-1 h-8 line-clamp-2 leading-tight">{product.name}</h4>
               <p className="text-sm font-black text-blue-600 dark:text-blue-500 mb-4">{formatCurrency(product.price)}</p>
@@ -455,6 +470,34 @@ const Inventory: React.FC = () => {
               </div>
 
               <div className="pt-4 border-t border-slate-50 dark:border-slate-800 space-y-4">
+                <div className="flex flex-col gap-3 bg-blue-50/30 dark:bg-blue-900/10 p-4 rounded-2xl border border-blue-100/50 dark:border-blue-800/20">
+                  <div className="flex items-center gap-3">
+                    <input
+                      type="checkbox"
+                      id="isFeatured"
+                      checked={prodFormData.isFeatured}
+                      onChange={(e) => setProdFormData({ ...prodFormData, isFeatured: e.target.checked })}
+                      className="w-5 h-5 rounded-lg border-slate-300 text-amber-500 focus:ring-amber-500"
+                    />
+                    <label htmlFor="isFeatured" className="text-sm font-black text-slate-800 dark:text-white cursor-pointer flex items-center gap-2">
+                      <Icons.Star size={16} className={prodFormData.isFeatured ? 'text-amber-500 fill-amber-500' : 'text-slate-400'} />
+                      Produto em Destaque (Estrela)
+                    </label>
+                  </div>
+                  <div className="flex items-center gap-3">
+                    <input
+                      type="checkbox"
+                      id="showInMenu"
+                      checked={prodFormData.showInMenu}
+                      onChange={(e) => setProdFormData({ ...prodFormData, showInMenu: e.target.checked })}
+                      className="w-5 h-5 rounded-lg border-slate-300 text-emerald-600 focus:ring-emerald-500"
+                    />
+                    <label htmlFor="showInMenu" className="text-sm font-black text-slate-800 dark:text-white cursor-pointer">
+                      Mostrar no Cardápio Digital / App
+                    </label>
+                  </div>
+                </div>
+
                 <div className="flex items-center gap-3">
                   <input
                     type="checkbox"

@@ -78,6 +78,8 @@ model Product {
   recipe       RecipeItem[]
   isPizza      Boolean      @default(false)
   pizzaSize    String?
+  isFeatured   Boolean      @default(false)
+  showInMenu   Boolean      @default(true)
 }
 
 model InventoryItem {

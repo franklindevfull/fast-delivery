@@ -228,6 +228,8 @@ export interface Product {
   cest?: string;
   isPizza?: boolean;
   pizzaSize?: string;
+  isFeatured?: boolean;
+  showInMenu?: boolean;
 }
 
 export interface OrderItem {

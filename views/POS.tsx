@@ -178,7 +178,15 @@ const POS: React.FC<POSProps> = ({ currentUser }) => {
       db.getReceivables(),
       db.getDeliveryZones()
     ]);
-    setProducts(p);
+    
+    // Sort products: Featured first, then alphabetical
+    const sortedProducts = p.sort((a, b) => {
+      if (a.isFeatured && !b.isFeatured) return -1;
+      if (!a.isFeatured && b.isFeatured) return 1;
+      return a.name.localeCompare(b.name);
+    });
+
+    setProducts(sortedProducts);
     setOrders(o);
     setBusinessSettings(s);
     setClients(c);

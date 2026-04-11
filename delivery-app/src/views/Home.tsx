@@ -201,11 +201,16 @@ const Home: React.FC = () => {
     };
 
     const filteredProducts = products.filter(p => {
+        // visibility filter
+        if (p.showInMenu === false) return false;
+
         const matchesCategory = selectedCategory === 'Todos' || p.category === selectedCategory;
         const query = searchQuery.toLowerCase().trim();
         const matchesSearch = query ? p.name.toLowerCase().includes(query) : true;
         return matchesCategory && matchesSearch;
     });
+
+    const featuredProducts = products.filter(p => p.isFeatured && p.showInMenu !== false);
 
     if (isLoading) return (
         <div className="h-screen bg-slate-50 dark:bg-slate-950 flex flex-col items-center justify-center">
@@ -415,8 +420,63 @@ const Home: React.FC = () => {
                         <div className="flex-1 overflow-y-auto no-scrollbar">
                             <div className={`flex flex-col gap-5 px-6 ${items.length > 0 ? 'pb-40' : 'pb-6'}`}>
 
-                            {/* Products Grid */}
-                            <div className="px-6 grid grid-cols-1 gap-5 animate-in slide-in-from-bottom-4 duration-500">
+                                {/* Featured Products Section */}
+                                {featuredProducts.length > 0 && selectedCategory === 'Todos' && !searchQuery && (
+                                    <div className="flex flex-col gap-3 animate-in fade-in slide-in-from-left duration-700">
+                                        <div className="flex items-center justify-between px-1">
+                                            <h4 className="text-[10px] font-black text-indigo-500 uppercase tracking-[0.2em] flex items-center gap-2">
+                                                <Icons.Star size={12} className="fill-indigo-500" /> Mais Pedidos do Mês
+                                            </h4>
+                                        </div>
+                                        <div className="flex gap-4 overflow-x-auto no-scrollbar pb-2">
+                                            {featuredProducts.map(product => (
+                                                <div 
+                                                    key={`featured-${product.id}`}
+                                                    onClick={() => {
+                                                        if (isProfileIncomplete) {
+                                                            setShowIncompleteAlert(true);
+                                                            return;
+                                                        }
+                                                        if (storeStatus?.status !== 'offline' && (product.maxAvailability === undefined || product.maxAvailability > 0)) {
+                                                            if (product.isPizza) {
+                                                                setSelectedPizzaForLaunch(product);
+                                                                setPizzaFlavors([]);
+                                                                setPizzaModalQuantity(1);
+                                                                setIsPizzaSelectionMode(false);
+                                                                setPizzaObservation('');
+                                                            } else {
+                                                                addToCart(product);
+                                                            }
+                                                        }
+                                                    }}
+                                                    className="min-w-[160px] max-w-[160px] bg-indigo-600 rounded-[2rem] p-4 flex flex-col shadow-lg shadow-indigo-200 dark:shadow-none relative overflow-hidden active:scale-[0.98] transition-all group"
+                                                >
+                                                    <div className="absolute -top-4 -right-4 w-16 h-16 bg-white/10 rounded-full blur-xl"></div>
+                                                    <div className="w-full aspect-square bg-white/10 rounded-2xl overflow-hidden mb-3 flex items-center justify-center relative">
+                                                        {product.imageUrl ? (
+                                                            <img src={product.imageUrl} alt={product.name} className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500" />
+                                                        ) : (
+                                                            <Icons.ShoppingCart className="w-8 h-8 text-white/30" />
+                                                        )}
+                                                        <div className="absolute top-2 right-2">
+                                                             <Icons.Star size={12} className="text-amber-400 fill-amber-400" />
+                                                        </div>
+                                                    </div>
+                                                    <h5 className="text-white font-bold text-[11px] leading-tight line-clamp-2 h-7 mb-2">{product.name}</h5>
+                                                    <div className="flex justify-between items-center mt-auto">
+                                                        <span className="text-white font-black text-xs">{formatCurrency(product.price)}</span>
+                                                        <div className="w-7 h-7 bg-white/20 rounded-lg flex items-center justify-center text-white">
+                                                            <Icons.Plus size={14} strokeWidth={3} />
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                            ))}
+                                        </div>
+                                    </div>
+                                )}
+
+                                {/* Products Grid */}
+                                <div className="px-6 grid grid-cols-1 gap-5 animate-in slide-in-from-bottom-4 duration-500">
                                 {filteredProducts.map(product => (
                                         <div 
                                             key={product.id}
