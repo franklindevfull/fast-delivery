@@ -126,5 +126,5 @@ export const startOrderTimeoutService = () => {
         } catch (error: any) {
             console.error('CRITICAL Error in Order Timeout Service:', error.message);
         }
-    }, 60000);
+    }, 120000); // Changed to 2 minutes to save memory and CPU on Render Free tier
 };

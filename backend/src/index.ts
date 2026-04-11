@@ -90,8 +90,8 @@ const port = process.env.PORT || 3000;
 const server = http.createServer(app);
 initSocket(server);
 
-app.use(express.json({ limit: '5mb' }));
-app.use(express.urlencoded({ limit: '5mb', extended: true }));
+app.use(express.json({ limit: '1mb' }));
+app.use(express.urlencoded({ limit: '1mb', extended: true }));
 
 // Routes
 app.use('/api/auth', authRoutes);
@@ -139,8 +139,8 @@ server.listen(port, async () => {
     startOrderTimeoutService();
     autoCloseCashSessions(); // Run on startup to catch missed closures
 
-    // Auto closure cron job (every 10 minutes)
-    cron.schedule('*/10 * * * *', async () => {
+    // Auto closure cron job (every 30 minutes to save memory)
+    cron.schedule('*/30 * * * *', async () => {
         await autoCloseCashSessions();
     });
 
