@@ -114,6 +114,8 @@ const POS: React.FC<POSProps> = ({ currentUser }) => {
   const [showCatalog, setShowCatalog] = useState(false);
   const [productSearchTerm, setProductSearchTerm] = useState('');
   const [deliveryZones, setDeliveryZones] = useState<any[]>([]);
+  const [saveToZones, setSaveToZones] = useState(false);
+  const [neighborhoodName, setNeighborhoodName] = useState('');
 
 
   const showAlert = (title: string, message: string, type: 'INFO' | 'DANGER' | 'SUCCESS' = 'INFO') => {
@@ -279,10 +281,16 @@ const POS: React.FC<POSProps> = ({ currentUser }) => {
 
     if (sess.clientId) {
       const cl = clients.find(c => c.id === sess.clientId);
-      if (cl) setSelectedClient(cl);
+      if (cl) {
+        setSelectedClient(cl);
+        setNeighborhoodName(cl.neighborhood || '');
+      }
     } else if (sess.clientName) {
       const cl = clients.find(c => c.name === sess.clientName);
-      if (cl) setSelectedClient(cl);
+      if (cl) {
+        setSelectedClient(cl);
+        setNeighborhoodName(cl.neighborhood || '');
+      }
     }
 
     setTimeout(() => setIsLoadingOrder(false), 500);
@@ -303,9 +311,11 @@ const POS: React.FC<POSProps> = ({ currentUser }) => {
       if (cl) {
         setSelectedClient(cl);
         setClientSearch(cl.name);
+        setNeighborhoodName(cl.neighborhood || '');
       }
     } else {
       setSelectedClient(null);
+      setNeighborhoodName('');
     }
 
     if (order.deliveryFee !== undefined) {
@@ -335,6 +345,7 @@ const POS: React.FC<POSProps> = ({ currentUser }) => {
     setIsReceivingFiado(receivable.id);
     setEditingOrderId(receivable.orderId);
     setSelectedClient(receivable.client);
+    setNeighborhoodName(receivable.client.neighborhood || '');
     setTableNumber(receivable.order.tableNumber || '');
     setTableNumberInput(receivable.order.tableNumber?.toString() || '');
 
@@ -628,7 +639,7 @@ const POS: React.FC<POSProps> = ({ currentUser }) => {
     };
 
     console.log('Salvando pedido com metadados fiscais:', orderData);
-    await db.saveOrder(orderData, currentUser);
+    await db.saveOrder(orderData, currentUser, saveToZones, neighborhoodName);
 
     if (isTableSale) {
       await db.deleteTableSession(finalTableNum!);
@@ -701,6 +712,8 @@ const POS: React.FC<POSProps> = ({ currentUser }) => {
     setSystemPreview(null);
     setErrors({});
     setSelectedPizzaFlavors([]);
+    setSaveToZones(false);
+    setNeighborhoodName('');
   };
 
   const handleOpenCash = async () => {
@@ -1298,6 +1311,7 @@ const POS: React.FC<POSProps> = ({ currentUser }) => {
                           onClick={() => {
                             setSelectedClient(c);
                             setClientSearch(c.name);
+                            setNeighborhoodName(c.neighborhood || '');
                             setShowClientList(false);
                             setIsClientModalOpen(false);
 
@@ -1790,10 +1804,11 @@ const POS: React.FC<POSProps> = ({ currentUser }) => {
                       const zone = deliveryZones.find(z => z.id === zoneId);
                       if (zone) {
                         setManualDeliveryFee(zone.fee);
+                        setNeighborhoodName(zone.name);
                         addToast({ title: "ZONA SELECIONADA", message: `Taxa para ${zone.name} aplicada: R$ ${zone.fee.toFixed(2)}`, type: "SUCCESS" });
                       }
                     }}
-                    value={deliveryZones.find(z => z.fee === manualDeliveryFee)?.id || ""}
+                    value={deliveryZones.find(z => z.fee === manualDeliveryFee && z.name === neighborhoodName)?.id || ""}
                   >
                     <option value="">-- Selecionar Bairro --</option>
                     {deliveryZones.filter(z => z.active).map(zone => (
@@ -1804,18 +1819,38 @@ const POS: React.FC<POSProps> = ({ currentUser }) => {
                   </select>
                 </div>
 
-                <div className="flex justify-between items-center bg-white/50 dark:bg-slate-900/50 p-2.5 rounded-xl border border-blue-100/30 dark:border-blue-800/30">
-                  <span className="text-[10px] font-black text-blue-600/60 dark:text-blue-400/60 uppercase tracking-widest">Valor do Frete</span>
-                  <div className="flex items-center gap-2">
-                    <span className="text-xs font-black text-blue-600/40 dark:text-blue-400/40">R$</span>
-                    <input
-                      type="number"
-                      step="0.01"
-                      value={deliveryFeeValue}
-                      onChange={(e) => setManualDeliveryFee(parseFloat(e.target.value) || 0)}
-                      className="w-20 bg-transparent border-b border-blue-200 dark:border-blue-800 focus:border-blue-600 dark:focus:border-blue-400 outline-none text-right font-black text-blue-600 dark:text-blue-400 text-sm"
-                    />
+                <div className="flex flex-col gap-2 bg-white/50 dark:bg-slate-900/50 p-3 rounded-xl border border-blue-100/30 dark:border-blue-800/30">
+                  <div className="flex justify-between items-center mb-1">
+                    <span className="text-[10px] font-black text-blue-600/60 dark:text-blue-400/60 uppercase tracking-widest">Bairro / Taxa</span>
+                    <div className="flex items-center gap-2">
+                       <span className="text-xs font-black text-blue-600/40 dark:text-blue-400/40">R$</span>
+                       <input
+                        type="number"
+                        step="0.01"
+                        value={deliveryFeeValue}
+                        onChange={(e) => setManualDeliveryFee(parseFloat(e.target.value) || 0)}
+                        className="w-16 bg-transparent border-b border-blue-200 dark:border-blue-800 focus:border-blue-600 dark:focus:border-blue-400 outline-none text-right font-black text-blue-600 dark:text-blue-400 text-sm"
+                      />
+                    </div>
                   </div>
+                  
+                  <input 
+                    type="text"
+                    placeholder="NOME DO BAIRRO"
+                    value={neighborhoodName}
+                    onChange={(e) => setNeighborhoodName(e.target.value.toUpperCase())}
+                    className="w-full bg-slate-50 dark:bg-slate-800 border-none rounded-lg px-3 py-1.5 text-[10px] font-black uppercase tracking-tight text-slate-700 dark:text-slate-300"
+                  />
+
+                  <label className="flex items-center gap-2 mt-1 cursor-pointer group">
+                    <input 
+                      type="checkbox" 
+                      checked={saveToZones}
+                      onChange={(e) => setSaveToZones(e.target.checked)}
+                      className="w-3.5 h-3.5 rounded border-blue-300 text-blue-600 focus:ring-blue-500"
+                    />
+                    <span className="text-[8px] font-black text-slate-400 group-hover:text-blue-600 transition-colors uppercase">Salvar como zona de entrega</span>
+                  </label>
                 </div>
               </div>
             )}

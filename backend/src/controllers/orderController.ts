@@ -215,7 +215,7 @@ const handleInventoryImpact = async (tx: any, items: any[], type: 'DECREMENT' | 
 };
 
 export const saveOrder = async (req: Request, res: Response) => {
-    const { user, order } = req.body;
+    const { user, order, saveToZones, neighborhood } = req.body;
 
     if (!order) {
         console.error('Invalid order save request: order object is missing', req.body);
@@ -444,7 +444,20 @@ export const saveOrder = async (req: Request, res: Response) => {
                 }
             }
 
-            // 3. Upsert Order
+            // 3. Save to Delivery Zones if requested
+            if (saveToZones && neighborhood && order.deliveryFee !== undefined) {
+                const zoneName = neighborhood.toUpperCase().trim();
+                const fee = parseFloat(order.deliveryFee.toString());
+                
+                await tx.deliveryZone.upsert({
+                    where: { name: zoneName },
+                    update: { fee, active: true },
+                    create: { name: zoneName, fee, active: true }
+                });
+                console.log(`Zone ${zoneName} saved/updated from saveOrder with fee ${fee}`);
+            }
+
+            // 4. Upsert Order
             return await tx.order.upsert({
                 where: { id: orderIdToSave },
                 update: {

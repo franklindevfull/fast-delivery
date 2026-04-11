@@ -302,10 +302,10 @@ class APIDBService {
   }
 
   // Deduct stock is now handled on the backend within the saveOrder transaction
-  public async saveOrder(order: Order, user: User) {
+  public async saveOrder(order: Order, user: User, saveToZones?: boolean, neighborhood?: string) {
     await this.request('/orders', {
       method: 'POST',
-      body: JSON.stringify({ order, user })
+      body: JSON.stringify({ order, user, saveToZones, neighborhood })
     });
   }
 
@@ -320,6 +320,13 @@ class APIDBService {
     return this.request<Order>(`/orders/${orderId}/items/ready`, {
       method: 'PATCH',
       body: JSON.stringify({ itemIds, user })
+    });
+  }
+
+  public async updateOrderDeliveryFee(orderId: string, fee: number, user: User, saveToZones?: boolean, neighborhood?: string) {
+    await this.request(`/orders/${orderId}/delivery-fee`, {
+      method: 'PATCH',
+      body: JSON.stringify({ fee, user, saveToZones, neighborhood })
     });
   }
 

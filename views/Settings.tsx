@@ -565,9 +565,32 @@ const DeliveryZoneManagement: React.FC = () => {
                 const parts = line.includes(';') ? line.split(';') : line.split(',');
                 if (parts.length >= 2) {
                     const name = parts[0].trim();
-                    // Limpa símbolos de moeda, espaços e troca vírgula por ponto
+                    // Limpa símbolos de moeda e outros caracteres não numéricos
                     const rawValue = parts[1].trim();
-                    const cleanValue = rawValue.replace(/[^0-9,.]/g, '').replace(',', '.');
+                    
+                    // Lógica robusta para extrair número
+                    // 1. Remove tudo que não é dígito, ponto ou vírgula
+                    let cleanValue = rawValue.replace(/[^0-9,.]/g, '');
+                    
+                    // 2. Tenta identificar o separador decimal
+                    // Se houver tanto ponto quanto vírgula, o último é o decimal
+                    const lastDot = cleanValue.lastIndexOf('.');
+                    const lastComma = cleanValue.lastIndexOf(',');
+                    
+                    if (lastDot !== -1 && lastComma !== -1) {
+                        if (lastDot > lastComma) {
+                            // Formato 1,000.00 -> remove vírgula e mantém ponto
+                            cleanValue = cleanValue.replace(/,/g, '');
+                        } else {
+                            // Formato 1.000,00 -> remove ponto e troca vírgula por ponto
+                            cleanValue = cleanValue.replace(/\./g, '').replace(',', '.');
+                        }
+                    } else if (lastComma !== -1) {
+                        // Apenas vírgula -> assume decimal
+                        cleanValue = cleanValue.replace(',', '.');
+                    }
+                    // Se apenas ponto, já está no formato correto para o parseFloat
+
                     const fee = parseFloat(cleanValue);
 
                     if (name && !isNaN(fee)) {
