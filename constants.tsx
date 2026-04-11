@@ -9,7 +9,8 @@ import {
   Copy,
   Zap,
   ShoppingCart,
-  BadgeDollarSign
+  BadgeDollarSign,
+  Star
 } from 'lucide-react';
 
 export const COLORS = {
@@ -299,4 +300,5 @@ export const Icons = {
   Zap: (props: any) => <Zap className="w-5 h-5" {...props} />,
   ShoppingCart: (props: any) => <ShoppingCart className="w-5 h-5" {...props} />,
   BadgeDollarSign: (props: any) => <BadgeDollarSign className="w-5 h-5" {...props} />,
+  Star: (props: any) => <Star className="w-5 h-5" {...props} />,
 };
