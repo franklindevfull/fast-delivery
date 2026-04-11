@@ -537,6 +537,7 @@ const DeliveryZoneManagement: React.FC = () => {
     const [showErrors, setShowErrors] = useState(false);
     const [editingZone, setEditingZone] = useState<DeliveryZone | null>(null);
     const [formData, setFormData] = useState({ name: '', fee: 0, active: true });
+    const [searchTerm, setSearchTerm] = useState('');
     const { addToast } = useToast();
     const fileInputRef = useRef<HTMLInputElement>(null);
 
@@ -670,6 +671,18 @@ const DeliveryZoneManagement: React.FC = () => {
                     <p className="text-[10px] text-slate-400 dark:text-slate-500 font-bold uppercase tracking-widest leading-relaxed">Gerencie bairros e valores de frete dinâmicos</p>
                 </div>
                 <div className="flex flex-col sm:flex-row gap-3 w-full sm:w-auto">
+                    <div className="relative flex-1 min-w-[200px]">
+                        <div className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400">
+                            <Icons.Search size={16} />
+                        </div>
+                        <input
+                            type="text"
+                            placeholder="BUSCAR BAIRRO..."
+                            value={searchTerm}
+                            onChange={(e) => setSearchTerm(e.target.value)}
+                            className="w-full pl-11 pr-4 py-2.5 bg-slate-50 dark:bg-slate-800 border border-slate-100 dark:border-slate-700 rounded-xl text-[10px] font-black uppercase tracking-widest outline-none focus:ring-2 focus:ring-blue-500 transition-all dark:text-white"
+                        />
+                    </div>
                     <input
                         type="file"
                         ref={fileInputRef}
@@ -695,7 +708,7 @@ const DeliveryZoneManagement: React.FC = () => {
             </div>
 
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-6">
-                {zones.map(z => (
+                {zones.filter(z => z.name.toLowerCase().includes(searchTerm.toLowerCase())).map(z => (
                     <div key={z.id} className={`bg-white dark:bg-slate-900 p-5 rounded-3xl border border-slate-100 dark:border-slate-800 flex flex-col group hover:shadow-xl transition-all ${!z.active ? 'opacity-50 grayscale' : ''}`}>
                         <div className="flex items-center justify-between mb-4">
                             <div className="flex items-center gap-3">
