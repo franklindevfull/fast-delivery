@@ -48,6 +48,7 @@ const Checkout: React.FC = () => {
     const [copied, setCopied] = useState(false);
     const [zones, setZones] = useState<any[]>([]);
     const [deliveryFeeNeedsReview, setDeliveryFeeNeedsReview] = useState(false);
+    const [clientNeighborhood, setClientNeighborhood] = useState('');
     const navigate = useNavigate();
 
     useEffect(() => {
@@ -69,6 +70,9 @@ const Checkout: React.FC = () => {
 
                     if (initialAddress) {
                         setSavedAddress(initialAddress);
+                    }
+                    if (client.neighborhood) {
+                        setClientNeighborhood(client.neighborhood);
                     }
                 }
 
@@ -98,21 +102,26 @@ const Checkout: React.FC = () => {
         if (useNewAddress) {
             neighborhoodToMatch = newAddress.neighborhood;
         } else if (savedAddress) {
-            // First try with the " - " separator used in formatAddress
-            if (savedAddress.includes(' - ')) {
-                const afterDash = savedAddress.split(' - ')[1];
-                if (afterDash) {
-                    neighborhoodToMatch = afterDash.split(',')[0]?.trim();
+            // Prioritize direct neighborhood field from client object
+            if (clientNeighborhood) {
+                neighborhoodToMatch = clientNeighborhood;
+            } else {
+                // First try with the " - " separator used in formatAddress
+                if (savedAddress.includes(' - ')) {
+                    const afterDash = savedAddress.split(' - ')[1];
+                    if (afterDash) {
+                        neighborhoodToMatch = afterDash.split(',')[0]?.trim();
+                    }
                 }
-            }
 
-            // Fallback to legacy comma splitting if no neighborhood found yet
-            if (!neighborhoodToMatch) {
-                const parts = savedAddress.split(',').map(p => p.trim());
-                if (parts.length >= 3) {
-                    neighborhoodToMatch = parts[2];
-                } else if (parts.length === 2 && parts[1].includes('-')) {
-                    neighborhoodToMatch = parts[1].split('-')[1]?.trim();
+                // Fallback to legacy comma splitting if no neighborhood found yet
+                if (!neighborhoodToMatch) {
+                    const parts = savedAddress.split(',').map(p => p.trim());
+                    if (parts.length >= 3) {
+                        neighborhoodToMatch = parts[2];
+                    } else if (parts.length === 2 && parts[1].includes('-')) {
+                        neighborhoodToMatch = parts[1].split('-')[1]?.trim();
+                    }
                 }
             }
         }

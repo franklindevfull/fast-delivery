@@ -28,6 +28,7 @@ const CheckoutTab: React.FC<{ onOrderPlaced: () => void }> = ({ onOrderPlaced })
     });
     const [deliveryFee, setDeliveryFee] = useState(0);
     const [deliveryFeeNeedsReview, setDeliveryFeeNeedsReview] = useState(false);
+    const [clientNeighborhood, setClientNeighborhood] = useState('');
     const [zones, setZones] = useState<any[]>([]);
     const [isLoading, setIsLoading] = useState(false);
     const [isFetchingCep, setIsFetchingCep] = useState(false);
@@ -50,6 +51,7 @@ const CheckoutTab: React.FC<{ onOrderPlaced: () => void }> = ({ onOrderPlaced })
                     if (!initialAddress && client.addresses && client.addresses.length > 0) initialAddress = client.addresses[0];
                     if (!initialAddress && client.street) initialAddress = `${client.street}, ${client.addressNumber || ''}, ${client.neighborhood || ''}`;
                     if (initialAddress) setSavedAddress(initialAddress);
+                    if (client.neighborhood) setClientNeighborhood(client.neighborhood);
                 }
 
                 const [, status, zonesData] = await Promise.all([
@@ -74,11 +76,16 @@ const CheckoutTab: React.FC<{ onOrderPlaced: () => void }> = ({ onOrderPlaced })
         if (useNewAddress) {
             neighborhoodToMatch = newAddress.neighborhood;
         } else if (savedAddress) {
-            // Tentativa de extrair bairro do formato "Rua, Num, Compl - Bairro, Cidade, UF"
-            const parts = savedAddress.split(' - ');
-            if (parts.length > 1) {
-                const subParts = parts[1].split(', ');
-                neighborhoodToMatch = subParts[0];
+            // Prioritize the direct client neighborhood field if it matches the saved address context
+            if (clientNeighborhood) {
+                neighborhoodToMatch = clientNeighborhood;
+            } else {
+                // Fallback attempt to extract neighborhood from "Street, Num, Compl - Bairro, City, UF"
+                const parts = savedAddress.split(' - ');
+                if (parts.length > 1) {
+                    const subParts = parts[1].split(', ');
+                    neighborhoodToMatch = subParts[0];
+                }
             }
         }
 
