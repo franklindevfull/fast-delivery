@@ -49,3 +49,29 @@ export const deleteZone = async (req: Request, res: Response) => {
         res.status(500).json({ error: error.message });
     }
 };
+
+export const bulkImportZones = async (req: Request, res: Response) => {
+    try {
+        const { zones } = req.body;
+        if (!Array.isArray(zones)) {
+            return res.status(400).json({ error: 'Zones must be an array' });
+        }
+
+        const results = await prisma.$transaction(async (tx: any) => {
+            const upserts = zones.map((zone: any) => {
+                const normalizedName = (zone.name || '').toUpperCase().trim();
+                if (!normalizedName) return null;
+                return tx.deliveryZone.upsert({
+                    where: { name: normalizedName },
+                    update: { fee: parseFloat(zone.fee) || 0, active: true },
+                    create: { name: normalizedName, fee: parseFloat(zone.fee) || 0, active: true }
+                });
+            });
+            return Promise.all(upserts.filter(Boolean));
+        });
+
+        res.json({ success: true, count: results.length });
+    } catch (error: any) {
+        res.status(500).json({ error: error.message });
+    }
+};

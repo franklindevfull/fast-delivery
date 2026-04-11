@@ -1,5 +1,5 @@
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { db } from '../services/db';
 import { User, Waiter, DeliveryDriver, BusinessSettings, DeliveryZone } from '../types';
 import { Icons } from '../constants';
@@ -538,6 +538,60 @@ const DeliveryZoneManagement: React.FC = () => {
     const [editingZone, setEditingZone] = useState<DeliveryZone | null>(null);
     const [formData, setFormData] = useState({ name: '', fee: 0, active: true });
     const { addToast } = useToast();
+    const fileInputRef = useRef<HTMLInputElement>(null);
+
+    const handleCSVUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+        const file = e.target.files?.[0];
+        if (!file) return;
+
+        const reader = new FileReader();
+        reader.onload = async (event) => {
+            const text = event.target?.result as string;
+            if (!text) return;
+
+            const lines = text.split(/\r?\n/);
+            const zonesToImport: { name: string, fee: number }[] = [];
+
+            // Detectar cabeçalho
+            const firstLine = lines[0]?.toLowerCase() || '';
+            const hasHeader = firstLine.includes('bairro') || firstLine.includes('taxa') || firstLine.includes('nome');
+            const startIndex = hasHeader ? 1 : 0;
+
+            for (let i = startIndex; i < lines.length; i++) {
+                const line = lines[i].trim();
+                if (!line) continue;
+
+                // Suporta vírgula ou ponto e vírgula
+                const parts = line.includes(';') ? line.split(';') : line.split(',');
+                if (parts.length >= 2) {
+                    const name = parts[0].trim();
+                    // Trata formato de decimal brasileiro (vírgula)
+                    const feeStr = parts[1].trim().replace(',', '.');
+                    const fee = parseFloat(feeStr);
+
+                    if (name && !isNaN(fee)) {
+                        zonesToImport.push({ name, fee });
+                    }
+                }
+            }
+
+            if (zonesToImport.length > 0) {
+                try {
+                    addToast({ title: "IMPORTANDO", message: `Processando ${zonesToImport.length} bairros...`, type: "INFO" });
+                    const result = await db.importDeliveryZones(zonesToImport);
+                    addToast({ title: "SUCESSO", message: `${result.count} bairros importados/atualizados com sucesso!`, type: "SUCCESS" });
+                    refresh();
+                } catch (error: any) {
+                    addToast({ title: "ERRO NA IMPORTAÇÃO", message: error.message || "Erro ao processar o arquivo.", type: "DANGER" });
+                }
+            } else {
+                addToast({ title: "ARQUIVO INVÁLIDO", message: "Nenhum dado válido encontrado. O arquivo deve ter 'Bairro' e 'Taxa'.", type: "WARNING" });
+            }
+
+            if (fileInputRef.current) fileInputRef.current.value = '';
+        };
+        reader.readAsText(file, 'UTF-8');
+    };
 
     const refresh = async () => {
         try {
@@ -591,13 +645,29 @@ const DeliveryZoneManagement: React.FC = () => {
                     <h3 className="text-xl font-black text-slate-800 dark:text-white uppercase tracking-tighter">Zonas de Entrega</h3>
                     <p className="text-[10px] text-slate-400 dark:text-slate-500 font-bold uppercase tracking-widest leading-relaxed">Gerencie bairros e valores de frete dinâmicos</p>
                 </div>
-                <button
-                    onClick={() => { setEditingZone(null); setFormData({ name: '', fee: 0, active: true }); setIsModalOpen(true); }}
-                    className="w-full sm:w-auto bg-blue-600 hover:bg-blue-700 text-white px-5 py-2.5 rounded-xl font-bold text-sm transition-all flex items-center justify-center gap-2 shadow-lg shadow-blue-500/20 active:scale-95 shrink-0"
-                >
-                    <Icons.Plus size={18} strokeWidth={3} />
-                    Nova Zona
-                </button>
+                <div className="flex flex-col sm:flex-row gap-3 w-full sm:w-auto">
+                    <input
+                        type="file"
+                        ref={fileInputRef}
+                        onChange={handleCSVUpload}
+                        accept=".csv"
+                        className="hidden"
+                    />
+                    <button
+                        onClick={() => fileInputRef.current?.click()}
+                        className="w-full sm:w-auto bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-300 px-5 py-2.5 rounded-xl font-bold text-sm transition-all flex items-center justify-center gap-2 border border-slate-200 dark:border-slate-700 active:scale-95"
+                    >
+                        <Icons.Clock size={18} strokeWidth={3} />
+                        Importar CSV
+                    </button>
+                    <button
+                        onClick={() => { setEditingZone(null); setFormData({ name: '', fee: 0, active: true }); setIsModalOpen(true); }}
+                        className="w-full sm:w-auto bg-blue-600 hover:bg-blue-700 text-white px-5 py-2.5 rounded-xl font-bold text-sm transition-all flex items-center justify-center gap-2 shadow-lg shadow-blue-500/20 active:scale-95 shrink-0"
+                    >
+                        <Icons.Plus size={18} strokeWidth={3} />
+                        Nova Zona
+                    </button>
+                </div>
             </div>
 
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-6">

@@ -683,6 +683,13 @@ class APIDBService {
     });
   }
 
+  public async importDeliveryZones(zones: { name: string, fee: number }[]): Promise<{ success: boolean, count: number }> {
+    return this.request('/delivery-zones/import', {
+      method: 'POST',
+      body: JSON.stringify({ zones })
+    });
+  }
+
   // Removed legacy Thermal Printing API as per project standardization to window.print()
 }
 
