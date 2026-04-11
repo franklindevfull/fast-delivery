@@ -565,9 +565,10 @@ const DeliveryZoneManagement: React.FC = () => {
                 const parts = line.includes(';') ? line.split(';') : line.split(',');
                 if (parts.length >= 2) {
                     const name = parts[0].trim();
-                    // Trata formato de decimal brasileiro (vírgula)
-                    const feeStr = parts[1].trim().replace(',', '.');
-                    const fee = parseFloat(feeStr);
+                    // Limpa símbolos de moeda, espaços e troca vírgula por ponto
+                    const rawValue = parts[1].trim();
+                    const cleanValue = rawValue.replace(/[^0-9,.]/g, '').replace(',', '.');
+                    const fee = parseFloat(cleanValue);
 
                     if (name && !isNaN(fee)) {
                         zonesToImport.push({ name, fee });
