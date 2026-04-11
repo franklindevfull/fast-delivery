@@ -220,7 +220,7 @@ const Inventory: React.FC = () => {
                     <p className="font-bold text-slate-700 dark:text-slate-200 uppercase text-xs">{item.name}</p>
                     <p className="text-[9px] text-slate-400 dark:text-slate-500 font-mono">ID: {item.id}</p>
                   </td>
-                  <td className="px-6 py-4 font-mono font-bold text-slate-600 dark:text-slate-400 text-xs">{item.quantity} {item.unit}</td>
+                  <td className="px-6 py-4 font-mono font-bold text-slate-600 dark:text-slate-400 text-xs">{item.quantity.toFixed(2)} {item.unit}</td>
                   <td className="px-6 py-4">
                     {item.quantity <= item.minStock ? (
                       <span className="bg-red-50 dark:bg-red-900/30 text-red-600 dark:text-red-400 px-2 py-1 rounded-md text-[9px] font-black uppercase">Crítico</span>
