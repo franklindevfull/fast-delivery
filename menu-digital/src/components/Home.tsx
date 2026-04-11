@@ -48,7 +48,7 @@ const Home: React.FC<HomeProps> = ({ cart, addToCart, updateQuantity }) => {
         if (p.showInMenu === false) return false;
 
         const matchesCategory = activeCategory === 'Todos' || p.category === activeCategory;
-        const query = setSearchTerm ? searchTerm.toLowerCase().trim() : ''; 
+        const query = searchTerm.toLowerCase().trim(); 
         const matchesSearch = query ? p.name.toLowerCase().includes(query) : true;
         return matchesCategory && matchesSearch;
     });

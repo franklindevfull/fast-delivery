@@ -7,6 +7,8 @@ export interface Product {
     maxAvailability?: number;
     isPizza?: boolean;
     pizzaSize?: string;
+    showInMenu?: boolean;
+    isFeatured?: boolean;
 }
 
 export interface CartItem extends Product {
