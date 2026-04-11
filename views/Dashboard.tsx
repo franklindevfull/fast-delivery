@@ -260,7 +260,7 @@ const Dashboard: React.FC = () => {
                     <div className="w-20 h-20 rounded-[2.5rem] flex items-center justify-center shrink-0 mb-6 shadow-sm" style={{ backgroundColor: `${item.color}15`, color: item.color, border: `1px solid ${item.color}30` }}>
                       {item.name === 'Delivery' && <Icons.Truck size={40} />}
                       {item.name === 'Balcão' && <Icons.User size={40} />}
-                      {item.name === 'Mesa' && <Icons.Coffee size={40} />}
+                      {item.name === 'Mesa' && <Icons.Table size={40} />}
                     </div>
                     <div className="space-y-1">
                       <p className="text-[11px] font-black text-slate-400 dark:text-slate-500 uppercase tracking-[0.2em]">{item.name}</p>
