@@ -515,56 +515,59 @@ const App: React.FC = () => {
                   </div>
                 </div>
 
-                <div className="flex justify-between items-center gap-4 pt-2">
-                  <div className="flex flex-col whitespace-nowrap">
-                    <span className="text-[9px] font-black text-slate-400 uppercase tracking-widest">Total</span>
-                    <span className="text-xl font-black text-slate-900">R$ {order.total.toFixed(2)}</span>
-                  </div>
+                <div className="flex flex-col gap-4 pt-4 border-t border-slate-50">
+                  <div className="flex justify-between items-center px-1">
+                    <div className="flex flex-col whitespace-nowrap">
+                      <span className="text-[9px] font-black text-slate-400 uppercase tracking-widest">Total da Entrega</span>
+                      <span className="text-2xl font-black text-slate-900 tracking-tighter">R$ {order.total.toFixed(2)}</span>
+                    </div>
 
-                  <div className="flex-1 flex justify-center">
                     <button 
                       onClick={() => setPrintingOrder(order)} 
-                      className="p-3 bg-slate-900 text-white rounded-2xl shadow-xl active:scale-90 transition-all flex items-center justify-center"
+                      className="w-12 h-12 bg-slate-100 text-slate-600 rounded-2xl active:scale-90 transition-all flex items-center justify-center border border-slate-200/50"
+                      title="Imprimir Cupom"
                     >
                       <Icons.Print className="w-5 h-5" />
                     </button>
                   </div>
 
-                  <div className="flex flex-col items-start gap-2">
+                  <div className="w-full">
                     {order.status === OrderStatus.READY ? (
-                      <div className="flex flex-col gap-3 items-start w-full">
+                      <div className="flex flex-col gap-3 w-full">
                         {order.assignedAt && (
-                          <CheckoutTimer 
-                            assignedAt={order.assignedAt} 
-                            timeoutMinutes={settings?.orderTimeoutMinutes || 5} 
-                          />
+                          <div className="flex justify-center">
+                            <CheckoutTimer 
+                              assignedAt={order.assignedAt} 
+                              timeoutMinutes={settings?.orderTimeoutMinutes || 5} 
+                            />
+                          </div>
                         )}
-                        <div className="flex gap-2 w-full">
+                        <div className="flex gap-3 w-full">
                           <button
                             onClick={() => updateDeliveryStatus(order.id, OrderStatus.READY, '')}
-                            className="px-4 py-3 bg-slate-100 text-slate-500 rounded-2xl font-black uppercase text-[10px] tracking-widest active:scale-95 transition-all"
+                            className="flex-1 py-4 bg-slate-100 text-slate-500 rounded-2xl font-black uppercase text-[10px] tracking-widest active:scale-95 transition-all border border-slate-200/50"
                           >
                             Rejeitar
                           </button>
                           <button
                             onClick={() => updateDeliveryStatus(order.id, OrderStatus.OUT_FOR_DELIVERY, driver.id)}
-                            className="px-6 py-3 bg-blue-600 text-white rounded-2xl font-black uppercase text-[10px] tracking-widest shadow-xl shadow-blue-500/30 active:scale-95 transition-all flex-1"
+                            className="flex-[2] py-4 bg-blue-600 text-white rounded-2xl font-black uppercase text-[10px] tracking-widest shadow-xl shadow-blue-500/30 active:scale-95 transition-all"
                           >
                             Aceitar
                           </button>
                         </div>
                       </div>
                     ) : (
-                      <div className="flex flex-col gap-2 items-start w-full min-w-[140px]">
+                      <div className="flex flex-col gap-4 w-full">
                         {(!order.paymentMethod || order.paymentMethod === "") ? (
-                          <div className="flex flex-col gap-1 items-start mb-1">
-                            <span className="text-[8px] font-black text-slate-400 uppercase tracking-widest">Selecionar Pagamento:</span>
-                            <div className="flex gap-1 flex-wrap">
+                          <div className="bg-blue-50/50 p-3 rounded-2xl border border-blue-100/50">
+                            <span className="text-[9px] font-black text-blue-600 uppercase tracking-widest block mb-2 text-center">Selecionar Pagamento no Ato:</span>
+                            <div className="grid grid-cols-2 gap-2">
                               {['DINHEIRO', 'PIX', 'CARTÃO', 'FIADO'].map(m => (
                                 <button
                                   key={m}
                                   onClick={() => setSelectedPayments(prev => ({ ...prev, [order.id]: m }))}
-                                  className={`px-3 py-1.5 rounded-lg text-[8px] font-black uppercase transition-all ${selectedPayments[order.id] === m ? 'bg-blue-600 text-white shadow-md' : 'bg-slate-100 text-slate-400'}`}
+                                  className={`py-2.5 rounded-xl text-[10px] font-black uppercase transition-all border ${selectedPayments[order.id] === m ? 'bg-blue-600 border-blue-600 text-white shadow-md' : 'bg-white border-slate-200 text-slate-400'}`}
                                 >
                                   {m}
                                 </button>
@@ -572,9 +575,9 @@ const App: React.FC = () => {
                             </div>
                           </div>
                         ) : (
-                          <div className="flex flex-col items-start mb-1">
-                            <span className="text-[8px] font-black text-slate-400 uppercase tracking-widest">Pagamento Definido:</span>
-                            <span className="text-[10px] font-black text-blue-600 uppercase tracking-widest">{(paymentLabels[(order.paymentMethod || '').toUpperCase()] || order.paymentMethod || 'Não Informado').toUpperCase()}</span>
+                          <div className="flex items-center justify-between px-2 py-3 bg-emerald-50/50 rounded-2xl border border-emerald-100/50">
+                            <span className="text-[9px] font-black text-emerald-600 uppercase tracking-widest">Pagamento:</span>
+                            <span className="text-[11px] font-black text-emerald-700 uppercase">{(paymentLabels[(order.paymentMethod || '').toUpperCase()] || order.paymentMethod || 'Não Informado').toUpperCase()}</span>
                           </div>
                         )}
 
@@ -586,9 +589,9 @@ const App: React.FC = () => {
                             }
                             updateDeliveryStatus(order.id, OrderStatus.DELIVERED, undefined, payMethod);
                           }}
-                          className="px-6 py-3 bg-emerald-500 text-white rounded-2xl font-black uppercase text-[10px] tracking-widest shadow-xl shadow-emerald-500/30 active:scale-95 transition-all w-full"
+                          className="w-full py-4 bg-emerald-500 text-white rounded-2xl font-black uppercase text-[11px] tracking-widest shadow-xl shadow-emerald-500/40 active:scale-95 transition-all"
                         >
-                          Finalizar
+                          Finalizar Entrega
                         </button>
                       </div>
                     )}
