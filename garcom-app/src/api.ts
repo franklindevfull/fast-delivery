@@ -15,8 +15,10 @@ const api = axios.create({
 api.interceptors.request.use(config => {
     const saved = localStorage.getItem(AUTH_KEY);
     if (saved) {
-        // No auth header needed if backend uses session cookies, 
-        // but we'll include the user ID as a header for audit purposes if needed.
+        const parsed = JSON.parse(saved);
+        if (parsed.token) {
+            config.headers.Authorization = `Bearer ${parsed.token}`;
+        }
     }
     return config;
 });
@@ -56,12 +58,13 @@ export const db = {
     },
 
     login: async (email: string, pass: string): Promise<User> => {
-        const { data } = await api.post<User>('/auth/login', { email, password: pass });
-        if (!data.permissions.includes('waiter') && !data.permissions.includes('admin')) {
+        const { data } = await api.post<any>('/auth/login', { email, password: pass });
+        const user = data.user;
+        if (!user.permissions.includes('waiter') && !user.permissions.includes('admin')) {
             throw new Error('Acesso negado: Somente garçons podem acessar este app.');
         }
-        localStorage.setItem(AUTH_KEY, JSON.stringify({ user: data, timestamp: Date.now() }));
-        return data;
+        localStorage.setItem(AUTH_KEY, JSON.stringify({ user, token: data.token, timestamp: Date.now() }));
+        return user;
     },
 
     verifyRecoveryCode: async (email: string, recoveryCode: string): Promise<boolean> => {

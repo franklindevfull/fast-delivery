@@ -1,6 +1,9 @@
 import { Request, Response } from 'express';
 import prisma from '../prisma.js';
 import bcrypt from 'bcryptjs';
+import jwt from 'jsonwebtoken';
+
+const JWT_SECRET = process.env.JWT_SECRET || 'fallback_secret_delivery_fast';
 
 export const login = async (req: Request, res: Response) => {
     const { email, password } = req.body;
@@ -51,7 +54,9 @@ export const login = async (req: Request, res: Response) => {
                 waiterId: waiter?.id || null
             };
 
-            res.json(userWithWaiter);
+            const token = jwt.sign({ id: user.id, role: 'ADMIN', permissions: user.permissions }, JWT_SECRET, { expiresIn: '24h' });
+
+            res.json({ token, user: userWithWaiter });
         } else {
             res.status(401).json({ message: 'Credenciais inválidas' });
         }

@@ -7,12 +7,22 @@ const AUTH_KEY = 'entregador_auth';
 
 class DriverDBService {
     private async request<T>(path: string, options: RequestInit = {}): Promise<T> {
+        const session = localStorage.getItem(AUTH_KEY);
+        const headers: any = {
+            'Content-Type': 'application/json',
+            ...options.headers,
+        };
+        
+        if (session) {
+            const parsed = JSON.parse(session);
+            if (parsed.token) {
+                headers['Authorization'] = `Bearer ${parsed.token}`;
+            }
+        }
+
         const response = await fetch(`${API_URL}${path}`, {
             ...options,
-            headers: {
-                'Content-Type': 'application/json',
-                ...options.headers,
-            },
+            headers,
         });
 
         if (!response.ok) {
@@ -31,17 +41,17 @@ class DriverDBService {
 
     // Auth
     public async login(email: string, password: string): Promise<User> {
-        const user = await this.request<User>('/auth/login', {
+        const response = await this.request<any>('/auth/login', {
             method: 'POST',
             body: JSON.stringify({ email, password })
         });
-        localStorage.setItem(AUTH_KEY, JSON.stringify(user));
-        return user;
+        localStorage.setItem(AUTH_KEY, JSON.stringify({ user: response.user, token: response.token, timestamp: Date.now() }));
+        return response.user;
     }
 
     public getCurrentUser(): User | null {
         const session = localStorage.getItem(AUTH_KEY);
-        return session ? JSON.parse(session) : null;
+        return session ? JSON.parse(session).user : null;
     }
 
     public logout() {

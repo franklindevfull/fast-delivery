@@ -48,12 +48,18 @@ const DEFAULT_SETTINGS: BusinessSettings = {
 class APIDBService {
   private async request<T>(path: string, options: RequestInit = {}, retries = 2): Promise<T> {
     try {
+      const session = this.getCurrentSession();
+      const headers: any = {
+        'Content-Type': 'application/json',
+        ...options.headers,
+      };
+      if (session && (session as any).token) {
+        headers['Authorization'] = `Bearer ${(session as any).token}`;
+      }
+
       const response = await fetch(`${API_URL}${path}`, {
         ...options,
-        headers: {
-          'Content-Type': 'application/json',
-          ...options.headers,
-        },
+        headers,
       });
 
       if (!response.ok) {
@@ -155,13 +161,13 @@ class APIDBService {
 
   public async login(email: string, pass: string): Promise<User | null> {
     try {
-      const user = await this.request<User>('/auth/login', {
+      const response = await this.request<any>('/auth/login', {
         method: 'POST',
         body: JSON.stringify({ email, password: pass })
       });
-      if (user) {
-        localStorage.setItem(AUTH_KEY, JSON.stringify({ user, timestamp: Date.now() }));
-        return user;
+      if (response && response.user) {
+        localStorage.setItem(AUTH_KEY, JSON.stringify({ user: response.user, token: response.token, timestamp: Date.now() }));
+        return response.user;
       }
       return null;
     } catch (e) {
@@ -173,11 +179,11 @@ class APIDBService {
     try {
       // Use the standard login endpoint to validate, but do NOT persist to localStorage
       // which allows a waiter to authenticate an action while the main Admin session remains intact.
-      const user = await this.request<User>('/auth/login', {
+      const response = await this.request<any>('/auth/login', {
         method: 'POST',
         body: JSON.stringify({ email, password: pass })
       });
-      return user || null;
+      return response?.user || null;
     } catch (e) {
       return null;
     }
