@@ -91,6 +91,7 @@ const port = process.env.PORT || 3000;
 const server = http.createServer(app);
 initSocket(server);
 
+import { authenticate } from './middleware/authMiddleware.js';
 import helmet from 'helmet';
 import rateLimit from 'express-rate-limit';
 
