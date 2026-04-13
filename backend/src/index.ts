@@ -91,7 +91,30 @@ const port = process.env.PORT || 3000;
 const server = http.createServer(app);
 initSocket(server);
 
-import { authenticate } from './middleware/authMiddleware.js';
+import helmet from 'helmet';
+import rateLimit from 'express-rate-limit';
+
+app.use(helmet({
+    contentSecurityPolicy: {
+        directives: {
+            defaultSrc: ["'self'"],
+            scriptSrc: ["'self'", "'unsafe-inline'", "https://esm.sh", "https://fonts.googleapis.com"],
+            styleSrc: ["'self'", "'unsafe-inline'", "https://fonts.googleapis.com"],
+            imgSrc: ["'self'", "data:", "https:", "http:"],
+            connectSrc: ["'self'", "https://fast-delivery-backend-e1b0.onrender.com", "http://localhost:3000", "http://127.0.0.1:3000"],
+            fontSrc: ["'self'", "https://fonts.gstatic.com"],
+        },
+    },
+    crossOriginResourcePolicy: { policy: "cross-origin" }
+}));
+
+const authLimiter = rateLimit({
+    windowMs: 15 * 60 * 1000, // 15 minutos
+    max: 100, // Limite de 100 requisições por janela por IP
+    message: { message: 'Muitas tentativas de login a partir deste IP, tente novamente após 15 minutos.' },
+    standardHeaders: true,
+    legacyHeaders: false,
+});
 
 app.use(express.json({ limit: '10mb' }));
 app.use(express.urlencoded({ limit: '10mb', extended: true }));
@@ -99,10 +122,10 @@ app.use(express.urlencoded({ limit: '10mb', extended: true }));
 app.use(authenticate);
 
 // Routes
-app.use('/api/auth', authRoutes);
+app.use('/api/auth', authLimiter, authRoutes);
 app.use('/api/users', userRoutes);
 app.use('/api/clients', clientRoutes);
-app.use('/api/client-auth', clientAuthRoutes);
+app.use('/api/client-auth', authLimiter, clientAuthRoutes);
 app.use('/api/products', productRoutes);
 app.use('/api/inventory', inventoryRoutes);
 app.use('/api/orders', orderRoutes);
