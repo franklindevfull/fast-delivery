@@ -186,7 +186,7 @@ export default function AddonGroupsTab() {
                   <div className="flex items-center gap-3">
                     {opt.trackStock && (
                       <span className={`text-xs ${opt.stock && opt.stock > 0 ? 'text-green-600 dark:text-green-400' : 'text-red-600 dark:text-red-400'}`}>
-                        {opt.stock} un
+                        {opt.stock.toFixed(2)} un
                       </span>
                     )}
                     <span className="font-medium text-slate-900 dark:text-slate-100">
@@ -349,7 +349,7 @@ export default function AddonGroupsTab() {
                                 type="number"
                                 step="0.01"
                                 min="0"
-                                value={opt.price}
+                                value={opt.price.toFixed(2)}
                                 onChange={(e) => updateOption(index, 'price', parseFloat(e.target.value) || 0)}
                                 className="w-full bg-transparent border border-slate-300 dark:border-slate-700 rounded px-2 py-1.5 focus:border-blue-500 focus:ring-1 focus:ring-blue-500 outline-none text-slate-900 dark:text-slate-100"
                               />
@@ -368,9 +368,10 @@ export default function AddonGroupsTab() {
                                 {opt.trackStock && (
                                   <input 
                                     type="number"
+                                    step="0.01"
                                     min="0"
-                                    value={opt.stock}
-                                    onChange={(e) => updateOption(index, 'stock', parseInt(e.target.value) || 0)}
+                                    value={opt.stock.toFixed(2)}
+                                    onChange={(e) => updateOption(index, 'stock', parseFloat(e.target.value) || 0)}
                                     className="w-16 text-center bg-transparent border border-slate-300 dark:border-slate-700 rounded px-1 py-1 text-sm focus:border-blue-500 focus:ring-1 focus:ring-blue-500 outline-none"
                                   />
                                 )}

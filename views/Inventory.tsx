@@ -342,17 +342,17 @@ const Inventory: React.FC = () => {
                 </div>
                 <div className="space-y-1">
                   <label className="text-[10px] font-black text-slate-400 dark:text-slate-500 uppercase tracking-widest ml-1">Estoque Atual</label>
-                  <input type="number" required step="0.01" value={invFormData.quantity} onChange={e => setInvFormData({ ...invFormData, quantity: parseFloat(e.target.value) })} className="w-full p-4 bg-slate-100 dark:bg-slate-800 border-none rounded-2xl focus:ring-2 focus:ring-blue-500 font-bold text-sm text-slate-800 dark:text-white" />
+                  <input type="number" required step="0.01" value={invFormData.quantity.toFixed(2)} onChange={e => setInvFormData({ ...invFormData, quantity: parseFloat(e.target.value) })} className="w-full p-4 bg-slate-100 dark:bg-slate-800 border-none rounded-2xl focus:ring-2 focus:ring-blue-500 font-bold text-sm text-slate-800 dark:text-white" />
                 </div>
               </div>
               <div className="grid grid-cols-2 gap-4">
                 <div className="space-y-1">
                   <label className="text-[10px] font-black text-slate-400 dark:text-slate-500 uppercase tracking-widest ml-1">Estoque Mínimo</label>
-                  <input type="number" required step="0.01" value={invFormData.minStock} onChange={e => setInvFormData({ ...invFormData, minStock: parseFloat(e.target.value) })} className="w-full p-4 bg-slate-100 dark:bg-slate-800 border-none rounded-2xl focus:ring-2 focus:ring-blue-500 font-bold text-sm text-slate-800 dark:text-white" />
+                  <input type="number" required step="0.01" value={invFormData.minStock.toFixed(2)} onChange={e => setInvFormData({ ...invFormData, minStock: parseFloat(e.target.value) })} className="w-full p-4 bg-slate-100 dark:bg-slate-800 border-none rounded-2xl focus:ring-2 focus:ring-blue-500 font-bold text-sm text-slate-800 dark:text-white" />
                 </div>
                 <div className="space-y-1">
                   <label className="text-[10px] font-black text-slate-400 dark:text-slate-500 uppercase tracking-widest ml-1">Custo Médio</label>
-                  <input type="number" required step="0.01" value={invFormData.cost} onChange={e => setInvFormData({ ...invFormData, cost: parseFloat(e.target.value) })} className="w-full p-4 bg-slate-100 dark:bg-slate-800 border-none rounded-2xl focus:ring-2 focus:ring-blue-500 font-bold text-sm text-slate-800 dark:text-white" />
+                  <input type="number" required step="0.01" value={invFormData.cost.toFixed(2)} onChange={e => setInvFormData({ ...invFormData, cost: parseFloat(e.target.value) })} className="w-full p-4 bg-slate-100 dark:bg-slate-800 border-none rounded-2xl focus:ring-2 focus:ring-blue-500 font-bold text-sm text-slate-800 dark:text-white" />
                 </div>
               </div>
             </form>
@@ -424,7 +424,7 @@ const Inventory: React.FC = () => {
                               </div>
                             </div>
                             <div className="w-20">
-                              <input type="number" step="0.01" placeholder="0" value={item.quantity === 0 ? '' : item.quantity} onChange={e => { const updated = [...tempRecipe]; updated[index].quantity = e.target.value === '' ? 0 : parseFloat(e.target.value); setTempRecipe(updated); }} className="w-full p-3 bg-white dark:bg-slate-900 border-none rounded-xl text-xs font-bold text-slate-800 dark:text-white text-center focus:ring-2 focus:ring-blue-500 [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none" />
+                              <input type="number" step="0.01" placeholder="0" value={item.quantity === 0 ? '' : item.quantity.toFixed(2)} onChange={e => { const updated = [...tempRecipe]; updated[index].quantity = e.target.value === '' ? 0 : parseFloat(e.target.value); setTempRecipe(updated); }} className="w-full p-3 bg-white dark:bg-slate-900 border-none rounded-xl text-xs font-bold text-slate-800 dark:text-white text-center focus:ring-2 focus:ring-blue-500 [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none" />
                             </div>
                             <div className="w-20">
                               <input

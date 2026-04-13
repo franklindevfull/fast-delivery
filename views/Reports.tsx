@@ -929,7 +929,7 @@ const Reports: React.FC<ReportsProps> = ({ currentUser }) => {
                     color: isInput ? rgb(0.1, 0.5, 0.1) : rgb(0.7, 0.1, 0.1)
                 });
 
-                page.drawText(m.quantity.toString(), { x: 350, y, size: 7, font });
+                page.drawText(m.quantity.toFixed(2), { x: 350, y, size: 7, font });
                 page.drawText(m.reason.substring(0, 35), { x: 400, y, size: 7, font });
                 y -= 15;
             }
