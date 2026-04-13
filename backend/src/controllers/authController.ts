@@ -54,7 +54,11 @@ export const login = async (req: Request, res: Response) => {
                 waiterId: waiter?.id || null
             };
 
-            const token = jwt.sign({ id: user.id, role: 'ADMIN', permissions: user.permissions }, JWT_SECRET, { expiresIn: '24h' });
+            const token = jwt.sign(
+                { id: user.id, role: 'ADMIN', permissions: user.permissions }, 
+                JWT_SECRET, 
+                { expiresIn: process.env.JWT_EXPIRES_IN || '24h' }
+            );
 
             res.json({ token, user: userWithWaiter });
         } else {

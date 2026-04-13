@@ -63,6 +63,13 @@ class APIDBService {
       });
 
       if (!response.ok) {
+        // Se o token estiver expirado ou for inválido, limpa a sessão e redireciona para o login
+        if (response.status === 401 && !path.includes('/auth/login')) {
+          localStorage.removeItem(AUTH_KEY);
+          window.location.href = '/';
+          return null as any;
+        }
+
         // Se for erro temporário de servidor (Cold Start / Bad Gateway), tenta de novo
         if (retries > 0 && (response.status === 502 || response.status === 503 || response.status === 504)) {
           await new Promise(r => setTimeout(r, 2000));
