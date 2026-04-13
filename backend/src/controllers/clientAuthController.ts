@@ -143,6 +143,11 @@ export const updateClientProfile = async (req: ExpressRequest, res: ExpressRespo
             return res.status(400).json({ error: 'ID do cliente é obrigatório e não pode ser vazio.' });
         }
 
+        // Ownership Check: Only allow CLIENT role to update their own profile. ADMINs are always allowed.
+        if (req.user.role === 'CLIENT' && req.user.id !== id) {
+            return res.status(403).json({ error: 'Você não tem permissão para atualizar o perfil de outro usuário.' });
+        }
+
         const client = await prisma.client.findUnique({
             where: { id }
         });
@@ -385,6 +390,11 @@ export const getClientNotifications = async (req: ExpressRequest, res: ExpressRe
     try {
         const id = req.params.id as string;
 
+        // Ownership Check: Only allow CLIENT role to view their own notifications. ADMINs are always allowed.
+        if (req.user.role === 'CLIENT' && req.user.id !== id) {
+             return res.status(403).json({ error: 'Você não tem permissão para visualizar notificações de outro usuário.' });
+        }
+
         // Fetch Notifications
         const notifications = await prisma.notification.findMany({
             where: { clientId: id },
@@ -451,6 +461,11 @@ export const getClientNotifications = async (req: ExpressRequest, res: ExpressRe
 export const deleteNotification = async (req: ExpressRequest, res: ExpressResponse) => {
     try {
         const { id, notificationId } = req.params;
+
+        // Ownership Check: Only allow CLIENT role to delete their own notifications. ADMINs are always allowed.
+        if (req.user.role === 'CLIENT' && req.user.id !== id) {
+             return res.status(403).json({ error: 'Você não tem permissão para remover notificações de outro usuário.' });
+        }
 
         await prisma.notification.delete({
             where: {

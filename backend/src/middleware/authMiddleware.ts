@@ -19,7 +19,14 @@ export const authenticate = async (req: Request, res: Response, next: NextFuncti
     '/api/auth/login',
     '/api/auth/recovery/verify',
     '/api/auth/reset-password',
-    '/api/client-auth', // prefixes
+    '/api/client-auth/login',
+    '/api/client-auth/register',
+    '/api/client-auth/recover',
+    '/api/client-auth/google',
+    '/api/client-auth/check-phone',
+    '/api/client-auth/check-google-account',
+    '/api/client-auth/biometric/login-options',
+    '/api/client-auth/biometric/login-verify',
     '/api/public',      // prefixes
     '/health'
   ];

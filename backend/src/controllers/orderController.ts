@@ -58,6 +58,12 @@ export const getOrderById = async (req: Request, res: Response) => {
             }
         });
         if (!order) return res.status(404).json({ error: 'Pedido não encontrado' });
+
+        // Ownership Check: Clients can only see their own orders.
+        if (req.user.role === 'CLIENT' && order.clientId !== req.user.id) {
+            return res.status(403).json({ error: 'Você não tem permissão para visualizar este pedido.' });
+        }
+
         res.json(mapOrderResponse(order));
     } catch (error: any) {
         res.status(500).json({ error: error.message });
@@ -220,6 +226,11 @@ export const saveOrder = async (req: Request, res: Response) => {
     if (!order) {
         console.error('Invalid order save request: order object is missing', req.body);
         return res.status(400).json({ error: 'Pedido não informado no corpo da requisição.' });
+    }
+
+    // Zero-Trust: Force clientId from verified token if requester is a client
+    if (req.user.role === 'CLIENT') {
+        order.clientId = req.user.id;
     }
 
     // Resolve true Waiter.id if user is provided (Waiter App case)
@@ -1286,7 +1297,13 @@ export const updateOrderServiceFee = async (req: Request, res: Response) => {
 };
 
 export const getClientOrders = async (req: Request, res: Response) => {
-    const { clientId, startDate, endDate, isOriginDeliveryApp } = req.query;
+    let { clientId, startDate, endDate, isOriginDeliveryApp } = req.query;
+
+    // Zero-Trust: Use identity from token for clients to prevent IDOR
+    if (req.user.role === 'CLIENT') {
+        clientId = req.user.id;
+    }
+
     if (!clientId) return res.status(400).json({ error: 'clientId é obrigatório' });
 
     let whereClause: any = { clientId: String(clientId) };
