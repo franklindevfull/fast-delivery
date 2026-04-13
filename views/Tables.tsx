@@ -967,7 +967,13 @@ const Tables: React.FC<TablesProps> = ({ currentUser }) => {
       {/* MODAL DE OBSERVAÇÃO PARA LANÇAMENTO */}
       {selectedProductForLaunch !== null && (
         <div className="fixed inset-0 z-[60] flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-sm animate-in zoom-in duration-200">
-          <div className="bg-white dark:bg-slate-900 rounded-[2rem] shadow-2xl p-8 w-full max-w-sm border border-white/20 dark:border-slate-800">
+          <div className="bg-white dark:bg-slate-900 rounded-[2rem] shadow-2xl p-8 w-full max-w-sm border border-white/20 dark:border-slate-800 relative">
+            <button 
+              onClick={() => { setSelectedProductForLaunch(null); setPizzaFlavors([]); setIsPizzaSelectionMode(false); }} 
+              className="absolute top-6 right-6 p-2 text-slate-400 hover:text-slate-600 dark:hover:text-slate-300 transition-all"
+            >
+              <Icons.X className="w-6 h-6" />
+            </button>
             <h3 className="text-lg font-black text-slate-800 dark:text-white uppercase mb-2 tracking-tighter text-center">Lançar Item</h3>
             <p className="text-center text-[10px] font-bold text-slate-400 dark:text-slate-500 uppercase mb-4">{selectedProductForLaunch.name}</p>
             
