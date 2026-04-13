@@ -33,14 +33,8 @@ const TableDetails: React.FC<TableDetailsProps> = ({ table, user, onClose, onRef
     const [searchTerm, setSearchTerm] = useState('');
     const [cart, setCart] = useState<OrderItem[]>([]);
     const [showCartItems, setShowCartItems] = useState(false);
-    const [settings, setSettings] = useState<any>(null);
 
-    const [selectedPizzaForLaunch, setSelectedPizzaForLaunch] = useState<Product | null>(null);
     const [selectedProductForAddons, setSelectedProductForAddons] = useState<Product | null>(null);
-    const [pizzaFlavors, setPizzaFlavors] = useState<Product[]>([]);
-    const [isPizzaSelectionMode, setIsPizzaSelectionMode] = useState(false);
-    const [pizzaModalQuantity, setPizzaModalQuantity] = useState(1);
-    const [pizzaObservation, setPizzaObservation] = useState('');
     const [loading, setLoading] = useState(false);
     const [showTransfer, setShowTransfer] = useState(false);
     const [transferTarget, setTransferTarget] = useState<number | ''>('');
@@ -76,7 +70,6 @@ const TableDetails: React.FC<TableDetailsProps> = ({ table, user, onClose, onRef
     useEffect(() => {
         if (activeTab === 'LAUNCH') {
             db.getProducts().then(setProducts).catch(console.error);
-            db.getSettings().then(setSettings).catch(console.error);
         }
     }, [activeTab]);
 

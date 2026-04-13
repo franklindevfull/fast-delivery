@@ -22,15 +22,9 @@ const DirectOrderModal: React.FC<DirectOrderModalProps> = ({ user, onClose, onRe
     const [showCartItems, setShowCartItems] = useState(false);
     const [loading, setLoading] = useState(false);
     const [showClientSelect, setShowClientSelect] = useState(false);
-    const [settings, setSettings] = useState<any>(null);
 
     // Pizza States
-    const [selectedPizzaForLaunch, setSelectedPizzaForLaunch] = useState<Product | null>(null);
     const [selectedProductForAddons, setSelectedProductForAddons] = useState<Product | null>(null);
-    const [pizzaFlavors, setPizzaFlavors] = useState<Product[]>([]);
-    const [isPizzaSelectionMode, setIsPizzaSelectionMode] = useState(false);
-    const [pizzaModalQuantity, setPizzaModalQuantity] = useState(1);
-    const [pizzaObservation, setPizzaObservation] = useState('');
 
     const [modal, setModal] = useState<{
         isOpen: boolean;
@@ -45,8 +39,6 @@ const DirectOrderModal: React.FC<DirectOrderModalProps> = ({ user, onClose, onRe
             try {
                 const data = await db.getProducts();
                 setProducts(data);
-                const st = await db.getSettings();
-                setSettings(st);
             } catch (e) {
                 console.error(e);
             }
