@@ -535,16 +535,10 @@ const TableDetails: React.FC<TableDetailsProps> = ({ table, user, onClose, onRef
                                                 ) : (
                                                     <button
                                                         onClick={() => {
-                                                            if (product.isPizza) {
-                                                                setSelectedPizzaForLaunch(product);
-                                                                setPizzaFlavors([]);
-                                                                setPizzaModalQuantity(1);
-                                                                setIsPizzaSelectionMode(false);
-                                                                setPizzaObservation('');
-                                                            } else if (product.addonGroups && product.addonGroups.length > 0) {
-                                                                setSelectedProductForAddons(product);
+                                                            if (product.addonGroups && product.addonGroups.length > 0) {
+                                                                 setSelectedProductForAddons(product);
                                                             } else {
-                                                                addToCart(product);
+                                                                 addToCart(product);
                                                             }
                                                         }}
                                                         className="w-8 h-8 sm:w-9 sm:h-9 bg-slate-900 text-white rounded-lg flex items-center justify-center shadow-lg active:scale-95 transition-all shrink-0"

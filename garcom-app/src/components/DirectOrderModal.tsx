@@ -227,13 +227,7 @@ const DirectOrderModal: React.FC<DirectOrderModalProps> = ({ user, onClose, onRe
                                         ) : (
                                             <button
                                                 onClick={() => {
-                                                    if (product.isPizza) {
-                                                        setSelectedPizzaForLaunch(product);
-                                                        setPizzaFlavors([]);
-                                                        setPizzaModalQuantity(1);
-                                                        setIsPizzaSelectionMode(false);
-                                                        setPizzaObservation('');
-                                                    } else if (product.addonGroups && product.addonGroups.length > 0) {
+                                                    if (product.addonGroups && product.addonGroups.length > 0) {
                                                         setSelectedProductForAddons(product);
                                                     } else {
                                                         addToCart(product);
