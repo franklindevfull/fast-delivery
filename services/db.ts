@@ -66,7 +66,10 @@ class APIDBService {
         // Se o token estiver expirado ou for inválido, limpa a sessão e redireciona para o login
         if (response.status === 401 && !path.includes('/auth/login')) {
           localStorage.removeItem(AUTH_KEY);
-          window.location.href = '/';
+          // Only redirect if NOT already at root to prevent refresh loops during splash initialization
+          if (window.location.pathname !== '/' && window.location.pathname !== '/index.html') {
+            window.location.href = '/';
+          }
           return null as any;
         }
 

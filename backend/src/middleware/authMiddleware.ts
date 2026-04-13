@@ -31,7 +31,9 @@ export const authenticate = async (req: Request, res: Response, next: NextFuncti
     '/health'
   ];
 
-  if (publicRoutes.some(route => req.path.startsWith(route))) {
+  const isPublicSettings = req.path.startsWith('/api/settings') && req.method === 'GET';
+
+  if (isPublicSettings || publicRoutes.some(route => req.path.startsWith(route))) {
     return next();
   }
 
