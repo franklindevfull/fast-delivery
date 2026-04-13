@@ -41,6 +41,7 @@ import deliveryZoneRoutes from './routes/deliveryZoneRoutes.js';
 import addonRoutes from './routes/addonRoutes.js';
 // import printRoutes from './routes/printRoutes.js';
 import { initSocket } from './socket.js';
+import { authenticate } from './middleware/authMiddleware.js';
 import { startOrderTimeoutService } from './services/orderTimeoutService.js';
 import { loadSettingsToCache } from './storeStatusCache.js';
 import { warmupDatabase } from './prisma.js';
@@ -91,7 +92,6 @@ const port = process.env.PORT || 3000;
 const server = http.createServer(app);
 initSocket(server);
 
-import { authenticate } from './middleware/authMiddleware.js';
 import helmet from 'helmet';
 import rateLimit from 'express-rate-limit';
 

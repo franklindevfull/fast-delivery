@@ -8,7 +8,7 @@ import { socket, feedbackUnreadManager } from '../services/socket';
 import { Icons, PLACEHOLDER_FOOD_IMAGE, formatImageUrl } from '../constants';
 import CustomAlert from '../components/CustomAlert';
 import { validateEmail, validateCPF, validateCNPJ, maskPhone, maskDocument, toTitleCase } from '../services/validationUtils';
-import { formatAddress, formatCurrency } from '../services/formatUtils';
+import { formatAddress, formatCurrency, normalizeNeighborhood } from '../services/formatUtils';
 import { QRCodeCanvas } from 'qrcode.react';
 import { sendOrderToThermalPrinter } from '../services/printService';
 
@@ -118,6 +118,7 @@ const POS: React.FC<POSProps> = ({ currentUser }) => {
   const [deliveryZones, setDeliveryZones] = useState<any[]>([]);
   const [saveToZones, setSaveToZones] = useState(false);
   const [neighborhoodName, setNeighborhoodName] = useState('');
+  const lastMatchedRef = useRef<string | null>(null);
 
 
   const showAlert = (title: string, message: string, type: 'INFO' | 'DANGER' | 'SUCCESS' = 'INFO') => {
@@ -166,6 +167,53 @@ const POS: React.FC<POSProps> = ({ currentUser }) => {
       unsubscribeFeedbacks();
     };
   }, []);
+  
+  // Effect for automatic delivery zone identification
+  useEffect(() => {
+    if (saleType === SaleType.OWN_DELIVERY && selectedClient?.neighborhood) {
+      const neighborhoodCandidate = selectedClient.neighborhood;
+      const matchKey = `${selectedClient.id}-${neighborhoodCandidate}`;
+      
+      // Avoid repeating the automated logic/alert if already matched for this client/neighborhood combo
+      if (lastMatchedRef.current === matchKey) return;
+      
+      const normalizedToMatch = normalizeNeighborhood(neighborhoodCandidate);
+      const matchedZone = deliveryZones.find(z => 
+        z.active && normalizeNeighborhood(z.name) === normalizedToMatch
+      );
+
+      setNeighborhoodName(neighborhoodCandidate); // Always set the name for UI feedback
+
+      if (matchedZone) {
+        setManualDeliveryFee(matchedZone.fee);
+        setSaveToZones(false);
+        addToast({ 
+          title: "FRETE AUTOMÁTICO", 
+          message: `Bairro "${matchedZone.name}" identificado. Taxa: R$ ${matchedZone.fee.toFixed(2)}`, 
+          type: "SUCCESS" 
+        });
+        lastMatchedRef.current = matchKey;
+      } else if (manualDeliveryFee === null) {
+        // Not found in zones, and no fee set yet (likely a new selection), show confirmation modal to save
+        showConfirm(
+          "Novo Bairro Detectado",
+          `O bairro "${neighborhoodCandidate}" foi identificado no cadastro do cliente, mas não consta nas Zonas de Entrega. Deseja cadastrá-lo agora?`,
+          () => {
+            setSaveToZones(true);
+            setManualDeliveryFee(0); // Suggest setting a fee
+            addToast({ title: "ZONA PENDENTE", message: "Informe a taxa e finalize o pedido para salvar esta nova zona.", type: "INFO" });
+          },
+          "INFO"
+        );
+        lastMatchedRef.current = matchKey;
+      } else {
+        // Neighborhood not in zones but fee is already set (e.g. loaded order), just ensure ref is updated
+        lastMatchedRef.current = matchKey;
+      }
+    } else if (saleType !== SaleType.OWN_DELIVERY) {
+      lastMatchedRef.current = null; // Reset when leaving delivery mode
+    }
+  }, [saleType, selectedClient, deliveryZones]);
 
 
 
@@ -1364,17 +1412,6 @@ const POS: React.FC<POSProps> = ({ currentUser }) => {
                             setNeighborhoodName(c.neighborhood || '');
                             setShowClientList(false);
                             setIsClientModalOpen(false);
-
-                            // Automatic delivery fee matching
-                            if (saleType === SaleType.OWN_DELIVERY && c.neighborhood) {
-                                const matchedZone = deliveryZones.find(z => 
-                                    z.active && z.name.trim().toUpperCase() === c.neighborhood?.trim().toUpperCase()
-                                );
-                                if (matchedZone) {
-                                    setManualDeliveryFee(matchedZone.fee);
-                                    addToast({ title: "FRETE AUTOMÁTICO", message: `Bairro "${matchedZone.name}" identificado. Taxa: R$ ${matchedZone.fee.toFixed(2)}`, type: "SUCCESS" });
-                                }
-                            }
                           }}
                           className="w-full text-left p-4 bg-slate-50 dark:bg-slate-800 hover:bg-blue-50 dark:hover:bg-blue-900/40 border border-slate-100 dark:border-slate-700 hover:border-blue-200 dark:hover:border-blue-500 rounded-2xl transition-all group"
                         >
