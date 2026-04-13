@@ -80,6 +80,7 @@ model Product {
   pizzaSize    String?
   isFeatured   Boolean      @default(false)
   showInMenu   Boolean      @default(true)
+  addonGroups  ProductAddonGroup[]
 }
 
 model InventoryItem {
@@ -257,9 +258,42 @@ model OrderItem {
   skipKitchen    Boolean       @default(false)
   observations   String?
   pizzaFlavors   String?
+  selectedAddons Json?
   order          Order?        @relation(fields: [orderId], references: [id])
   product        Product       @relation(fields: [productId], references: [id])
   tableSession   TableSession? @relation(fields: [tableSessionId], references: [tableNumber])
+}
+
+model AddonGroup {
+  id            String              @id @default(uuid())
+  name          String
+  selectionType String              @default("SINGLE") // SINGLE, MULTIPLE
+  isRequired    Boolean             @default(false)
+  active        Boolean             @default(true)
+  createdAt     DateTime            @default(now())
+  updatedAt     DateTime            @default(now()) @updatedAt
+  options       AddonOption[]
+  products      ProductAddonGroup[]
+}
+
+model AddonOption {
+  id            String     @id @default(uuid())
+  groupId       String
+  name          String
+  price         Float      @default(0)
+  active        Boolean    @default(true)
+  trackStock    Boolean    @default(false)
+  stock         Int        @default(0)
+  group         AddonGroup @relation(fields: [groupId], references: [id], onDelete: Cascade)
+}
+
+model ProductAddonGroup {
+  productId     String
+  addonGroupId  String
+  product       Product    @relation(fields: [productId], references: [id], onDelete: Cascade)
+  addonGroup    AddonGroup @relation(fields: [addonGroupId], references: [id], onDelete: Cascade)
+
+  @@id([productId, addonGroupId])
 }
 
 model TableSession {

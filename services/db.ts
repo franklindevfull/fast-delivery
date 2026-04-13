@@ -696,6 +696,39 @@ class APIDBService {
     });
   }
 
+  // Addon Groups
+  public async getAddonGroups(): Promise<any[]> {
+    return this.request('/addons');
+  }
+
+  public async saveAddonGroup(group: any): Promise<any> {
+    const isNew = !group.id || group.id.startsWith('new-');
+    if (isNew) {
+      const { id, ...data } = group;
+      return this.request('/addons', {
+        method: 'POST',
+        body: JSON.stringify(data),
+      });
+    } else {
+      return this.request(`/addons/${group.id}`, {
+        method: 'PUT',
+        body: JSON.stringify(group),
+      });
+    }
+  }
+
+  public async deleteAddonGroup(id: string): Promise<void> {
+    return this.request(`/addons/${id}`, {
+      method: 'DELETE',
+    });
+  }
+
+  public async copyAddonGroup(id: string): Promise<any> {
+    return this.request(`/addons/${id}/copy`, {
+      method: 'POST',
+    });
+  }
+
   // Removed legacy Thermal Printing API as per project standardization to window.print()
 }
 

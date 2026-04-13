@@ -25,7 +25,10 @@ const CartModal: React.FC<CartModalProps> = ({ isOpen, onClose, cart, tableNumbe
 
     if (!isOpen) return null;
 
-    const total = cart.reduce((acc, i) => acc + (i.price * i.quantity), 0);
+    const total = cart.reduce((acc, i) => {
+        const addonsTotal = i.selectedAddons?.reduce((sum, a) => sum + a.price, 0) || 0;
+        return acc + ((i.price + addonsTotal) * i.quantity);
+    }, 0);
 
     const handleSubmit = async () => {
         setIsSubmitting(true);
@@ -42,7 +45,8 @@ const CartModal: React.FC<CartModalProps> = ({ isOpen, onClose, cart, tableNumbe
                     quantity: i.quantity,
                     price: i.price,
                     observations: i.observations || null,
-                    pizzaFlavors: i.pizzaFlavors && i.pizzaFlavors.length > 0 ? i.pizzaFlavors : undefined
+                    pizzaFlavors: i.pizzaFlavors && i.pizzaFlavors.length > 0 ? i.pizzaFlavors : undefined,
+                    selectedAddons: i.selectedAddons || undefined
                 }));
 
                 const response = await submitOrder({
@@ -187,10 +191,21 @@ const CartModal: React.FC<CartModalProps> = ({ isOpen, onClose, cart, tableNumbe
                                     {item.pizzaFlavors && item.pizzaFlavors.length > 0 && (
                                         <p className="text-[10px] font-bold text-indigo-500 line-clamp-1">+ {item.pizzaFlavors.map(f => f.name).join(', ')}</p>
                                     )}
-                                    {item.observations && (
-                                        <p className="text-[10px] italic text-slate-400 dark:text-slate-500 line-clamp-1">Obs: {item.observations}</p>
+                                    {item.selectedAddons && item.selectedAddons.length > 0 && (
+                                        <div className="flex flex-wrap gap-1 mt-1">
+                                            {item.selectedAddons.map((addon, idx) => (
+                                                <span key={idx} className="text-[9px] font-bold bg-blue-100 text-blue-600 px-1.5 py-0.5 rounded-md">
+                                                    + {addon.name}
+                                                </span>
+                                            ))}
+                                        </div>
                                     )}
-                                    <p className="text-blue-600 font-black text-xs sm:text-sm mt-0.5">R$ {item.price.toFixed(2)} {item.pizzaFlavors && item.pizzaFlavors.length > 0 ? '/un' : ''}</p>
+                                    {item.observations && (
+                                        <p className="text-[10px] italic text-slate-400 dark:text-slate-500 line-clamp-1 mt-1">Obs: {item.observations}</p>
+                                    )}
+                                    <p className="text-blue-600 font-black text-xs sm:text-sm mt-1">
+                                        R$ {(item.price + (item.selectedAddons?.reduce((s, a) => s + a.price, 0) || 0)).toFixed(2)}
+                                    </p>
                                 </div>
                                 <div className="flex items-center bg-white rounded-xl p-1 gap-2 shadow-sm border border-slate-100 shrink-0">
                                     <button onClick={() => updateQuantity(item.cartId, item.quantity - 1)} className="w-8 h-8 rounded-lg flex items-center justify-center font-black text-slate-400 active:scale-90">-</button>

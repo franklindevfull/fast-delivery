@@ -70,6 +70,30 @@ export interface Client {
     lastOrderDate?: string;
 }
 
+export interface SelectedAddon {
+    id: string;
+    name: string;
+    price: number;
+    groupId: string;
+    groupName: string;
+}
+
+export interface AddonOption {
+    id: string;
+    name: string;
+    price: number;
+    active: boolean;
+}
+
+export interface AddonGroup {
+    id: string;
+    name: string;
+    type: 'SINGLE' | 'MULTIPLE';
+    isRequired: boolean;
+    active: boolean;
+    options: AddonOption[];
+}
+
 export interface Product {
     id: string;
     name: string;
@@ -78,6 +102,7 @@ export interface Product {
     stock: number;
     imageUrl: string;
     recipe?: RecipeItem[];
+    addonGroups?: { addonGroup: AddonGroup }[];
 }
 
 export interface OrderItem {
@@ -89,6 +114,8 @@ export interface OrderItem {
     readyAt?: string;
     observations?: string;
     tableSessionId?: number;
+    productName?: string;
+    selectedAddons?: SelectedAddon[];
 }
 
 export interface TableSession {

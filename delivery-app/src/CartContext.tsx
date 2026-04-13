@@ -7,11 +7,12 @@ interface CartItem {
     quantity: number;
     pizzaFlavors?: Product[];
     observations?: string;
+    selectedAddons?: any[];
 }
 
 interface CartContextType {
     items: CartItem[];
-    addToCart: (product: Product, quantity?: number, flavors?: Product[], obs?: string) => void;
+    addToCart: (product: Product, quantity?: number, flavors?: Product[], obs?: string, addons?: any[]) => void;
     removeFromCart: (cartIdOrProductId: string) => void;
     excludeFromCart: (cartId: string) => void;
     clearCart: () => void;
@@ -23,12 +24,26 @@ const CartContext = createContext<CartContextType | undefined>(undefined);
 export const CartProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
     const [items, setItems] = useState<CartItem[]>([]);
 
-    const addToCart = (product: Product, quantity = 1, flavors?: Product[], obs?: string) => {
+    const addToCart = (product: Product, quantity = 1, flavors?: Product[], obs?: string, addons?: any[]) => {
         setItems(prev => {
-            if (flavors?.length || obs) {
-                return [...prev, { cartId: Math.random().toString(36).substr(2, 9), product, quantity, pizzaFlavors: flavors, observations: obs }];
+            // Se tiver sabores de pizza, observações ou adicionais, criamos um novo item único
+            if (flavors?.length || obs || addons?.length) {
+                return [...prev, { 
+                    cartId: Math.random().toString(36).substr(2, 9), 
+                    product, 
+                    quantity, 
+                    pizzaFlavors: flavors, 
+                    observations: obs,
+                    selectedAddons: addons
+                }];
             }
-            const existing = prev.find(i => i.product.id === product.id && !i.pizzaFlavors?.length && !i.observations);
+            // Agrupamento básico para itens sem customização
+            const existing = prev.find(i => 
+                i.product.id === product.id && 
+                !i.pizzaFlavors?.length && 
+                !i.observations &&
+                !i.selectedAddons?.length
+            );
             if (existing) {
                 return prev.map(i => i.cartId === existing.cartId ? { ...i, quantity: i.quantity + quantity } : i);
             }
@@ -55,7 +70,11 @@ export const CartProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
     const clearCart = () => setItems([]);
 
-    const total = items.reduce((sum, item) => sum + (item.product.price * item.quantity), 0);
+    const total = items.reduce((sum, item) => {
+        const productPrice = item.product.price;
+        const addonsPrice = item.selectedAddons?.reduce((s, a) => s + (a.price * a.quantity), 0) || 0;
+        return sum + ((productPrice + addonsPrice) * item.quantity);
+    }, 0);
 
     return (
         <CartContext.Provider value={{ items, addToCart, removeFromCart, excludeFromCart, clearCart, total }}>

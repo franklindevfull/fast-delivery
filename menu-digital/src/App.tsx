@@ -433,8 +433,8 @@ function AppContent() {
 
   const addToCart = (item: CartItem) => {
     setCart(prev => {
-      // Se for item customizado (pizza fracionada ou com observação), nunca agrupa
-      if (item.pizzaFlavors?.length || item.observations) {
+      // Se for item customizado (pizza fracionada, com observação ou com adicionais), nunca agrupa
+      if (item.pizzaFlavors?.length || item.observations || item.selectedAddons?.length) {
         return [...prev, { ...item, cartId: Math.random().toString(36).substr(2, 9) }];
       }
 

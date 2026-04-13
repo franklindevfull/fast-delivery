@@ -1,3 +1,29 @@
+export interface AddonOption {
+    id: string;
+    name: string;
+    price: number;
+    trackStock?: boolean;
+    stock?: number;
+    active?: boolean;
+}
+
+export interface AddonGroup {
+    id: string;
+    name: string;
+    type: 'SINGLE' | 'MULTIPLE';
+    isRequired: boolean;
+    active: boolean;
+    options: AddonOption[];
+}
+
+export interface SelectedAddon {
+    id: string;
+    name: string;
+    price: number;
+    groupId: string;
+    groupName: string;
+}
+
 export interface Product {
     id: string;
     name: string;
@@ -9,6 +35,9 @@ export interface Product {
     pizzaSize?: string;
     showInMenu?: boolean;
     isFeatured?: boolean;
+    addonGroups?: {
+        addonGroup: AddonGroup;
+    }[];
 }
 
 export interface CartItem extends Product {
@@ -16,4 +45,5 @@ export interface CartItem extends Product {
     quantity: number;
     pizzaFlavors?: Product[];
     observations?: string;
+    selectedAddons?: SelectedAddon[];
 }

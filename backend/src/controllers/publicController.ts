@@ -11,7 +11,16 @@ export const getStoreStatusEndpoint = (req: Request, res: Response) => {
 export const getProducts = async (req: Request, res: Response) => {
     try {
         const products = await prisma.product.findMany({
-            where: { active: true }
+            where: { active: true },
+            include: {
+                addonGroups: {
+                    include: {
+                        addonGroup: {
+                            include: { options: true }
+                        }
+                    }
+                }
+            }
         });
         res.json(products);
     } catch (error) {
@@ -438,6 +447,7 @@ export const createOrder = async (req: Request, res: Response) => {
                     price: it.price || (product ? product.price : 0), // Favor price from payload for fractioned pizzas
                     quantity: it.quantity,
                     observations: it.observations || observations || '', // Use item-level obs first
+                    selectedAddons: it.selectedAddons || null,
                     orderedBy: clientName || 'Digital'
                 };
             });

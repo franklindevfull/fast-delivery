@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect, useRef } from 'react';
 import { InventoryItem, Product, RecipeItem, OrderItem, UnitType } from '../types';
 import { db } from '../services/db';
@@ -6,12 +5,14 @@ import { PLACEHOLDER_FOOD_IMAGE, formatImageUrl, Icons } from '../constants';
 import CustomAlert from '../components/CustomAlert';
 import { useToast } from '../hooks/useToast';
 import { formatCurrency } from '../services/formatUtils';
+import AddonGroupsTab from '../components/AddonGroupsTab';
 
 const Inventory: React.FC = () => {
   const { addToast } = useToast();
   const [inventory, setInventory] = useState<InventoryItem[]>([]);
   const [products, setProducts] = useState<Product[]>([]);
-  const [viewMode, setViewMode] = useState<'ESTOQUE' | 'CARDAPIO'>('ESTOQUE');
+  const [addonGroups, setAddonGroups] = useState<any[]>([]);
+  const [viewMode, setViewMode] = useState<'ESTOQUE' | 'CARDAPIO' | 'ADICIONAIS'>('ESTOQUE');
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [isInvModalOpen, setIsInvModalOpen] = useState(false);
   const [isProdModalOpen, setIsProdModalOpen] = useState(false);
@@ -28,7 +29,8 @@ const Inventory: React.FC = () => {
   const [prodFormData, setProdFormData] = useState({
     name: '', price: 0, category: '', imageUrl: '', stock: 0,
     ncm: '', cfop: '', cest: '', preparation: '', isCombo: false, isPizza: false, pizzaSize: '',
-    isFeatured: false, showInMenu: true
+    isFeatured: false, showInMenu: true,
+    addonGroupIds: [] as string[]
   });
 
   const [tempRecipe, setTempRecipe] = useState<RecipeItem[]>([]);
@@ -51,10 +53,10 @@ const Inventory: React.FC = () => {
     refreshData();
   }, [viewMode]);
 
-  const refreshData = async () => {
-    const [inv, prods] = await Promise.all([db.getInventory(), db.getProducts()]);
+    const [inv, prods, addons] = await Promise.all([db.getInventory(), db.getProducts(), db.getAddonGroups()]);
     setInventory(inv);
     setProducts(prods);
+    setAddonGroups(addons || []);
   };
 
   const openInvModal = (item?: InventoryItem) => {
@@ -110,13 +112,14 @@ const Inventory: React.FC = () => {
         isPizza: product.isPizza || false,
         pizzaSize: product.pizzaSize || '',
         isFeatured: product.isFeatured || false,
-        showInMenu: product.showInMenu !== false // Default true
+        showInMenu: product.showInMenu !== false, // Default true
+        addonGroupIds: product.addonGroups?.map(ag => ag.addonGroupId) || []
       });
       setTempRecipe(product.recipe || []);
       setTempComboItems(product.comboItems?.map(ci => ({ productId: ci.productId, quantity: ci.quantity })) || []);
     } else {
       setEditingProduct(null);
-      setProdFormData({ name: '', price: 0, category: 'Geral', imageUrl: '', stock: 0, ncm: '', cfop: '', cest: '', preparation: '', isCombo: false, isPizza: false, pizzaSize: '', isFeatured: false, showInMenu: true });
+      setProdFormData({ name: '', price: 0, category: 'Geral', imageUrl: '', stock: 0, ncm: '', cfop: '', cest: '', preparation: '', isCombo: false, isPizza: false, pizzaSize: '', isFeatured: false, showInMenu: true, addonGroupIds: [] });
       setTempRecipe([]);
       setTempComboItems([]);
     }
@@ -139,7 +142,8 @@ const Inventory: React.FC = () => {
       isPizza: product.isPizza || false,
       pizzaSize: product.pizzaSize || '',
       isFeatured: product.isFeatured || false,
-      showInMenu: product.showInMenu !== false
+      showInMenu: product.showInMenu !== false,
+      addonGroupIds: product.addonGroups?.map(ag => ag.addonGroupId) || []
     });
     setTempRecipe(product.recipe ? [...product.recipe] : []);
     setTempComboItems(product.comboItems ? [...product.comboItems] : []);
@@ -161,6 +165,7 @@ const Inventory: React.FC = () => {
       await db.saveProduct({ 
         id: editingProduct?.id || `prod-${Date.now()}`, 
         ...prodFormData,
+        addonGroups: prodFormData.addonGroupIds.map(id => ({ addonGroupId: id })) as any,
         recipe: tempRecipe,
         comboItems: prodFormData.isCombo ? tempComboItems : []
       });
@@ -199,6 +204,7 @@ const Inventory: React.FC = () => {
       <div className="flex gap-4 border-b border-slate-200 dark:border-slate-800 shrink-0">
         <button onClick={() => setViewMode('ESTOQUE')} className={`pb-4 px-2 font-bold transition-all ${viewMode === 'ESTOQUE' ? 'border-b-4 border-blue-600 text-blue-600' : 'text-slate-400 hover:text-slate-600 dark:text-slate-500 dark:hover:text-slate-300'}`}>Estoque de Insumos</button>
         <button onClick={() => setViewMode('CARDAPIO')} className={`pb-4 px-2 font-bold transition-all ${viewMode === 'CARDAPIO' ? 'border-b-4 border-blue-600 text-blue-600' : 'text-slate-400 hover:text-slate-600 dark:text-slate-500 dark:hover:text-slate-300'}`}>Cardápio / Ficha Técnica</button>
+        <button onClick={() => setViewMode('ADICIONAIS')} className={`pb-4 px-2 font-bold transition-all ${viewMode === 'ADICIONAIS' ? 'border-b-4 border-blue-600 text-blue-600' : 'text-slate-400 hover:text-slate-600 dark:text-slate-500 dark:hover:text-slate-300'}`}>Grupos de Opções</button>
       </div>
 
       {viewMode === 'ESTOQUE' ? (
@@ -246,6 +252,8 @@ const Inventory: React.FC = () => {
             </table>
           </div>
         </div>
+      ) : viewMode === 'ADICIONAIS' ? (
+        <AddonGroupsTab />
       ) : (
         <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 2xl:grid-cols-6 gap-4 overflow-y-auto pb-10">
           {products.map(product => (
@@ -589,6 +597,43 @@ const Inventory: React.FC = () => {
                     </div>
                   </div>
                 )}
+              </div>
+
+              {/* GRUPOS DE ADICIONAIS */}
+              <div className="pt-4 border-t border-slate-50 dark:border-slate-800 space-y-4">
+                <p className="text-[9px] font-black text-blue-600 dark:text-blue-500 uppercase tracking-[0.2em] mb-2">Opções & Adicionais</p>
+                <div className="bg-slate-50 dark:bg-slate-800/50 rounded-2xl p-4 border border-slate-100 dark:border-slate-800">
+                  <p className="text-xs text-slate-500 mb-3">Vincule os Grupos de Opções a este Produto:</p>
+                  {addonGroups.length === 0 ? (
+                    <p className="text-xs text-amber-600 italic">Nenhum grupo cadastrado. Crie grupos na aba "Grupos de Opções".</p>
+                  ) : (
+                    <div className="space-y-2 max-h-[160px] overflow-y-auto custom-scrollbar pr-2">
+                      {addonGroups.map(group => {
+                        const isChecked = prodFormData.addonGroupIds.includes(group.id);
+                        return (
+                          <label key={group.id} className={`flex items-center gap-3 p-3 rounded-xl border cursor-pointer transition-colors ${isChecked ? 'bg-blue-50 dark:bg-blue-900/20 border-blue-200 dark:border-blue-800' : 'bg-white dark:bg-slate-900 border-slate-200 dark:border-slate-700'}`}>
+                            <input
+                              type="checkbox"
+                              checked={isChecked}
+                              onChange={(e) => {
+                                if (e.target.checked) {
+                                  setProdFormData({ ...prodFormData, addonGroupIds: [...prodFormData.addonGroupIds, group.id] });
+                                } else {
+                                  setProdFormData({ ...prodFormData, addonGroupIds: prodFormData.addonGroupIds.filter(id => id !== group.id) });
+                                }
+                              }}
+                              className="w-4 h-4 rounded text-blue-600 focus:ring-blue-500 border-slate-300"
+                            />
+                            <div className="flex flex-col">
+                              <span className="text-sm font-bold text-slate-800 dark:text-white">{group.name}</span>
+                              <span className="text-[10px] text-slate-500">{group.isRequired ? 'Obrigatório' : 'Opcional'} • {group.options?.length || 0} opções</span>
+                            </div>
+                          </label>
+                        );
+                      })}
+                    </div>
+                  )}
+                </div>
               </div>
             </form>
           </div>

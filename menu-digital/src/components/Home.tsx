@@ -22,6 +22,9 @@ const Home: React.FC<HomeProps> = ({ cart, addToCart, updateQuantity }) => {
     const [isPizzaSelectionMode, setIsPizzaSelectionMode] = useState(false);
     const [pizzaModalQuantity, setPizzaModalQuantity] = useState(1);
     const [pizzaObservation, setPizzaObservation] = useState('');
+    const [selectedProductForDetails, setSelectedProductForDetails] = useState<Product | null>(null);
+    const [selectedAddons, setSelectedAddons] = useState<any[]>([]);
+    const [detailModalQuantity, setDetailModalQuantity] = useState(1);
 
     useEffect(() => {
         const loadProducts = async () => {
@@ -99,6 +102,10 @@ const Home: React.FC<HomeProps> = ({ cart, addToCart, updateQuantity }) => {
                                         setPizzaModalQuantity(1);
                                         setIsPizzaSelectionMode(false);
                                         setPizzaObservation('');
+                                    } else if (product.addonGroups && product.addonGroups.length > 0) {
+                                        setSelectedProductForDetails(product);
+                                        setSelectedAddons([]);
+                                        setDetailModalQuantity(1);
                                     } else {
                                         addToCart({ ...product, quantity: 1, cartId: Math.random().toString(36).substr(2, 9) });
                                     }
@@ -209,6 +216,10 @@ const Home: React.FC<HomeProps> = ({ cart, addToCart, updateQuantity }) => {
                                                             setPizzaModalQuantity(1);
                                                             setIsPizzaSelectionMode(false);
                                                             setPizzaObservation('');
+                                                        } else if (product.addonGroups && product.addonGroups.length > 0) {
+                                                            setSelectedProductForDetails(product);
+                                                            setSelectedAddons([]);
+                                                            setDetailModalQuantity(1);
                                                         } else {
                                                             addToCart({ ...product, quantity: 1, cartId: Math.random().toString(36).substr(2, 9) });
                                                         }
@@ -397,6 +408,144 @@ const Home: React.FC<HomeProps> = ({ cart, addToCart, updateQuantity }) => {
                                 >
                                     <span>Adicionar ao Carrinho</span>
                                     <span>R$ {modalSubTotal.toFixed(2)}</span>
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                );
+            })()}
+
+            {/* Modal de Detalhes do Produto (Adicionais) */}
+            {selectedProductForDetails && (() => {
+                const addonsTotal = selectedAddons.reduce((sum, addon) => sum + addon.price, 0);
+                const subtotal = (selectedProductForDetails.price + addonsTotal) * detailModalQuantity;
+
+                const isAddonSelected = (optionId: string) => selectedAddons.some(a => a.id === optionId);
+
+                const toggleAddon = (group: any, option: any) => {
+                    if (group.type === 'SINGLE') {
+                        setSelectedAddons(prev => {
+                            const withoutGroup = prev.filter(a => a.groupId !== group.id);
+                            if (isAddonSelected(option.id)) return withoutGroup;
+                            return [...withoutGroup, { ...option, groupId: group.id, groupName: group.name }];
+                        });
+                    } else {
+                        setSelectedAddons(prev => {
+                            if (isAddonSelected(option.id)) return prev.filter(a => a.id !== option.id);
+                            return [...prev, { ...option, groupId: group.id, groupName: group.name }];
+                        });
+                    }
+                };
+
+                const isMissingMandatory = selectedProductForDetails.addonGroups?.some(ag => {
+                    const group = ag.addonGroup;
+                    if (!group.isRequired || !group.active) return false;
+                    return !selectedAddons.some(a => a.groupId === group.id);
+                });
+
+                return (
+                    <div className="fixed inset-0 z-[150] flex flex-col justify-end bg-slate-900/60 backdrop-blur-sm animate-in fade-in duration-300">
+                        <div className="bg-white max-w-2xl mx-auto w-full h-[85vh] rounded-t-[2.5rem] shadow-2xl flex flex-col animate-in slide-in-from-bottom-10 border-t border-slate-100">
+                            {/* Header */}
+                            <div className="p-6 pb-4 border-b border-slate-100 flex justify-between items-start bg-slate-50/50 rounded-t-[2.5rem] sticky top-0 z-10 backdrop-blur-xl">
+                                <div className="flex gap-4">
+                                    <div className="w-16 h-16 rounded-2xl overflow-hidden shrink-0 border border-slate-100 shadow-sm">
+                                        <img src={selectedProductForDetails.imageUrl} alt={selectedProductForDetails.name} className="w-full h-full object-cover" />
+                                    </div>
+                                    <div>
+                                        <h3 className="text-xl font-black text-slate-800 leading-tight">
+                                            {selectedProductForDetails.name}
+                                        </h3>
+                                        <p className="text-sm font-black text-blue-600 mt-1">
+                                            R$ {selectedProductForDetails.price.toFixed(2)}
+                                        </p>
+                                    </div>
+                                </div>
+                                <button
+                                    onClick={() => setSelectedProductForDetails(null)}
+                                    className="p-2.5 bg-white text-slate-400 rounded-full hover:bg-rose-50 hover:text-rose-500 transition-all shadow-sm border border-slate-100"
+                                >
+                                    <svg xmlns="http://www.w3.org/2000/svg" className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                                    </svg>
+                                </button>
+                            </div>
+
+                            <div className="flex-1 overflow-y-auto no-scrollbar p-6 space-y-8">
+                                {selectedProductForDetails.addonGroups?.filter(ag => ag.addonGroup.active).map(ag => {
+                                    const group = ag.addonGroup;
+                                    return (
+                                        <div key={group.id} className="space-y-4">
+                                            <div className="flex justify-between items-center">
+                                                <div>
+                                                    <h4 className="text-[12px] font-black text-slate-900 uppercase tracking-widest flex items-center gap-2">
+                                                        {group.name}
+                                                        {group.isRequired && (
+                                                            <span className="text-[9px] bg-blue-100 text-blue-600 px-2 py-0.5 rounded-full font-bold">Obrigatório</span>
+                                                        )}
+                                                    </h4>
+                                                    <p className="text-[10px] text-slate-400 font-bold uppercase tracking-tight mt-0.5">
+                                                        {group.type === 'SINGLE' ? 'Selecione 1 opção' : 'Escolha quantos desejar'}
+                                                    </p>
+                                                </div>
+                                            </div>
+
+                                            <div className="grid grid-cols-1 gap-2.5">
+                                                {group.options.filter(o => o.active).map(option => {
+                                                    const selected = isAddonSelected(option.id);
+                                                    return (
+                                                        <div
+                                                            key={option.id}
+                                                            onClick={() => toggleAddon(group, option)}
+                                                            className={`p-4 rounded-2xl border transition-all cursor-pointer flex justify-between items-center group ${selected ? 'bg-blue-50 border-blue-500 shadow-sm' : 'bg-white border-slate-100 hover:border-slate-300'}`}
+                                                        >
+                                                            <div className="flex items-center gap-3">
+                                                                <div className={`w-5 h-5 rounded-md border flex items-center justify-center transition-colors ${selected ? 'bg-blue-500 border-blue-500' : 'border-slate-300 bg-slate-50'}`}>
+                                                                    {selected && <svg xmlns="http://www.w3.org/2000/svg" className="w-3 h-3 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M5 13l4 4L19 7" /></svg>}
+                                                                </div>
+                                                                <div className={`font-bold text-sm ${selected ? 'text-blue-900' : 'text-slate-700'}`}>{option.name}</div>
+                                                            </div>
+                                                            <div className={`text-xs font-black tracking-tighter ${selected ? 'text-blue-600' : 'text-slate-400'}`}>
+                                                                {option.price > 0 ? `+ R$ ${option.price.toFixed(2)}` : 'Grátis'}
+                                                            </div>
+                                                        </div>
+                                                    );
+                                                })}
+                                            </div>
+                                        </div>
+                                    );
+                                })}
+
+                                {/* Quantidade */}
+                                <div className="space-y-4 pt-4 border-t border-slate-100">
+                                    <div className="flex justify-between items-center">
+                                        <h4 className="text-[12px] font-black text-slate-900 uppercase tracking-widest">Quantidade do Item</h4>
+                                        <div className="flex items-center justify-between bg-slate-50 border border-slate-200 p-1.5 rounded-2xl w-32">
+                                            <button onClick={() => setDetailModalQuantity(Math.max(1, detailModalQuantity - 1))} className="w-10 h-10 flex items-center justify-center bg-white rounded-xl text-slate-500 hover:text-blue-500 font-bold shadow-sm transition-colors">-</button>
+                                            <span className="font-black text-slate-700">{detailModalQuantity}</span>
+                                            <button onClick={() => setDetailModalQuantity(detailModalQuantity + 1)} className="w-10 h-10 flex items-center justify-center bg-white rounded-xl text-slate-500 hover:text-blue-500 font-bold shadow-sm transition-colors">+</button>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                            
+                            {/* Footer */}
+                            <div className="p-6 bg-white border-t border-slate-100 pb-[calc(1.5rem+env(safe-area-inset-bottom))] sticky bottom-0 rounded-b-[2.5rem]">
+                                <button
+                                    disabled={isMissingMandatory}
+                                    onClick={() => {
+                                        addToCart({
+                                            ...selectedProductForDetails, 
+                                            cartId: Math.random().toString(36).substr(2, 9),
+                                            quantity: detailModalQuantity,
+                                            selectedAddons: selectedAddons
+                                        });
+                                        setSelectedProductForDetails(null);
+                                    }}
+                                    className={`w-full py-5 rounded-2xl font-black uppercase text-[12px] tracking-widest shadow-xl flex justify-between items-center px-6 transition-all ${isMissingMandatory ? 'bg-slate-200 text-slate-400 cursor-not-allowed shadow-none' : 'bg-blue-600 text-white shadow-blue-200 active:scale-[0.98]'}`}
+                                >
+                                    <span>{isMissingMandatory ? 'Selecione os itens obrigatórios' : 'Adicionar ao Carrinho'}</span>
+                                    {!isMissingMandatory && <span>R$ {subtotal.toFixed(2)}</span>}
                                 </button>
                             </div>
                         </div>

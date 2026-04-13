@@ -8,7 +8,14 @@ export const getAllProducts = async (req: Request, res: Response) => {
         where: { active: true },
         include: { 
             recipe: { include: { inventoryItem: true } }, 
-            comboItems: { include: { product: { include: { recipe: { include: { inventoryItem: true } }, comboItems: { include: { product: { include: { recipe: { include: { inventoryItem: true } } } } } } } } } } 
+            addonGroups: { 
+                include: { 
+                    addonGroup: { 
+                        include: { options: true } 
+                    } 
+                } 
+            },
+            comboItems: { include: { product: { include: { recipe: { include: { inventoryItem: true } }, addonGroups: { include: { addonGroup: { include: { options: true } } } }, comboItems: { include: { product: { include: { recipe: { include: { inventoryItem: true } } } } } } } } } } 
         }
     });
 

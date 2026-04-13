@@ -23,6 +23,32 @@ export interface Waiter {
     active: boolean;
 }
 
+export interface AddonOption {
+    id: string;
+    name: string;
+    price: number;
+    trackStock?: boolean;
+    stock?: number;
+    active?: boolean;
+}
+
+export interface AddonGroup {
+    id: string;
+    name: string;
+    type: 'SINGLE' | 'MULTIPLE';
+    isRequired: boolean;
+    active: boolean;
+    options: AddonOption[];
+}
+
+export interface SelectedAddon {
+    id: string;
+    name: string;
+    price: number;
+    groupId: string;
+    groupName: string;
+}
+
 export interface Product {
     id: string;
     name: string;
@@ -33,6 +59,9 @@ export interface Product {
     maxAvailability?: number;
     isPizza?: boolean;
     pizzaSize?: string;
+    addonGroups?: {
+        addonGroup: AddonGroup;
+    }[];
 }
 
 export interface OrderItem {
@@ -46,6 +75,7 @@ export interface OrderItem {
     observations?: string;
     isReady?: boolean;
     pizzaFlavors?: Product[];
+    selectedAddons?: SelectedAddon[];
 }
 
 export interface TableSession {

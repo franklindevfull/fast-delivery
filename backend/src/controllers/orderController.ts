@@ -13,7 +13,8 @@ const mapOrderResponse = (order: any) => {
             observations: item.observations || null,
             // skipKitchen: !!item.skipKitchen,
             tableSessionId: item.tableSessionId || null,
-            pizzaFlavors: item.pizzaFlavors ? (typeof item.pizzaFlavors === 'string' ? (() => { try { return JSON.parse(item.pizzaFlavors); } catch(e) { return null; } })() : item.pizzaFlavors) : null
+            pizzaFlavors: item.pizzaFlavors ? (typeof item.pizzaFlavors === 'string' ? (() => { try { return JSON.parse(item.pizzaFlavors); } catch(e) { return null; } })() : item.pizzaFlavors) : null,
+            selectedAddons: item.selectedAddons ? (typeof item.selectedAddons === 'string' ? (() => { try { return JSON.parse(item.selectedAddons); } catch(e) { return null; } })() : item.selectedAddons) : null
         }))
     };
 };
@@ -214,6 +215,34 @@ const handleInventoryImpact = async (tx: any, items: any[], type: 'DECREMENT' | 
                     }
                 } catch (e) {
                     console.error("Error processing pizza flavors inventory:", e);
+                }
+            }
+
+            // --- DECREMENT/INCREMENT Addon Options stock ---
+            if (item.selectedAddons) {
+                try {
+                    const addons = typeof item.selectedAddons === 'string' ? JSON.parse(item.selectedAddons) : item.selectedAddons;
+                    if (Array.isArray(addons)) {
+                        for (const addon of addons) {
+                            if (!addon.id) continue;
+                            
+                            // Check if this addon option exists and tracks stock
+                            const addonOption = await tx.addonOption.findUnique({
+                                where: { id: addon.id }
+                            });
+
+                            if (addonOption && addonOption.trackStock) {
+                                await tx.addonOption.update({
+                                    where: { id: addon.id },
+                                    data: {
+                                        stock: type === 'DECREMENT' ? { decrement: iq } : { increment: iq }
+                                    }
+                                });
+                            }
+                        }
+                    }
+                } catch (e) {
+                    console.error("Error processing addon options inventory:", e);
                 }
             }
         }
@@ -513,6 +542,7 @@ export const saveOrder = async (req: Request, res: Response) => {
                             // skipKitchen: !!item.skipKitchen,
                             observations: item.observations || null,
                             pizzaFlavors: item.pizzaFlavors ? (typeof item.pizzaFlavors === 'string' ? item.pizzaFlavors : JSON.stringify(item.pizzaFlavors)) : null,
+                            selectedAddons: item.selectedAddons ? (typeof item.selectedAddons === 'string' ? item.selectedAddons : JSON.stringify(item.selectedAddons)) : null,
                             tableSessionId: (newStatus === 'DELIVERED') ? null : ((item.tableSessionId && !isNaN(parseInt(item.tableSessionId.toString()))) ? parseInt(item.tableSessionId.toString()) : null)
                         }))
                     }
@@ -562,6 +592,7 @@ export const saveOrder = async (req: Request, res: Response) => {
                             // skipKitchen: !!item.skipKitchen,
                             observations: item.observations || null,
                             pizzaFlavors: item.pizzaFlavors ? (typeof item.pizzaFlavors === 'string' ? item.pizzaFlavors : JSON.stringify(item.pizzaFlavors)) : null,
+                            selectedAddons: item.selectedAddons ? (typeof item.selectedAddons === 'string' ? item.selectedAddons : JSON.stringify(item.selectedAddons)) : null,
                             tableSessionId: (newStatus === 'DELIVERED') ? null : ((item.tableSessionId && !isNaN(parseInt(item.tableSessionId.toString()))) ? parseInt(item.tableSessionId.toString()) : null)
                         }))
                     }

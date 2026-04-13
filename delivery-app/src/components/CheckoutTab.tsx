@@ -222,7 +222,8 @@ const CheckoutTab: React.FC<{ onOrderPlaced: () => void }> = ({ onOrderPlaced })
                         quantity: i.quantity,
                         price: i.product.price,
                         observations: i.observations || null,
-                        pizzaFlavors: i.pizzaFlavors && i.pizzaFlavors.length > 0 ? i.pizzaFlavors : undefined
+                        pizzaFlavors: i.pizzaFlavors && i.pizzaFlavors.length > 0 ? i.pizzaFlavors : undefined,
+                        selectedAddons: i.selectedAddons || undefined
                     }));
 
                     const orderData = {

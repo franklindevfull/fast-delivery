@@ -230,6 +230,50 @@ export interface Product {
   pizzaSize?: string;
   isFeatured?: boolean;
   showInMenu?: boolean;
+  addonGroups?: { addonGroupId: string; addonGroup: AddonGroup }[];
+}
+
+export interface AddonGroup {
+  id: string;
+  name: string;
+  selectionType: "SINGLE" | "MULTIPLE";
+  isRequired: boolean;
+  active: boolean;
+  options: AddonOption[];
+}
+
+export interface AddonOption {
+  id: string;
+  groupId: string;
+  name: string;
+  price: number;
+  active: boolean;
+  trackStock: boolean;
+  stock: number;
+}
+
+export interface CartItem {
+  uid: string;
+  id?: string;
+  orderId?: string;
+  tableSessionId?: number;
+  productId: string;
+  quantity: number;
+  price: number;
+  isReady: boolean;
+  readyAt?: string | null;
+  skipKitchen?: boolean;
+  observations?: string | null;
+  pizzaFlavors?: any;
+  selectedAddons?: SelectedAddon[];
+}
+
+export interface SelectedAddon {
+  id?: string;
+  addonOptionId: string;
+  name: string;
+  price: number;
+  quantity: number;
 }
 
 export interface OrderItem {
@@ -245,6 +289,7 @@ export interface OrderItem {
   skipKitchen?: boolean;
   observations?: string | null;
   pizzaFlavors?: any;
+  selectedAddons?: SelectedAddon[];
 }
 
 export interface TableSession {

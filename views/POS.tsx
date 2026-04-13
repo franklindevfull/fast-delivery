@@ -57,6 +57,8 @@ const POS: React.FC<POSProps> = ({ currentUser }) => {
   const [cartQuantity, setCartQuantity] = useState(1);
   const [skipKitchen, setSkipKitchen] = useState(false);
   const [selectedPizzaFlavors, setSelectedPizzaFlavors] = useState<Product[]>([]);
+  const [addonGroups, setAddonGroups] = useState<any[]>([]);
+  const [selectedAddons, setSelectedAddons] = useState<any[]>([]);
 
   const [pendingTables, setPendingTables] = useState<TableSession[]>([]);
   const [pendingCounterOrders, setPendingCounterOrders] = useState<Order[]>([]);
@@ -168,7 +170,7 @@ const POS: React.FC<POSProps> = ({ currentUser }) => {
 
 
   const refreshAllData = async () => {
-    const [p, o, s, c, ts, cs, recs, dz] = await Promise.all([
+    const [p, o, s, c, ts, cs, recs, dz, ags] = await Promise.all([
       db.getProducts(),
       db.getOrders(),
       db.getSettings(),
@@ -176,7 +178,8 @@ const POS: React.FC<POSProps> = ({ currentUser }) => {
       db.getTableSessions(),
       db.getActiveCashSession(),
       db.getReceivables(),
-      db.getDeliveryZones()
+      db.getDeliveryZones(),
+      db.getAddonGroups()
     ]);
     
     // Sort products: Featured first, then alphabetical
@@ -195,6 +198,7 @@ const POS: React.FC<POSProps> = ({ currentUser }) => {
     setPendingCounterOrders(o.filter(order => order.type === SaleType.COUNTER && order.status === OrderStatus.READY));
     setPendingReceivables(recs?.filter((r: any) => r.status === 'PROCESSING') || []);
     setActiveCashSession(cs);
+    setAddonGroups(ags || []);
 
     try {
       const fb = await db.getFeedbacks();
@@ -251,13 +255,30 @@ const POS: React.FC<POSProps> = ({ currentUser }) => {
       allFlavors = allFlavors.map(f => ({ ...f, fraction, productId: f.id }));
     }
 
+    // Validate mandatory addon groups
+    const productAddonGroupIds = selectedProductForCart.addonGroups 
+      ? selectedProductForCart.addonGroups.map((g: any) => g.addonGroupId) 
+      : (selectedProductForCart as any).addonGroupIds || [];
+      
+    const productAddonGroups = addonGroups.filter(g => productAddonGroupIds.includes(g.id) && g.active);
+    
+    for (const group of productAddonGroups) {
+      if (group.isRequired) {
+        const hasSelection = selectedAddons.some(a => group.options.some((o: any) => o.id === a.addonOptionId));
+        if (!hasSelection) {
+          return showAlert("Opção Obrigatória", `Você precisa selecionar uma opção do grupo: ${group.name}`, "DANGER");
+        }
+      }
+    }
+
     const newItemBase = {
       productId: product.id,
       price: finalPrice,
       isReady: false,
       skipKitchen: skipKitchen,
       observations: cartObservation || '',
-      pizzaFlavors: allFlavors.length > 0 ? allFlavors : undefined
+      pizzaFlavors: allFlavors.length > 0 ? allFlavors : undefined,
+      selectedAddons: selectedAddons.length > 0 ? selectedAddons : undefined
     };
 
     const newItems = Array.from({ length: cartQuantity }).map((_, idx) => ({
@@ -273,6 +294,7 @@ const POS: React.FC<POSProps> = ({ currentUser }) => {
     setCartQuantity(1);
     setSkipKitchen(false);
     setSelectedPizzaFlavors([]);
+    setSelectedAddons([]);
   };
 
   const loadTableSession = async (sess: TableSession) => {
@@ -720,6 +742,7 @@ const POS: React.FC<POSProps> = ({ currentUser }) => {
     setSystemPreview(null);
     setErrors({});
     setSelectedPizzaFlavors([]);
+    setSelectedAddons([]);
     setSaveToZones(false);
     setNeighborhoodName('');
   };
@@ -902,19 +925,26 @@ const POS: React.FC<POSProps> = ({ currentUser }) => {
   };
 
   const groupedCart = useMemo(() => {
-    const grouped: Record<string, { product: Product | undefined, quantity: number, price: number, observations?: string }> = {};
+    const grouped: Record<string, { product: Product | undefined, quantity: number, price: number, observations?: string, selectedAddons?: any[], pizzaFlavors?: any[], uids: string[] }> = {};
     if (Array.isArray(cart)) {
       cart.forEach(item => {
-        const gKey = item.productId + (item.observations || '');
+        const addonsKey = item.selectedAddons ? JSON.stringify(item.selectedAddons.map((a:any) => ({ id: a.addonOptionId, q: a.quantity }))) : '';
+        const flavorsKey = item.pizzaFlavors ? JSON.stringify(item.pizzaFlavors.map((f:any) => f.id)) : '';
+        const gKey = item.productId + (item.observations || '') + addonsKey + flavorsKey;
+        
         if (!grouped[gKey]) {
           grouped[gKey] = {
             product: products.find(p => p.id === item.productId),
             quantity: 0,
             price: item.price,
-            observations: item.observations
+            observations: item.observations,
+            selectedAddons: item.selectedAddons,
+            pizzaFlavors: item.pizzaFlavors,
+            uids: []
           };
         }
         grouped[gKey].quantity += item.quantity;
+        grouped[gKey].uids.push(item.uid);
       });
     }
     return Object.entries(grouped);
@@ -928,7 +958,14 @@ const POS: React.FC<POSProps> = ({ currentUser }) => {
   }, [businessSettings, manualDeliveryFee]);
 
   const cartTotal = useMemo(() => {
-    const itemsTotal = cart.reduce((acc, item) => acc + (item.price * item.quantity), 0);
+    const itemsTotal = cart.reduce((acc, item) => {
+      let itemPrice = item.price;
+      if (item.selectedAddons) {
+        const addonsTotal = item.selectedAddons.reduce((sum: number, addon: any) => sum + (addon.price * addon.quantity), 0);
+        itemPrice += addonsTotal;
+      }
+      return acc + (itemPrice * item.quantity);
+    }, 0);
 
     let total = itemsTotal;
     if (saleType === SaleType.OWN_DELIVERY) {
@@ -1021,7 +1058,7 @@ const POS: React.FC<POSProps> = ({ currentUser }) => {
 
   const groupedPrintingItems = useMemo(() => {
     if (!printingOrder) return [];
-    const grouped: Record<string, { product: Product | undefined, quantity: number, price: number, isSubItem?: boolean; notes?: string }> = {};
+    const grouped: Record<string, { product: Product | undefined, quantity: number, price: number, isSubItem?: boolean; notes?: string; selectedAddons?: any[] }> = {};
     if (printingOrder && Array.isArray(printingOrder.items)) {
       printingOrder.items.forEach(item => {
         const isFractioned = businessSettings?.pizzaNfeRule === 'FRACTIONED' && item.pizzaFlavors && Array.isArray(item.pizzaFlavors) && item.pizzaFlavors.length > 0;
@@ -1039,15 +1076,20 @@ const POS: React.FC<POSProps> = ({ currentUser }) => {
                grouped[flavorId].quantity += (item.quantity * flavor.fraction);
            });
         } else {
-           if (!grouped[item.productId]) {
-             grouped[item.productId] = {
+           const addonsKey = item.selectedAddons ? JSON.stringify(item.selectedAddons.map((a:any) => ({ id: a.addonOptionId, q: a.quantity }))) : '';
+           const flavorsKey = item.pizzaFlavors ? JSON.stringify(item.pizzaFlavors.map((f:any) => f.id)) : '';
+           const gKey = item.productId + addonsKey + flavorsKey;
+
+           if (!grouped[gKey]) {
+             grouped[gKey] = {
                product: products.find(p => p.id === item.productId),
                quantity: 0,
                price: item.price,
-               notes: item.pizzaFlavors && item.pizzaFlavors.length > 0 ? `Sabores: ${item.pizzaFlavors.map((f:any) => f.name).join(', ')}` : undefined
+               selectedAddons: item.selectedAddons,
+               notes: item.pizzaFlavors && item.pizzaFlavors.length > 0 ? `Sabores: ${item.pizzaFlavors.map((f:any) => f.name).join(', ')}` : (item.observations || undefined)
              };
            }
-           grouped[item.productId].quantity += item.quantity;
+           grouped[gKey].quantity += item.quantity;
         }
       });
     }
@@ -1638,7 +1680,7 @@ const POS: React.FC<POSProps> = ({ currentUser }) => {
               {products
                 .filter(p => (activeCategory === 'Todos' || p.category === activeCategory) && (p.name.toLowerCase().includes(productSearchTerm.toLowerCase())))
                 .map(product => (
-                  <button key={product.id} onClick={() => { setSelectedProductForCart(product); setCartObservation(''); setCartQuantity(1); }} className="bg-white dark:bg-slate-900 p-4 rounded-3xl shadow-sm border border-slate-50 dark:border-slate-800 hover:border-blue-300 dark:hover:border-blue-500 hover:scale-[1.02] transition-all text-left group">
+                  <button key={product.id} onClick={() => { setSelectedProductForCart(product); setCartObservation(''); setCartQuantity(1); setSelectedAddons([]); }} className="bg-white dark:bg-slate-900 p-4 rounded-3xl shadow-sm border border-slate-50 dark:border-slate-800 hover:border-blue-300 dark:hover:border-blue-500 hover:scale-[1.02] transition-all text-left group">
                     <div className="w-full h-32 bg-slate-50 dark:bg-slate-800 rounded-2xl mb-3 flex items-center justify-center overflow-hidden">
                       <img src={formatImageUrl(product.imageUrl)} onError={e => e.currentTarget.src = PLACEHOLDER_FOOD_IMAGE} className="max-h-full object-contain group-hover:scale-110 transition-transform" />
                     </div>
@@ -1738,56 +1780,58 @@ const POS: React.FC<POSProps> = ({ currentUser }) => {
           </div>
 
           <div className="flex-1 p-4 lg:p-6 xl:p-8 space-y-3 xl:space-y-4 font-receipt text-[11px]">
-            {groupedCart.length > 0 ? groupedCart.map(([id, data]) => (
-              <div key={id} className={`flex justify-between items-center border-b border-dotted dark:border-slate-700 pb-2 ${(currentOrderStatus === OrderStatus.PREPARING || currentOrderStatus === OrderStatus.PARTIALLY_READY) ? 'animate-moderate-blink text-orange-600 dark:text-orange-400' : ''}`}>
+            {groupedCart.length > 0 ? groupedCart.map(([gKey, data]) => (
+              <div key={gKey} className={`flex justify-between items-center border-b border-dotted dark:border-slate-700 pb-2 ${(currentOrderStatus === OrderStatus.PREPARING || currentOrderStatus === OrderStatus.PARTIALLY_READY) ? 'animate-moderate-blink text-orange-600 dark:text-orange-400' : ''}`}>
                 <div className="flex-1 min-w-0">
-                  <p className="font-black uppercase text-slate-800 dark:text-white truncate">{data.product?.name || '...'}</p>
+                  <p className="font-black uppercase text-slate-800 dark:text-white truncate">
+                    {data.product?.name || '...'}
+                    {data.pizzaFlavors && data.pizzaFlavors.length > 1 && (
+                      <span className="text-[9px] font-bold text-slate-400 ml-1">({data.pizzaFlavors.length} Sabores)</span>
+                    )}
+                  </p>
+                  
+                  {data.pizzaFlavors && data.pizzaFlavors.length > 1 && (
+                    <div className="flex flex-col gap-0.5 mb-1 opacity-80">
+                      {data.pizzaFlavors.filter((f:any) => f.id !== data.product?.id).map((f:any, idx:number) => (
+                        <p key={idx} className="text-[9px] font-bold text-slate-400 dark:text-slate-500 uppercase leading-tight italic">
+                          1/{(data.pizzaFlavors?.length || 1)} {f.name}
+                        </p>
+                      ))}
+                    </div>
+                  )}
+
+                  {data.selectedAddons && data.selectedAddons.length > 0 && (
+                    <div className="flex flex-col gap-0.5 mb-1">
+                      {data.selectedAddons.map((addon: any, idx: number) => (
+                        <p key={idx} className="text-[9px] font-bold text-slate-500 dark:text-slate-400 uppercase leading-none italic">+ {addon.quantity}x {addon.name} ({formatCurrency(addon.price)})</p>
+                      ))}
+                    </div>
+                  )}
+
                   {data.observations && (
                     <p className="text-[9px] font-bold text-slate-400 dark:text-slate-500 uppercase leading-tight italic mb-1">
-                      {data.observations}
+                      OBS: {data.observations}
                     </p>
                   )}
-                  <p className="text-slate-400 dark:text-slate-500 font-bold">{data.quantity} x {formatCurrency(data.price, false)}</p>
+                  
+                  <p className="text-slate-400 dark:text-slate-500 font-bold">
+                    {data.quantity} x {formatCurrency(data.price + (data.selectedAddons ? data.selectedAddons.reduce((sum: number, a: any) => sum + (a.price * a.quantity), 0) : 0), false)}
+                  </p>
                 </div>
                 {!isReceivingFiado && (
                   <button onClick={() => {
+                    const uidToRemove = data.uids[data.uids.length - 1];
                     if (editingOrderId) {
                       showConfirm(
                         "Estorno de Item",
-                        `Deseja realmente estornar (remover) o item "${data.product?.name}" deste pedido?`,
+                        `Deseja realmente estornar (remover) 1x "${data.product?.name}" deste pedido?`,
                         () => {
-                          setCart(prev => {
-                            // findLastIndex fallback for older browsers
-                            let idx = -1;
-                            for (let i = prev.length - 1; i >= 0; i--) {
-                              if (prev[i].productId === id) {
-                                idx = i;
-                                break;
-                              }
-                            }
-                            if (idx === -1) return prev;
-                            const next = [...prev];
-                            next.splice(idx, 1);
-                            return next;
-                          });
+                          setCart(prev => prev.filter(item => item.uid !== uidToRemove));
                         },
                         "DANGER"
                       );
                     } else {
-                      setCart(prev => {
-                        // findLastIndex fallback
-                        let idx = -1;
-                        for (let i = prev.length - 1; i >= 0; i--) {
-                          if (prev[i].productId === id) {
-                            idx = i;
-                            break;
-                          }
-                        }
-                        if (idx === -1) return prev;
-                        const next = [...prev];
-                        next.splice(idx, 1);
-                        return next;
-                      });
+                      setCart(prev => prev.filter(item => item.uid !== uidToRemove));
                     }
                   }} className="text-red-300 font-black px-2 hover:text-red-500 transition-colors" title="Remover 1 Unid.">×</button>
                 )}
@@ -2056,6 +2100,79 @@ const POS: React.FC<POSProps> = ({ currentUser }) => {
                 </div>
               )}
 
+              {/* Adicionais Menu (Se existirem) */}
+              {addonGroups.filter(g => {
+                const productGroupIds = selectedProductForCart.addonGroups ? selectedProductForCart.addonGroups.map((ag: any) => ag.addonGroupId) : (selectedProductForCart as any).addonGroupIds || [];
+                return productGroupIds.includes(g.id) && g.active;
+              }).map(group => (
+                <div key={group.id} className="mb-4">
+                  <div className="flex justify-between items-end mb-2">
+                    <p className="text-[10px] font-black text-slate-400 dark:text-slate-500 uppercase tracking-widest">{group.name}</p>
+                    <span className="text-[9px] text-slate-400 bg-slate-100 dark:bg-slate-800 px-2 py-0.5 rounded-full">{group.isRequired ? 'Obrigatório' : 'Opcional'}</span>
+                  </div>
+                  <div className="max-h-40 overflow-y-auto space-y-2 custom-scrollbar border border-slate-100 dark:border-slate-800 rounded-xl p-2 bg-slate-50/50 dark:bg-slate-900/50">
+                    {group.options.filter((o: any) => o.active).map((option: any) => {
+                      const selectedCount = selectedAddons.filter(a => a.addonOptionId === option.id).reduce((sum, a) => sum + a.quantity, 0);
+                      const isSelected = selectedCount > 0;
+                      
+                      const handleAdd = () => {
+                        // Prevent adding out-of-stock items if stock tracking is on
+                        if (option.trackStock && option.stock <= 0) {
+                           addToast({ title: 'Esgotado', message: 'Este adicional está sem estoque.', type: 'INFO' });
+                           return;
+                        }
+                        
+                        if (group.selectionType === 'SINGLE' && selectedAddons.some(a => group.options.some((o: any) => o.id === a.addonOptionId) && a.addonOptionId !== option.id)) {
+                           // Remove others from this group before adding
+                           setSelectedAddons(prev => [...prev.filter(a => !group.options.some((o: any) => o.id === a.addonOptionId)), { addonOptionId: option.id, name: option.name, price: option.price, quantity: 1 }]);
+                        } else {
+                           if (isSelected) {
+                              if (group.selectionType === 'SINGLE') return; // Cannot add more than 1 in SINGLE
+                              setSelectedAddons(prev => prev.map(a => a.addonOptionId === option.id ? { ...a, quantity: a.quantity + 1 } : a));
+                           } else {
+                              setSelectedAddons(prev => [...prev, { addonOptionId: option.id, name: option.name, price: option.price, quantity: 1 }]);
+                           }
+                        }
+                      };
+
+                      const handleRemove = (e: React.MouseEvent) => {
+                        e.stopPropagation();
+                        if (selectedCount > 1) {
+                           setSelectedAddons(prev => prev.map(a => a.addonOptionId === option.id ? { ...a, quantity: a.quantity - 1 } : a));
+                        } else {
+                           setSelectedAddons(prev => prev.filter(a => a.addonOptionId !== option.id));
+                        }
+                      };
+
+                      return (
+                        <div key={option.id} onClick={handleAdd} className={`p-3 rounded-xl border flex items-center justify-between cursor-pointer transition-colors ${isSelected ? 'bg-blue-50 dark:bg-blue-900/30 border-blue-200 dark:border-blue-800' : 'bg-white dark:bg-slate-800 border-transparent hover:border-slate-200 dark:hover:border-slate-700'}`}>
+                           <div>
+                             <p className={`text-xs font-bold leading-tight ${isSelected ? 'text-blue-700 dark:text-blue-300' : 'text-slate-800 dark:text-slate-200'}`}>
+                               {option.name} {option.trackStock && option.stock <= 0 && <span className="text-red-500 ml-1">(Esgotado)</span>}
+                             </p>
+                             <p className="text-[9px] text-slate-400 mt-0.5">{formatCurrency(option.price)}</p>
+                           </div>
+                           
+                           {isSelected ? (
+                             <div className="flex items-center gap-2">
+                               {group.selectionType === 'MULTIPLE' && (
+                                 <button onClick={handleRemove} className="w-6 h-6 bg-white dark:bg-slate-700 text-blue-600 dark:text-blue-400 rounded-md font-bold text-lg flex items-center justify-center shadow-sm">-</button>
+                               )}
+                               <span className="text-xs font-black text-blue-700 dark:text-blue-300">{selectedCount}</span>
+                               {group.selectionType === 'MULTIPLE' && (
+                                 <button onClick={(e) => { e.stopPropagation(); handleAdd(); }} className="w-6 h-6 bg-blue-600 text-white rounded-md font-bold text-lg flex items-center justify-center shadow-sm">+</button>
+                               )}
+                             </div>
+                           ) : (
+                             <div className="w-5 h-5 rounded-full border-2 flex items-center justify-center border-slate-300 dark:border-slate-600"></div>
+                           )}
+                        </div>
+                      )
+                    })}
+                  </div>
+                </div>
+              ))}
+
               {/* Seletor de Quantidade */}
               <div className="flex flex-col items-center justify-center p-3 bg-slate-50 dark:bg-slate-800 rounded-[1.5rem] border border-slate-100 dark:border-slate-700 mb-4 group/qt">
                 <p className="text-[10px] font-black text-slate-400 dark:text-slate-500 uppercase tracking-widest mb-2">Defina a Quantidade</p>
@@ -2077,9 +2194,9 @@ const POS: React.FC<POSProps> = ({ currentUser }) => {
                 <div className="mt-3 pt-2 border-t border-slate-200/50 dark:border-slate-700/50 w-full text-center">
                   <p className="text-[9px] font-bold text-slate-400 dark:text-slate-500 uppercase">Subtotal do Item</p>
                   <p className="text-base font-black text-blue-600 dark:text-blue-400">
-                    {formatCurrency((selectedProductForCart.isPizza && selectedProductForCart.pizzaSize && selectedPizzaFlavors.length > 0 
+                    {formatCurrency(((selectedProductForCart.isPizza && selectedProductForCart.pizzaSize && selectedPizzaFlavors.length > 0 
                      ? (businessSettings?.pizzaPriceRule === 'AVERAGE' ? ([selectedProductForCart, ...selectedPizzaFlavors].reduce((acc, f) => acc + f.price, 0) / [selectedProductForCart, ...selectedPizzaFlavors].length) : Math.max(...[selectedProductForCart, ...selectedPizzaFlavors].map(f => f.price))) 
-                     : selectedProductForCart.price) * cartQuantity)}
+                     : selectedProductForCart.price) + (selectedAddons.reduce((sum, a) => sum + (a.price * a.quantity), 0))) * cartQuantity)}
                   </p>
                 </div>
               </div>
@@ -2219,17 +2336,23 @@ const POS: React.FC<POSProps> = ({ currentUser }) => {
                   </div>
 
                   <div className="mb-1 border-t border-black pt-1">
-                    {groupedPrintingItems.map(([id, data]) => (
-                      <div key={id} className={`flex flex-col py-0.5 ${data.notes ? 'mb-1 border-b border-dotted border-black/10 pb-1' : ''}`}>
-                        <div className="flex justify-between items-start font-bold uppercase text-[8px] gap-2">
-                          <span className="flex-1 leading-tight whitespace-normal">{data.quantity}X {data.product?.name.substring(0, 25)}</span>
-                          <span className="shrink-0 whitespace-nowrap">{formatCurrency(data.price, false)}</span>
+                    {groupedPrintingItems.map(([id, data]) => {
+                      const addonsTotal = data.selectedAddons ? data.selectedAddons.reduce((sum: number, a: any) => sum + (a.price * a.quantity), 0) : 0;
+                      return (
+                        <div key={id} className={`flex flex-col py-0.5 ${(data.notes || data.selectedAddons) ? 'mb-1 border-b border-dotted border-black/10 pb-1' : ''}`}>
+                          <div className="flex justify-between items-start font-bold uppercase text-[8px] gap-2">
+                            <span className="flex-1 leading-tight whitespace-normal">{data.quantity}X {data.product?.name.substring(0, 25)}</span>
+                            <span className="shrink-0 whitespace-nowrap">{formatCurrency(data.price + addonsTotal, false)}</span>
+                          </div>
+                          {data.selectedAddons && data.selectedAddons.map((addon: any, idx: number) => (
+                            <span key={idx} className="text-[7px] font-bold uppercase text-slate-500 mt-0.5 ml-3 leading-none">+ {addon.quantity}X {addon.name}</span>
+                          ))}
+                          {data.notes && (
+                            <span className="text-[7px] font-bold uppercase text-slate-600 mt-0.5 ml-3 leading-tight">📝 {data.notes}</span>
+                          )}
                         </div>
-                        {data.notes && (
-                          <span className="text-[7px] font-bold uppercase text-slate-600 mt-0.5 ml-3">📝 {data.notes}</span>
-                        )}
-                      </div>
-                    ))}
+                      );
+                    })}
                   </div>
 
                   <div className="border-t border-black pt-1">

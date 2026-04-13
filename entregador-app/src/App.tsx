@@ -312,17 +312,22 @@ const App: React.FC = () => {
 
   const groupedPrintingItems = useMemo(() => {
     if (!printingOrder) return [];
-    const grouped: Record<string, { name: string, quantity: number, price: number }> = {};
+    const grouped: Record<string, { name: string, quantity: number, price: number, selectedAddons?: any[] }> = {};
+    
     printingOrder.items.forEach(item => {
-      const prod = products.find(p => p.id === item.productId);
-      if (!grouped[item.productId]) {
-        grouped[item.productId] = {
-          name: prod?.name || '...',
+      const addonIds = (item.selectedAddons || []).map(a => a.id).sort().join(',');
+      const key = `${item.productId}-${addonIds}-${item.observations || ''}`;
+      
+      if (!grouped[key]) {
+        const prod = products.find(p => p.id === item.productId);
+        grouped[key] = {
+          name: prod?.name || item.productName || '...',
           quantity: 0,
-          price: item.price
+          price: item.price,
+          selectedAddons: item.selectedAddons
         };
       }
-      grouped[item.productId].quantity += item.quantity;
+      grouped[key].quantity += item.quantity;
     });
     return Object.entries(grouped);
   }, [printingOrder, products]);
@@ -746,10 +751,21 @@ const App: React.FC = () => {
               </p>
             </div>
             <div className="border-y border-dashed border-slate-200 py-3 mb-4 max-h-40 overflow-y-auto custom-scrollbar">
-              {groupedPrintingItems.map(([id, data]) => (
-                <div key={id} className="flex justify-between items-center py-0.5">
-                  <span className="text-[11px] font-black">{data.quantity}x {data.name}</span>
-                  <span className="text-[11px] font-black">R$ {(data.quantity * data.price).toFixed(2)}</span>
+              {groupedPrintingItems.map(([key, data]) => (
+                <div key={key} className="flex flex-col py-1 border-b border-slate-50 last:border-0">
+                  <div className="flex justify-between items-center">
+                    <span className="text-[11px] font-black">{data.quantity}x {data.name}</span>
+                    <span className="text-[11px] font-black">R$ {((data.price + (data.selectedAddons?.reduce((s, a) => s + a.price, 0) || 0)) * data.quantity).toFixed(2)}</span>
+                  </div>
+                  {data.selectedAddons && data.selectedAddons.length > 0 && (
+                    <div className="flex flex-wrap gap-1 mt-0.5">
+                      {data.selectedAddons.map((addon: any, idx: number) => (
+                        <span key={idx} className="text-[8px] font-black text-blue-600 uppercase tracking-tight">
+                          + {addon.name} ({addon.price.toFixed(2)})
+                        </span>
+                      ))}
+                    </div>
+                  )}
                 </div>
               ))}
             </div>

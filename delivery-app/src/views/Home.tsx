@@ -55,6 +55,12 @@ const Home: React.FC = () => {
     const [isPizzaSelectionMode, setIsPizzaSelectionMode] = useState(false);
     const [pizzaModalQuantity, setPizzaModalQuantity] = useState(1);
     const [pizzaObservation, setPizzaObservation] = useState('');
+    
+    // Addon States
+    const [selectedProductForAddons, setSelectedProductForAddons] = useState<Product | null>(null);
+    const [selectedAddonsForProduct, setSelectedAddonsForProduct] = useState<any[]>([]);
+    const [productModalQuantity, setProductModalQuantity] = useState(1);
+    const [productModalObservation, setProductModalObservation] = useState('');
 
     // Biometric States
     const [isBiometricLoading, setIsBiometricLoading] = useState(false);
@@ -444,6 +450,11 @@ const Home: React.FC = () => {
                                                                 setPizzaModalQuantity(1);
                                                                 setIsPizzaSelectionMode(false);
                                                                 setPizzaObservation('');
+                                                            } else if (product.addonGroups?.length) {
+                                                                setSelectedProductForAddons(product);
+                                                                setSelectedAddonsForProduct([]);
+                                                                setProductModalQuantity(1);
+                                                                setProductModalObservation('');
                                                             } else {
                                                                 addToCart(product);
                                                             }
@@ -519,6 +530,11 @@ const Home: React.FC = () => {
                                                                     setPizzaModalQuantity(1);
                                                                     setIsPizzaSelectionMode(false);
                                                                     setPizzaObservation('');
+                                                                } else if (product.addonGroups?.length) {
+                                                                    setSelectedProductForAddons(product);
+                                                                    setSelectedAddonsForProduct([]);
+                                                                    setProductModalQuantity(1);
+                                                                    setProductModalObservation('');
                                                                 } else {
                                                                     addToCart(product);
                                                                 }
@@ -705,6 +721,175 @@ const Home: React.FC = () => {
                 type="INFO"
                 confirmText="ENTENDI"
             />
+
+            {/* Modal de Detalhes do Produto / Adicionais */}
+            {selectedProductForAddons && (
+                <div className="fixed inset-0 z-[160] flex flex-col justify-end bg-slate-900/60 backdrop-blur-sm animate-in fade-in duration-300">
+                    <div className="bg-white dark:bg-slate-900 w-full h-[85vh] rounded-t-[2.5rem] shadow-2xl flex flex-col animate-in slide-in-from-bottom-10 border-t border-slate-100 dark:border-slate-800">
+                        {/* Header */}
+                        <div className="p-6 pb-4 border-b border-slate-100 dark:border-slate-800 flex justify-between items-start bg-slate-50/50 dark:bg-slate-900 rounded-t-[2.5rem] sticky top-0 z-10 backdrop-blur-xl">
+                            <div className="flex-1">
+                                <span className="text-[10px] font-black uppercase text-indigo-500 tracking-widest bg-indigo-50 dark:bg-indigo-900/30 px-3 py-1 rounded-full mb-2 inline-block">
+                                    {selectedProductForAddons.category}
+                                </span>
+                                <h3 className="text-xl font-black text-slate-800 dark:text-white leading-tight">
+                                    {selectedProductForAddons.name}
+                                </h3>
+                            </div>
+                            <button
+                                onClick={() => setSelectedProductForAddons(null)}
+                                className="p-2.5 bg-white dark:bg-slate-800 text-slate-400 rounded-full hover:bg-rose-50 hover:text-rose-500 transition-all shadow-sm border border-slate-100 dark:border-slate-700"
+                            >
+                                <Icons.X className="w-5 h-5" />
+                            </button>
+                        </div>
+
+                        <div className="flex-1 overflow-y-auto no-scrollbar p-6 space-y-8">
+                            {/* Image Placeholder or Actual Image */}
+                            {selectedProductForAddons.imageUrl && (
+                                <div className="w-full h-48 rounded-[2rem] overflow-hidden shadow-lg mb-4">
+                                    <img src={selectedProductForAddons.imageUrl} alt={selectedProductForAddons.name} className="w-full h-full object-cover" />
+                                </div>
+                            )}
+
+                            {/* Addon Groups */}
+                            {selectedProductForAddons.addonGroups?.map(({ addonGroup: group }) => (
+                                <div key={group.id} className="space-y-4">
+                                    <div className="flex justify-between items-end">
+                                        <div>
+                                            <h4 className="text-sm font-black text-slate-800 dark:text-white uppercase tracking-tight">
+                                                {group.name}
+                                            </h4>
+                                            <p className="text-[10px] text-slate-400 font-bold uppercase tracking-widest">
+                                                {group.selectionType === 'SINGLE' ? 'Selecione 1 opção' : 'Selecione uma ou mais'}
+                                            </p>
+                                        </div>
+                                        {group.isRequired && (
+                                            <span className="bg-amber-100 text-amber-600 dark:bg-amber-900/30 dark:text-amber-400 text-[8px] font-black px-2 py-0.5 rounded-full uppercase tracking-widest">Obrigatório</span>
+                                        )}
+                                    </div>
+
+                                    <div className="grid grid-cols-1 gap-3">
+                                        {group.options.filter(o => o.active).map(option => {
+                                            const isSelected = selectedAddonsForProduct.find(a => a.addonOptionId === option.id);
+                                            const isOutOfStock = option.trackStock && option.stock <= 0;
+
+                                            return (
+                                                <div
+                                                    key={option.id}
+                                                    onClick={() => {
+                                                        if (isOutOfStock) return;
+                                                        
+                                                        if (group.selectionType === 'SINGLE') {
+                                                            // Remove others from same group
+                                                            const otherGroupOptions = group.options.map(o => o.id);
+                                                            setSelectedAddonsForProduct(prev => [
+                                                                ...prev.filter(a => !otherGroupOptions.includes(a.addonOptionId)),
+                                                                { addonOptionId: option.id, name: option.name, price: option.price, quantity: 1 }
+                                                            ]);
+                                                        } else {
+                                                            if (isSelected) {
+                                                                setSelectedAddonsForProduct(prev => prev.filter(a => a.addonOptionId !== option.id));
+                                                            } else {
+                                                                setSelectedAddonsForProduct(prev => [...prev, { addonOptionId: option.id, name: option.name, price: option.price, quantity: 1 }]);
+                                                            }
+                                                        }
+                                                    }}
+                                                    className={`p-4 rounded-2xl border transition-all cursor-pointer flex justify-between items-center group ${isSelected ? 'bg-indigo-50 dark:bg-indigo-500/10 border-indigo-500' : 'bg-white dark:bg-slate-800 border-slate-100 dark:border-slate-700'} ${isOutOfStock ? 'opacity-50 grayscale cursor-not-allowed' : 'active:scale-95'}`}
+                                                >
+                                                    <div className="flex items-center gap-3">
+                                                        <div className={`w-5 h-5 rounded-full border-2 flex items-center justify-center transition-all ${isSelected ? 'border-indigo-500 bg-indigo-500 text-white' : 'border-slate-200 dark:border-slate-600'}`}>
+                                                            {isSelected && <div className="w-2 h-2 bg-white rounded-full"></div>}
+                                                        </div>
+                                                        <div className="font-bold text-slate-700 dark:text-slate-200 text-sm">
+                                                            {option.name}
+                                                            {isOutOfStock && <span className="text-[9px] text-rose-500 ml-2">(Esgotado)</span>}
+                                                        </div>
+                                                    </div>
+                                                    <div className="flex items-center gap-3">
+                                                        <span className={`text-xs font-black ${isSelected ? 'text-indigo-600 dark:text-indigo-400' : 'text-slate-500 dark:text-slate-400'}`}>
+                                                            {option.price > 0 ? `+ ${formatCurrency(option.price)}` : 'Grátis'}
+                                                        </span>
+                                                    </div>
+                                                </div>
+                                            );
+                                        })}
+                                    </div>
+                                </div>
+                            ))}
+
+                            {/* Observations */}
+                            <div className="space-y-3">
+                                <h4 className="text-[10px] font-black text-slate-400 dark:text-slate-500 uppercase tracking-widest flex items-center gap-2">
+                                    <div className="w-1.5 h-1.5 rounded-full bg-slate-400"></div> Observações
+                                </h4>
+                                <textarea
+                                    value={productModalObservation}
+                                    onChange={e => setProductModalObservation(e.target.value)}
+                                    placeholder="Ex: Tirar cebola, maionese à parte, etc..."
+                                    className="w-full bg-slate-50 dark:bg-slate-800/50 border border-slate-100 dark:border-slate-700 rounded-2xl p-4 text-xs font-medium text-slate-700 dark:text-slate-200 outline-none focus:ring-4 focus:ring-indigo-50 dark:focus:ring-indigo-900/20 transition-all min-h-[100px]"
+                                />
+                            </div>
+
+                            <div className="h-20"></div> {/* Spacer */}
+                        </div>
+
+                        {/* Footer Action */}
+                        <div className="p-6 bg-white dark:bg-slate-900 border-t border-slate-100 dark:border-slate-800 flex flex-col gap-4">
+                            <div className="flex items-center justify-between">
+                                {/* Quantity Selector */}
+                                <div className="flex items-center bg-slate-100 dark:bg-slate-800 rounded-2xl p-1 shrink-0">
+                                    <button
+                                        onClick={() => setProductModalQuantity(q => Math.max(1, q - 1))}
+                                        className="w-10 h-10 flex items-center justify-center text-slate-500 hover:text-indigo-600 transition-colors font-black text-xl active:scale-90"
+                                    >
+                                        -
+                                    </button>
+                                    <div className="w-10 text-center font-black text-slate-800 dark:text-white">
+                                        {productModalQuantity}
+                                    </div>
+                                    <button
+                                        onClick={() => setProductModalQuantity(q => q + 1)}
+                                        className="w-10 h-10 flex items-center justify-center text-slate-500 hover:text-indigo-600 transition-colors font-black text-xl active:scale-90"
+                                    >
+                                        +
+                                    </button>
+                                </div>
+
+                                <div className="text-right">
+                                    <p className="text-[9px] font-black text-slate-400 uppercase tracking-widest">Subtotal</p>
+                                    <p className="text-2xl font-black text-slate-800 dark:text-white tracking-tighter">
+                                        {(() => {
+                                            const base = selectedProductForAddons.price;
+                                            const addons = selectedAddonsForProduct.reduce((s, a) => s + (a.price * a.quantity), 0);
+                                            return formatCurrency((base + addons) * productModalQuantity);
+                                        })()}
+                                    </p>
+                                </div>
+                            </div>
+
+                            {/* Validation check for Mandatory items */}
+                            {(() => {
+                                const missingMandatory = selectedProductForAddons.addonGroups?.filter(g => g.addonGroup.isRequired && !selectedAddonsForProduct.some(a => g.addonGroup.options.some(o => o.id === a.addonOptionId)));
+                                const isBlocked = missingMandatory && missingMandatory.length > 0;
+
+                                return (
+                                    <button
+                                        disabled={isBlocked}
+                                        onClick={() => {
+                                            addToCart(selectedProductForAddons, productModalQuantity, undefined, productModalObservation, selectedAddonsForProduct);
+                                            setSelectedProductForAddons(null);
+                                        }}
+                                        className={`w-full py-5 rounded-3xl font-black uppercase text-[11px] tracking-[0.2em] transition-all shadow-xl active:scale-95 ${isBlocked ? 'bg-slate-100 dark:bg-slate-800 text-slate-400 cursor-not-allowed' : 'bg-indigo-600 text-white shadow-indigo-200 dark:shadow-indigo-900/50 hover:bg-indigo-700'}`}
+                                    >
+                                        {isBlocked ? `Selecione: ${missingMandatory[0].addonGroup.name}` : 'Adicionar ao Carrinho'}
+                                    </button>
+                                );
+                            })()}
+                        </div>
+                    </div>
+                </div>
+            )}
 
             {/* Modal de Pizza */}
             {selectedPizzaForLaunch && (() => {
