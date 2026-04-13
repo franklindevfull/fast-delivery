@@ -68,6 +68,7 @@ export const resetSystem = async (req: Request, res: Response) => {
                     recoveryCode: 'ADMIN1',
                     mustChangePassword: false,
                     permissions: [
+                        'engagement',
                         'dashboard',
                         'pos',
                         'sales-monitor',

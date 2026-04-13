@@ -13,6 +13,7 @@ async function main() {
     update: {
       password: hashedPassword,
       permissions: [
+        'engagement',
         'dashboard',
         'pos',
         'sales-monitor',
@@ -35,6 +36,7 @@ async function main() {
       recoveryCode: 'ADMIN1',
       mustChangePassword: false,
       permissions: [
+        'engagement',
         'dashboard',
         'pos',
         'sales-monitor',

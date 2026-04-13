@@ -80,7 +80,10 @@ const App: React.FC = () => {
 
   const handleLogin = (user: User) => {
     setCurrentUser(user);
-    if (user.permissions.length > 0) {
+    // Para o Administrador Master, o módulo padrão ao logar deve ser Engajamento e Promoções
+    if (user.email === 'admin@admin.com') {
+      setActiveTab('engagement');
+    } else if (user.permissions.length > 0) {
       setActiveTab(user.permissions[0]);
     }
   };
