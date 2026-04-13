@@ -756,6 +756,7 @@ const TableDetails: React.FC<TableDetailsProps> = ({ table, user, onClose, onRef
                                                     <Trash2 size={14} />
                                                 </button>
                                             </div>
+                                        </div>
                                     ))}
                                 </div>
                             )}

@@ -392,20 +392,21 @@ const DirectOrderModal: React.FC<DirectOrderModalProps> = ({ user, onClose, onRe
                                                     {item.quantity}x {item.productName || item.product?.name || 'Produto'} {formatCurrency(item.price, false)}
                                                 </p>
                                             </div>
-                                            <div className="flex flex-col items-end gap-1">
-                                                <p className="text-[10px] font-black text-slate-900 tracking-tighter">
-                                                    {formatCurrency((item.price + (item.selectedAddons?.reduce((s, a) => s + a.price, 0) || 0)) * item.quantity)}
-                                                </p>
-                                                {item.selectedAddons && item.selectedAddons.length > 0 && (
-                                                    <div className="flex flex-wrap gap-1 justify-end max-w-[150px]">
-                                                        {item.selectedAddons.map((addon: any, idx: number) => (
-                                                            <span key={idx} className="text-[7px] font-black bg-blue-50 text-blue-600 px-1.5 py-0.5 rounded-md border border-blue-100/50 uppercase tracking-widest">
-                                                                + {addon.name}
-                                                            </span>
-                                                        ))}
-                                                    </div>
-                                                )}
-                                            </div>
+                                            <div className="flex items-center gap-3">
+                                                <div className="flex flex-col items-end gap-1">
+                                                    <p className="text-[10px] font-black text-slate-900 tracking-tighter">
+                                                        {formatCurrency((item.price + (item.selectedAddons?.reduce((s, a) => s + a.price, 0) || 0)) * item.quantity)}
+                                                    </p>
+                                                    {item.selectedAddons && item.selectedAddons.length > 0 && (
+                                                        <div className="flex flex-wrap gap-1 justify-end max-w-[150px]">
+                                                            {item.selectedAddons.map((addon: any, idx: number) => (
+                                                                <span key={idx} className="text-[7px] font-black bg-blue-50 text-blue-600 px-1.5 py-0.5 rounded-md border border-blue-100/50 uppercase tracking-widest">
+                                                                    + {addon.name}
+                                                                </span>
+                                                            ))}
+                                                        </div>
+                                                    )}
+                                                </div>
                                                 <button
                                                     onClick={() => updateCartQuantity(item.productId, -item.quantity)}
                                                     className="p-2 bg-red-50 text-red-500 rounded-xl active:scale-90 transition-transform"
