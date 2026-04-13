@@ -7,12 +7,16 @@ import { Icons } from './constants';
 import LogoutModal from './components/LogoutModal';
 import Login from './components/Login';
 import PaymentRequiredModal from './components/PaymentRequiredModal';
+import PixInfoModal from './components/PixInfoModal';
 
 const paymentLabels: Record<string, string> = {
   'CREDIT': 'Cartão de Crédito',
   'DEBIT': 'Cartão de Débito',
   'CASH': 'Dinheiro',
-  'PIX': 'PIX'
+  'PIX': 'PIX',
+  'CREDIARIO': 'Crediário',
+  'MEAL_VOUCHER': 'Vale Refeição',
+  'FOOD_VOUCHER': 'Vale Alimentação'
 };
 
 const playNotificationSound = () => {
@@ -114,6 +118,7 @@ const App: React.FC = () => {
   const [countdown, setCountdown] = useState<string | null>(null);
   const [customAlertMessage, setCustomAlertMessage] = useState<string | null>(null);
   const [isPaymentRequiredModalOpen, setIsPaymentRequiredModalOpen] = useState(false);
+  const [isPixModalOpen, setIsPixModalOpen] = useState(false);
   const [selectedPayments, setSelectedPayments] = useState<Record<string, string>>({});
 
   // Chat states
@@ -599,8 +604,18 @@ const App: React.FC = () => {
                                 return activeMethods.map(m => (
                                   <button
                                     key={m.id}
-                                    onClick={() => setSelectedPayments(prev => ({ ...prev, [order.id]: m.id }))}
-                                    className={`py-2.5 rounded-xl text-[10px] font-black uppercase transition-all border ${selectedPayments[order.id] === m.id ? 'bg-blue-600 border-blue-600 text-white shadow-md' : 'bg-white border-slate-200 text-slate-400'}`}
+                                    disabled={m.id === 'CREDIARIO'}
+                                    onClick={() => {
+                                      if (m.id === 'PIX') setIsPixModalOpen(true);
+                                      setSelectedPayments(prev => ({ ...prev, [order.id]: m.id }));
+                                    }}
+                                    className={`py-2.5 rounded-xl text-[10px] font-black uppercase transition-all border ${
+                                      m.id === 'CREDIARIO' 
+                                        ? 'bg-slate-50 border-slate-100 text-slate-300 cursor-not-allowed opacity-50' 
+                                        : selectedPayments[order.id] === m.id 
+                                          ? 'bg-blue-600 border-blue-600 text-white shadow-md' 
+                                          : 'bg-white border-slate-200 text-slate-400'
+                                    }`}
                                   >
                                     {m.label}
                                   </button>
@@ -845,10 +860,18 @@ const App: React.FC = () => {
         onCancel={() => setIsLogoutModalOpen(false)}
       />
 
+
       <PaymentRequiredModal 
         isOpen={isPaymentRequiredModalOpen} 
         onClose={() => setIsPaymentRequiredModalOpen(false)} 
       />
+
+      <PixInfoModal
+        isOpen={isPixModalOpen}
+        onClose={() => setIsPixModalOpen(false)}
+        pixKey={settings?.pixKey || ''}
+      />
+
     </div>
   );
 };

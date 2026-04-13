@@ -217,4 +217,5 @@ export interface BusinessSettings {
         PIX: boolean;
         CREDIARIO: boolean;
     };
+    pixKey?: string;
 }
