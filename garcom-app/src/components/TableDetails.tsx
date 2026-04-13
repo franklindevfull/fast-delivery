@@ -468,16 +468,16 @@ const TableDetails: React.FC<TableDetailsProps> = ({ table, user, onClose, onRef
                                                     {formatCurrency((item.price + (item.selectedAddons?.reduce((s: number, a: any) => s + a.price, 0) || 0)) * item.quantity)}
                                                 </p>
                                             </div>
+                                            {item.selectedAddons && item.selectedAddons.length > 0 && (
+                                                <div className="mt-3 flex flex-wrap gap-1.5 pl-0.5">
+                                                    {item.selectedAddons.map((addon: any, idx: number) => (
+                                                        <span key={idx} className="text-[9px] font-black bg-blue-50 text-blue-600 px-2.5 py-1 rounded-lg border border-blue-100/50 uppercase tracking-widest">
+                                                            + {addon.name} ({formatCurrency(addon.price)})
+                                                        </span>
+                                                    ))}
+                                                </div>
+                                            )}
                                         </div>
-                                        {item.selectedAddons && item.selectedAddons.length > 0 && (
-                                            <div className="mt-3 flex flex-wrap gap-1.5 pl-0.5">
-                                                {item.selectedAddons.map((addon: any, idx: number) => (
-                                                    <span key={idx} className="text-[9px] font-black bg-blue-50 text-blue-600 px-2.5 py-1 rounded-lg border border-blue-100/50 uppercase tracking-widest">
-                                                        + {addon.name} ({formatCurrency(addon.price)})
-                                                    </span>
-                                                ))}
-                                            </div>
-                                        )}
                                     </div>
                                 ))
                             )}
