@@ -208,4 +208,13 @@ export interface BusinessSettings {
     enableDriverApp?: boolean;
     printerIp?: string;
     printerType?: string;
+    paymentMethods?: {
+        CASH: boolean;
+        DEBIT: boolean;
+        CREDIT: boolean;
+        MEAL_VOUCHER: boolean;
+        FOOD_VOUCHER: boolean;
+        PIX: boolean;
+        CREDIARIO: boolean;
+    };
 }

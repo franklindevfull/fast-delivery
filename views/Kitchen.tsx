@@ -11,6 +11,15 @@ import { formatAddress, formatCurrency } from '../services/formatUtils';
 
 
 
+const getPizzaPiecesBySize = (size: string) => {
+  const s = size.toUpperCase();
+  if (s === 'P' || s.includes('BROTO')) return 4;
+  if (s === 'M') return 6;
+  if (s === 'G') return 8;
+  if (s === 'GG' || s.includes('FAMILIA')) return 12;
+  return 8; // Default
+};
+
 const Kitchen: React.FC = () => {
   const { addToast } = useToast();
   const contentRef = useRef<HTMLDivElement>(null);
@@ -302,19 +311,24 @@ const Kitchen: React.FC = () => {
                                   
                                   {/* Ficha Técnica / Instruções de Preparo */}
                                   {(() => {
+                                    const itemsToRenderMap = new Set();
                                     const itemsToRender = [];
                                     
                                     // Adiciona o produto principal se tiver ficha
                                     if ((product?.recipe && product.recipe.length > 0) || product?.preparation) {
-                                      itemsToRender.push({ name: product?.name, recipe: product?.recipe, preparation: product?.preparation });
+                                      itemsToRender.push({ id: product?.id || 'main', name: product?.name, recipe: product?.recipe, preparation: product?.preparation });
+                                      itemsToRenderMap.add(product?.id || 'main');
                                     }
                                     
                                     // Adiciona sabores se houver
                                     if (item.pizzaFlavors && Array.isArray(item.pizzaFlavors)) {
                                       item.pizzaFlavors.forEach((pf: any) => {
-                                        const flavorProd = products.find(p => p.id === pf.productId);
-                                        if ((flavorProd?.recipe && flavorProd.recipe.length > 0) || flavorProd?.preparation) {
-                                          itemsToRender.push({ name: flavorProd?.name, recipe: flavorProd?.recipe, preparation: flavorProd?.preparation });
+                                        if (!itemsToRenderMap.has(pf.productId)) {
+                                          const flavorProd = products.find(p => p.id === pf.productId);
+                                          if ((flavorProd?.recipe && flavorProd.recipe.length > 0) || flavorProd?.preparation) {
+                                            itemsToRender.push({ id: pf.productId, name: flavorProd?.name, recipe: flavorProd?.recipe, preparation: flavorProd?.preparation });
+                                            itemsToRenderMap.add(pf.productId);
+                                          }
                                         }
                                       });
                                     }
@@ -539,7 +553,7 @@ const Kitchen: React.FC = () => {
 
       {printingOrder && businessSettings && (
         <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-slate-900/80 backdrop-blur-md overflow-hidden">
-          <div className="flex flex-col md:flex-row gap-6 max-w-5xl w-full max-h-[90vh]">
+          <div className="flex flex-col md:flex-row gap-6 max-w-4xl w-full max-h-[95vh]">
             {/* Controle de Seleção */}
             <div className="bg-white dark:bg-slate-900 rounded-[2rem] p-6 shadow-2xl border border-slate-100 dark:border-slate-800 flex-1 overflow-y-auto no-print">
               <h3 className="text-lg font-black text-slate-800 dark:text-white uppercase tracking-tighter mb-4">Opções de Impressão</h3>
@@ -548,26 +562,37 @@ const Kitchen: React.FC = () => {
               <div className="space-y-6">
                 {printingOrder.items.map((it, itIdx) => {
                   const product = products.find(p => p.id === it.productId);
-                  const fichas = [];
+                  const fichasMap = new Map();
                   
                   if ((product?.recipe && product.recipe.length > 0) || product?.preparation) {
-                    fichas.push({ id: `${it.uid}-main`, name: product?.name });
+                    fichasMap.set(product?.id || 'main', { id: `${it.uid}-main`, name: product?.name });
                   }
                   
                   if (it.pizzaFlavors && Array.isArray(it.pizzaFlavors)) {
-                    it.pizzaFlavors.forEach((pf: any, pfIdx: number) => {
-                      const flavorProd = products.find(p => p.id === pf.productId);
-                      if ((flavorProd?.recipe && flavorProd.recipe.length > 0) || flavorProd?.preparation) {
-                        fichas.push({ id: `${it.uid}-${pf.productId}`, name: flavorProd?.name });
+                    it.pizzaFlavors.forEach((pf: any) => {
+                      // Se já adicionamos este produto (mesmo como principal), pulamos
+                      if (!fichasMap.has(pf.productId)) {
+                        const flavorProd = products.find(p => p.id === pf.productId);
+                        if ((flavorProd?.recipe && flavorProd.recipe.length > 0) || flavorProd?.preparation) {
+                          fichasMap.set(pf.productId, { id: `${it.uid}-${pf.productId}`, name: flavorProd?.name });
+                        }
                       }
                     });
                   }
 
+                  const fichas = Array.from(fichasMap.values());
                   if (fichas.length === 0) return null;
 
                   return (
                     <div key={itIdx} className="space-y-3">
-                      <p className="text-[11px] font-black text-blue-600 dark:text-blue-400 uppercase">{it.quantity}X {product?.name}</p>
+                      <p className="text-[11px] font-black text-blue-600 dark:text-blue-400 uppercase">
+                        {it.quantity}X {product?.name}
+                        {product?.isPizza && product.pizzaSize && (
+                          <span className="ml-2 text-[9px] text-slate-500 dark:text-slate-400 lowercase font-bold">
+                            ({getPizzaPiecesBySize(product.pizzaSize)} pedaços, {it.pizzaFlavors?.length || 1} {it.pizzaFlavors?.length > 1 ? 'sabores' : 'sabor'})
+                          </span>
+                        )}
+                      </p>
                       <div className="grid grid-cols-1 gap-2">
                         {fichas.map(ficha => (
                           <label key={ficha.id} className="flex items-center gap-3 p-3 bg-slate-50 dark:bg-slate-800/50 rounded-xl border border-slate-100 dark:border-slate-700 cursor-pointer hover:bg-slate-100 dark:hover:bg-slate-800 transition-all">
@@ -601,14 +626,16 @@ const Kitchen: React.FC = () => {
                 {viewTab === 'FILA' ? 'PRODUÇÃO' : 'CONSUMO'}
               </p>
               
+
               <div className="section-divider"></div>
 
               {printingOrder.tableNumber && (
-                <p className="font-bold text-[14px]">MESA {printingOrder.tableNumber}</p>
+                <>
+                  <p className="font-bold text-[14px]">MESA {printingOrder.tableNumber}</p>
+                  <div className="section-divider"></div>
+                </>
               )}
             </div>
-
-            <div className="section-divider"></div>
 
             <div className="text-[9px] mb-1">
               <p>DATA: {new Date(printingOrder.createdAt).toLocaleDateString('pt-BR')} {new Intl.DateTimeFormat('pt-BR', { hour: '2-digit', minute: '2-digit' }).format(new Date(printingOrder.createdAt))}</p>

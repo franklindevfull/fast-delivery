@@ -6,6 +6,7 @@ import { socket } from './services/socket';
 import { Icons } from './constants';
 import LogoutModal from './components/LogoutModal';
 import Login from './components/Login';
+import PaymentRequiredModal from './components/PaymentRequiredModal';
 
 const paymentLabels: Record<string, string> = {
   'CREDIT': 'Cartão de Crédito',
@@ -112,6 +113,7 @@ const App: React.FC = () => {
   const [storeStatus, setStoreStatus] = useState<{ status: 'online' | 'offline', next_status_change?: string | null, is_manually_closed?: boolean, enableDigitalMenu: boolean }>({ status: 'offline', enableDigitalMenu: true });
   const [countdown, setCountdown] = useState<string | null>(null);
   const [customAlertMessage, setCustomAlertMessage] = useState<string | null>(null);
+  const [isPaymentRequiredModalOpen, setIsPaymentRequiredModalOpen] = useState(false);
   const [selectedPayments, setSelectedPayments] = useState<Record<string, string>>({});
 
   // Chat states
@@ -489,7 +491,7 @@ const App: React.FC = () => {
                     <span className="text-[10px] font-black text-blue-600 uppercase tracking-widest">Pedido #{order.id.split('-')[1] || order.id}</span>
                     <h4 className="text-lg font-black text-slate-800 leading-tight mt-0.5">{order.clientName}</h4>
                   </div>
-                  <div className={`px-4 py-1.5 rounded-full text-[9px] font-black uppercase text-white shadow-lg ${order.status === OrderStatus.READY ? 'bg-amber-500' : 'bg-blue-600'}`}>
+                  <div className={`px-4 py-1.5 rounded-full text-[9px] font-black uppercase text-white shadow-lg whitespace-nowrap ${order.status === OrderStatus.READY ? 'bg-amber-500' : 'bg-blue-600'}`}>
                     {OrderStatusLabels[order.status]}
                   </div>
                 </div>
@@ -579,15 +581,31 @@ const App: React.FC = () => {
                           <div className="bg-blue-50/50 p-3 rounded-2xl border border-blue-100/50">
                             <span className="text-[9px] font-black text-blue-600 uppercase tracking-widest block mb-2 text-center">Selecionar Pagamento no Ato:</span>
                             <div className="grid grid-cols-2 gap-2">
-                              {['DINHEIRO', 'PIX', 'CARTÃO', 'FIADO'].map(m => (
-                                <button
-                                  key={m}
-                                  onClick={() => setSelectedPayments(prev => ({ ...prev, [order.id]: m }))}
-                                  className={`py-2.5 rounded-xl text-[10px] font-black uppercase transition-all border ${selectedPayments[order.id] === m ? 'bg-blue-600 border-blue-600 text-white shadow-md' : 'bg-white border-slate-200 text-slate-400'}`}
-                                >
-                                  {m}
-                                </button>
-                              ))}
+                              {(() => {
+                                const allMethods = [
+                                  { id: 'CASH', label: 'DINHEIRO' },
+                                  { id: 'PIX', label: 'PIX' },
+                                  { id: 'DEBIT', label: 'DÉBITO' },
+                                  { id: 'CREDIT', label: 'CRÉDITO' },
+                                  { id: 'MEAL_VOUCHER', label: 'VALE REFEIÇÃO' },
+                                  { id: 'FOOD_VOUCHER', label: 'VALE ALIMENTAÇÃO' },
+                                  { id: 'CREDIARIO', label: 'CREDIÁRIO' },
+                                ];
+                                
+                                const activeMethods = settings?.paymentMethods 
+                                  ? allMethods.filter(m => (settings.paymentMethods as any)[m.id] !== false)
+                                  : allMethods.slice(0, 4); // Fallback for safety
+
+                                return activeMethods.map(m => (
+                                  <button
+                                    key={m.id}
+                                    onClick={() => setSelectedPayments(prev => ({ ...prev, [order.id]: m.id }))}
+                                    className={`py-2.5 rounded-xl text-[10px] font-black uppercase transition-all border ${selectedPayments[order.id] === m.id ? 'bg-blue-600 border-blue-600 text-white shadow-md' : 'bg-white border-slate-200 text-slate-400'}`}
+                                  >
+                                    {m.label}
+                                  </button>
+                                ));
+                              })()}
                             </div>
                           </div>
                         ) : (
@@ -601,7 +619,8 @@ const App: React.FC = () => {
                           onClick={() => {
                             const payMethod = order.paymentMethod || selectedPayments[order.id];
                             if (!payMethod) {
-                              return alert("Por favor, selecione a forma de pagamento antes de finalizar.");
+                              setIsPaymentRequiredModalOpen(true);
+                              return;
                             }
                             updateDeliveryStatus(order.id, OrderStatus.DELIVERED, undefined, payMethod);
                           }}
@@ -824,6 +843,11 @@ const App: React.FC = () => {
           setIsLogoutModalOpen(false);
         }}
         onCancel={() => setIsLogoutModalOpen(false)}
+      />
+
+      <PaymentRequiredModal 
+        isOpen={isPaymentRequiredModalOpen} 
+        onClose={() => setIsPaymentRequiredModalOpen(false)} 
       />
     </div>
   );
