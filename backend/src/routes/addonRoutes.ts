@@ -6,8 +6,8 @@ import {
   updateAddonGroup,
   deleteAddonGroup,
   copyAddonGroup,
-} from "../controllers/addonController";
-import { authenticate } from "../middleware/authMiddleware";
+} from "../controllers/addonController.js";
+import { authenticate } from "../middleware/authMiddleware.js";
 
 const router = Router();
 

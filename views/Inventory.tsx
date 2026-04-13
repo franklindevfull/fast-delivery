@@ -52,7 +52,7 @@ const Inventory: React.FC = () => {
   useEffect(() => {
     refreshData();
   }, [viewMode]);
-
+  const refreshData = async () => {
     const [inv, prods, addons] = await Promise.all([db.getInventory(), db.getProducts(), db.getAddonGroups()]);
     setInventory(inv);
     setProducts(prods);

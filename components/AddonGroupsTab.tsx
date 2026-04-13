@@ -1,9 +1,9 @@
 import React, { useState, useEffect } from 'react';
 import { db } from '../services/db';
 import { AddonGroup, AddonOption } from '../types';
-import { useToast } from '../components/Toast';
+import { useToast } from '../hooks/useToast';
 import { Plus, Edit2, Trash2, Copy, AlertCircle, X, Check } from 'lucide-react';
-import { formatCurrency } from '../utils/formatCurrency';
+import { formatCurrency } from '../services/formatUtils';
 
 export default function AddonGroupsTab() {
   const [groups, setGroups] = useState<AddonGroup[]>([]);
@@ -18,7 +18,7 @@ export default function AddonGroupsTab() {
       const data = await db.getAddonGroups();
       setGroups(data || []);
     } catch (err) {
-      addToast('Erro ao carregar grupos de opções.', 'error');
+      addToast({ title: 'Erro', message: 'Erro ao carregar grupos de opções.', type: 'DANGER' });
     } finally {
       setLoading(false);
     }
@@ -49,20 +49,20 @@ export default function AddonGroupsTab() {
     if (!window.confirm(`Excluir o grupo "${name}"? Essa ação afetará os produtos vinculados.`)) return;
     try {
       await db.deleteAddonGroup(id);
-      addToast('Grupo excluído com sucesso.', 'success');
+      addToast({ title: 'Sucesso', message: 'Grupo excluído com sucesso.', type: 'SUCCESS' });
       loadGroups();
     } catch (e: any) {
-      addToast(e.message || 'Erro ao excluir.', 'error');
+      addToast({ title: 'Erro', message: e.message || 'Erro ao excluir.', type: 'DANGER' });
     }
   };
 
   const handleCopy = async (id: string) => {
     try {
       await db.copyAddonGroup(id);
-      addToast('Grupo copiado com sucesso.', 'success');
+      addToast({ title: 'Sucesso', message: 'Grupo copiado com sucesso.', type: 'SUCCESS' });
       loadGroups();
     } catch (e: any) {
-      addToast(e.message || 'Erro ao copiar grupo.', 'error');
+      addToast({ title: 'Erro', message: e.message || 'Erro ao copiar grupo.', type: 'DANGER' });
     }
   };
 
@@ -71,21 +71,21 @@ export default function AddonGroupsTab() {
     if (!editingGroup) return;
 
     if (!editingGroup.name) {
-      addToast('Nome do grupo é obrigatório', 'error');
+      addToast({ title: 'Aviso', message: 'Nome do grupo é obrigatório', type: 'WARNING' });
       return;
     }
     if (!editingGroup.options || editingGroup.options.length === 0) {
-      addToast('Adicione pelo menos uma opção.', 'error');
+      addToast({ title: 'Aviso', message: 'Adicione pelo menos uma opção.', type: 'WARNING' });
       return;
     }
 
     try {
       await db.saveAddonGroup(editingGroup);
-      addToast('Grupo salvo com sucesso.', 'success');
+      addToast({ title: 'Sucesso', message: 'Grupo salvo com sucesso.', type: 'SUCCESS' });
       setIsModalOpen(false);
       loadGroups();
     } catch (e: any) {
-      addToast(e.message || 'Erro ao salvar grupo.', 'error');
+      addToast({ title: 'Erro', message: e.message || 'Erro ao salvar grupo.', type: 'DANGER' });
     }
   };
 
