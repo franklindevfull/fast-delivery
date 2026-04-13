@@ -93,8 +93,8 @@ initSocket(server);
 
 import { authenticate } from './middleware/authMiddleware.js';
 
-app.use(express.json({ limit: '1mb' }));
-app.use(express.urlencoded({ limit: '1mb', extended: true }));
+app.use(express.json({ limit: '10mb' }));
+app.use(express.urlencoded({ limit: '10mb', extended: true }));
 
 app.use(authenticate);
 
