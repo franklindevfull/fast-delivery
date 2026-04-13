@@ -645,7 +645,7 @@ const Logistics: React.FC = () => {
             <div className="text-center mb-1">
               <h2 className="font-bold text-[10px] uppercase tracking-tighter mb-0">{businessSettings.name}</h2>
               <div className="section-divider"></div>
-              <p className="text-[10px] font-black uppercase tracking-widest">Comprovante</p>
+              <p className="text-[10px] font-black uppercase tracking-widest">{printingOrder?.status === 'CANCELLED' ? 'CANCELADO' : 'Comprovante'}</p>
               <div className="section-divider"></div>
             </div>
 

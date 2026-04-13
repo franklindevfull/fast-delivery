@@ -2315,7 +2315,7 @@ const POS: React.FC<POSProps> = ({ currentUser }) => {
                     {businessSettings.cnpj && <p className="text-[8px] font-bold uppercase">CNPJ: {businessSettings.cnpj}</p>}
                     
                     <div className="section-divider"></div>
-                    <p className="text-[10px] font-black uppercase tracking-widest">COMPROVANTE</p>
+                    <p className="text-[10px] font-black uppercase tracking-widest">{printingOrder?.status === 'CANCELLED' ? 'CANCELADO' : 'COMPROVANTE'}</p>
                     <div className="section-divider"></div>
                   </div>
 

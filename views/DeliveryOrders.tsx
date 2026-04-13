@@ -602,7 +602,7 @@ const DeliveryOrders: React.FC<DeliveryOrdersProps> = ({ currentUser }) => {
                         <div className="text-center mb-1">
                             <h2 className="font-bold text-[10px] uppercase tracking-tighter mb-0">{businessSettings.name}</h2>
                             <div className="section-divider"></div>
-                            <p className="text-[8px] font-black uppercase tracking-widest">Cópia de Comprovante</p>
+                            <p className="text-[8px] font-black uppercase tracking-widest">{printingOrder?.status === 'CANCELLED' ? 'CANCELADO' : 'Cópia de Comprovante'}</p>
                             <div className="section-divider"></div>
                         </div>
 

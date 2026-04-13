@@ -171,7 +171,8 @@ const SalesMonitor: React.FC = () => {
                 setNewPaymentMethod(mappedMethod);
                 setEditingPaymentMethod(true);
               }}
-              className="text-[9px] text-blue-600 dark:text-blue-400 font-bold underline px-2 no-print"
+              disabled={printingOrder?.status === OrderStatus.CANCELLED}
+              className={`text-[9px] font-bold underline px-2 no-print ${printingOrder?.status === OrderStatus.CANCELLED ? 'text-slate-400 cursor-not-allowed no-underline' : 'text-blue-600 dark:text-blue-400'}`}
             >
               Editar
             </button>
@@ -416,7 +417,9 @@ const SalesMonitor: React.FC = () => {
                       <h2 className="font-bold text-xs uppercase tracking-tighter mb-0">{businessSettings.name}</h2>
                       <p className="text-[8px] font-bold uppercase">CNPJ: {businessSettings.cnpj}</p>
                       <div className="section-divider"></div>
-                      <p className="text-[10px] font-bold uppercase tracking-widest">COMPROVANTE</p>
+                      <p className="text-[10px] font-bold uppercase tracking-widest">
+                        {printingOrder?.status === OrderStatus.CANCELLED ? 'CANCELADO' : 'COMPROVANTE'}
+                      </p>
                     </div>
 
                     <div className="section-divider"></div>
