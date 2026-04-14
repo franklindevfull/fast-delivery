@@ -356,6 +356,7 @@ const Inventory: React.FC = () => {
                   </select>
                 </div>
                 <div className="space-y-1">
+                  <label className="text-[10px] font-black text-slate-400 dark:text-slate-500 uppercase tracking-widest ml-1">Quantidade</label>
                   <input 
                     type="text" 
                     required 
