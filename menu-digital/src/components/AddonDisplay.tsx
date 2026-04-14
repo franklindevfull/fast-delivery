@@ -5,7 +5,6 @@ interface AddonDisplayProps {
   addons: SelectedAddon[];
   products?: Product[];
   className?: string;
-  itemQuantity?: number;
   showPrice?: boolean;
   onPriceFormat?: (price: number) => string;
 }
@@ -18,7 +17,6 @@ export const AddonDisplay: React.FC<AddonDisplayProps> = ({
   addons, 
   products = [], 
   className = "", 
-  itemQuantity = 1,
   showPrice = false,
   onPriceFormat
 }) => {
@@ -30,7 +28,6 @@ export const AddonDisplay: React.FC<AddonDisplayProps> = ({
         // Find if this is a linked product
         const linkedProduct = addon.productId ? products.find(p => p.id === addon.productId) : null;
         const displayName = addon.name;
-        const totalQty = (addon.quantity || 1) * itemQuantity;
 
         return (
           <div key={idx} className="flex justify-between items-center gap-2">

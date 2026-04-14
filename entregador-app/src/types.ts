@@ -76,6 +76,8 @@ export interface SelectedAddon {
     price: number;
     groupId: string;
     groupName: string;
+    quantity: number;
+    productId?: string;
 }
 
 export interface AddonOption {

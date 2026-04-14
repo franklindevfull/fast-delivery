@@ -9,6 +9,7 @@ import Login from './components/Login';
 import { AddonDisplay } from './components/AddonDisplay';
 import PaymentRequiredModal from './components/PaymentRequiredModal';
 import PixInfoModal from './components/PixInfoModal';
+import { formatCurrency } from './services/formatUtils';
 
 const paymentLabels: Record<string, string> = {
   'CREDIT': 'Cartão de Crédito',
