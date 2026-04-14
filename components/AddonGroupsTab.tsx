@@ -4,6 +4,7 @@ import { AddonGroup, AddonOption } from '../types';
 import { useToast } from '../hooks/useToast';
 import { Plus, Edit2, Trash2, Copy, AlertCircle, X, Check } from 'lucide-react';
 import { formatCurrency } from '../services/formatUtils';
+import CustomAlert from './CustomAlert';
 
 export default function AddonGroupsTab() {
   const [groups, setGroups] = useState<AddonGroup[]>([]);
@@ -11,6 +12,19 @@ export default function AddonGroupsTab() {
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [editingGroup, setEditingGroup] = useState<AddonGroup | null>(null);
   const { addToast } = useToast();
+
+  const [alertConfig, setAlertConfig] = useState<{ isOpen: boolean, title: string, message: string, onConfirm: () => void, onCancel?: () => void, type: 'INFO' | 'DANGER' | 'SUCCESS' }>({
+    isOpen: false, title: '', message: '', onConfirm: () => { }, type: 'INFO'
+  });
+
+  const showAlert = (title: string, message: string, type: 'INFO' | 'DANGER' | 'SUCCESS' = 'INFO', onConfirm?: () => void, onCancel?: () => void) => {
+    setAlertConfig({
+      isOpen: true, title, message,
+      onConfirm: onConfirm || (() => setAlertConfig(prev => ({ ...prev, isOpen: false }))),
+      onCancel: onCancel,
+      type
+    });
+  };
 
   const loadGroups = async () => {
     setLoading(true);
@@ -55,14 +69,23 @@ export default function AddonGroupsTab() {
   };
 
   const handleDelete = async (id: string, name: string) => {
-    if (!window.confirm(`Excluir o grupo "${name}"? Essa ação afetará os produtos vinculados.`)) return;
-    try {
-      await db.deleteAddonGroup(id);
-      addToast({ title: 'Sucesso', message: 'Grupo excluído com sucesso.', type: 'SUCCESS' });
-      loadGroups();
-    } catch (e: any) {
-      addToast({ title: 'Erro', message: e.message || 'Erro ao excluir.', type: 'DANGER' });
-    }
+    showAlert(
+      "Confirmar Exclusão",
+      `Excluir o grupo "${name}"? Essa ação afetará os produtos vinculados.`,
+      "DANGER",
+      async () => {
+        try {
+          await db.deleteAddonGroup(id);
+          addToast({ title: 'Sucesso', message: 'Grupo excluído com sucesso.', type: 'SUCCESS' });
+          loadGroups();
+          setAlertConfig(prev => ({ ...prev, isOpen: false }));
+        } catch (e: any) {
+          addToast({ title: 'Erro', message: e.message || 'Erro ao excluir.', type: 'DANGER' });
+          setAlertConfig(prev => ({ ...prev, isOpen: false }));
+        }
+      },
+      () => setAlertConfig(prev => ({ ...prev, isOpen: false }))
+    );
   };
 
   const handleCopy = async (id: string) => {
@@ -137,6 +160,7 @@ export default function AddonGroupsTab() {
 
   return (
     <div className="space-y-6">
+      <CustomAlert {...alertConfig} onConfirm={alertConfig.onConfirm} onCancel={alertConfig.onCancel} />
       <div className="flex justify-between items-center bg-white dark:bg-slate-900 p-4 rounded-xl shadow-sm border border-slate-100 dark:border-slate-800">
         <div>
           <h2 className="text-lg font-bold text-slate-800 dark:text-slate-100">Grupos de Adicionais</h2>
