@@ -49,7 +49,7 @@ export default function AddonGroupsTab() {
 
   const loadProducts = async () => {
     try {
-      const data = await db.getAllProducts();
+      const data = await db.getProducts();
       setProducts(data || []);
     } catch (err) {
       console.error('Error loading products:', err);

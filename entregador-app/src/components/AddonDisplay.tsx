@@ -1,5 +1,5 @@
 import React from 'react';
-import { SelectedAddon, Product } from '../types';
+import type { SelectedAddon, Product } from '../types';
 
 interface AddonDisplayProps {
   addons: SelectedAddon[];
