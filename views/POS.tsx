@@ -278,11 +278,6 @@ const POS: React.FC<POSProps> = ({ currentUser }) => {
       }
     }
 
-    if (selectedProductForCart.isPizza && selectedProductForCart.pizzaSize) {
-      if (selectedPizzaFlavors.length === 0) {
-        return showAlert("Atenção", "Selecione pelo menos um sabor para a pizza.", "DANGER");
-      }
-    }
 
     let finalPrice = selectedProductForCart.price;
     let allFlavors: any[] = [];
