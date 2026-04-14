@@ -23,18 +23,18 @@ const Inventory: React.FC = () => {
   const [editingProduct, setEditingProduct] = useState<Product | null>(null);
 
   const [invFormData, setInvFormData] = useState({
-    name: '', unit: 'G' as UnitType, quantity: 0, minStock: 0, cost: 0
+    name: '', unit: 'G' as UnitType, quantity: '' as string, minStock: '' as string, cost: '' as string
   });
 
   const [prodFormData, setProdFormData] = useState({
-    name: '', price: 0, category: '', imageUrl: '', stock: 0,
+    name: '', price: '' as string, category: '', imageUrl: '', stock: '' as string,
     ncm: '', cfop: '', cest: '', preparation: '', isCombo: false, isPizza: false, pizzaSize: '',
     isFeatured: false, showInMenu: true,
     addonGroupIds: [] as string[]
   });
 
-  const [tempRecipe, setTempRecipe] = useState<RecipeItem[]>([]);
-  const [tempComboItems, setTempComboItems] = useState<{ productId: string, quantity: number }[]>([]);
+  const [tempRecipe, setTempRecipe] = useState<any[]>([]);
+  const [tempComboItems, setTempComboItems] = useState<{ productId: string, quantity: string }[]>([]);
 
   const [alertConfig, setAlertConfig] = useState<{ isOpen: boolean, title: string, message: string, onConfirm: () => void, onCancel?: () => void, type: 'INFO' | 'DANGER' | 'SUCCESS' }>({
     isOpen: false, title: '', message: '', onConfirm: () => { }, type: 'INFO'
@@ -72,7 +72,13 @@ const Inventory: React.FC = () => {
 
   const saveInvItem = async (e: React.FormEvent) => {
     e.preventDefault();
-    await db.saveInventoryItem({ id: editingItem?.id || `ins-${Date.now()}`, ...invFormData });
+    await db.saveInventoryItem({ 
+      id: editingItem?.id || `ins-${Date.now()}`, 
+      ...invFormData,
+      quantity: parseFloat(invFormData.quantity.toString().replace(',', '.')) || 0,
+      minStock: parseFloat(invFormData.minStock.toString().replace(',', '.')) || 0,
+      cost: parseFloat(invFormData.cost.toString().replace(',', '.')) || 0
+    });
     await refreshData();
     setIsInvModalOpen(false);
   };
@@ -100,10 +106,10 @@ const Inventory: React.FC = () => {
       setEditingProduct(product);
       setProdFormData({
         name: product.name,
-        price: product.price,
+        price: product.price.toString(),
         category: product.category,
         imageUrl: product.imageUrl || '',
-        stock: product.stock,
+        stock: product.stock.toString(),
         ncm: product.ncm || '',
         cfop: product.cfop || '',
         cest: product.cest || '',
@@ -115,8 +121,8 @@ const Inventory: React.FC = () => {
         showInMenu: product.showInMenu !== false, // Default true
         addonGroupIds: product.addonGroups?.map(ag => ag.addonGroupId) || []
       });
-      setTempRecipe(product.recipe || []);
-      setTempComboItems(product.comboItems?.map(ci => ({ productId: ci.productId, quantity: ci.quantity })) || []);
+      setTempRecipe(product.recipe?.map(r => ({ ...r, quantity: r.quantity.toString(), wasteFactor: r.wasteFactor.toString() })) || []);
+      setTempComboItems(product.comboItems?.map(ci => ({ productId: ci.productId, quantity: ci.quantity.toString() })) || []);
     } else {
       setEditingProduct(null);
       setProdFormData({ name: '', price: 0, category: 'Geral', imageUrl: '', stock: 0, ncm: '', cfop: '', cest: '', preparation: '', isCombo: false, isPizza: false, pizzaSize: '', isFeatured: false, showInMenu: true, addonGroupIds: [] });
@@ -130,10 +136,10 @@ const Inventory: React.FC = () => {
     setEditingProduct(null);
     setProdFormData({
       name: `${product.name} Cópia`,
-      price: product.price,
+      price: product.price.toString(),
       category: product.category,
       imageUrl: product.imageUrl || '',
-      stock: product.stock,
+      stock: product.stock.toString(),
       ncm: product.ncm || '',
       cfop: product.cfop || '',
       cest: product.cest || '',
@@ -145,8 +151,8 @@ const Inventory: React.FC = () => {
       showInMenu: product.showInMenu !== false,
       addonGroupIds: product.addonGroups?.map(ag => ag.addonGroupId) || []
     });
-    setTempRecipe(product.recipe ? [...product.recipe] : []);
-    setTempComboItems(product.comboItems ? [...product.comboItems] : []);
+    setTempRecipe(product.recipe ? product.recipe.map(r => ({ ...r, quantity: r.quantity.toString(), wasteFactor: r.wasteFactor.toString() })) : []);
+    setTempComboItems(product.comboItems ? product.comboItems.map(ci => ({ productId: ci.productId, quantity: ci.quantity.toString() })) : []);
     setIsProdModalOpen(true);
   };
 
@@ -165,9 +171,18 @@ const Inventory: React.FC = () => {
       await db.saveProduct({ 
         id: editingProduct?.id || `prod-${Date.now()}`, 
         ...prodFormData,
+        price: parseFloat(prodFormData.price.toString().replace(',', '.')) || 0,
+        stock: parseFloat(prodFormData.stock.toString().replace(',', '.')) || 0,
         addonGroups: prodFormData.addonGroupIds.map(id => ({ addonGroupId: id })) as any,
-        recipe: tempRecipe,
-        comboItems: prodFormData.isCombo ? tempComboItems : []
+        recipe: tempRecipe.map(r => ({
+          ...r,
+          quantity: parseFloat(r.quantity.toString().replace(',', '.')) || 0,
+          wasteFactor: parseFloat(r.wasteFactor.toString().replace(',', '.')) || 0
+        })),
+        comboItems: prodFormData.isCombo ? tempComboItems.map(ci => ({
+          ...ci,
+          quantity: parseFloat(ci.quantity.toString().replace(',', '.')) || 0
+        })) : []
       });
       await refreshData();
       setIsProdModalOpen(false);
@@ -341,18 +356,53 @@ const Inventory: React.FC = () => {
                   </select>
                 </div>
                 <div className="space-y-1">
-                  <label className="text-[10px] font-black text-slate-400 dark:text-slate-500 uppercase tracking-widest ml-1">Estoque Atual</label>
-                  <input type="number" required step="0.01" value={invFormData.quantity.toFixed(2)} onChange={e => setInvFormData({ ...invFormData, quantity: parseFloat(e.target.value) })} className="w-full p-4 bg-slate-100 dark:bg-slate-800 border-none rounded-2xl focus:ring-2 focus:ring-blue-500 font-bold text-sm text-slate-800 dark:text-white" />
+                  <input 
+                    type="text" 
+                    required 
+                    inputMode="decimal"
+                    value={invFormData.quantity} 
+                    onChange={e => {
+                      const val = e.target.value.replace(',', '.');
+                      if (val === '' || /^-?\d*\.?\d*$/.test(val)) {
+                        setInvFormData({ ...invFormData, quantity: e.target.value });
+                      }
+                    }} 
+                    className="w-full p-4 bg-slate-100 dark:bg-slate-800 border-none rounded-2xl focus:ring-2 focus:ring-blue-500 font-bold text-sm text-slate-800 dark:text-white" 
+                  />
                 </div>
               </div>
               <div className="grid grid-cols-2 gap-4">
                 <div className="space-y-1">
                   <label className="text-[10px] font-black text-slate-400 dark:text-slate-500 uppercase tracking-widest ml-1">Estoque Mínimo</label>
-                  <input type="number" required step="0.01" value={invFormData.minStock.toFixed(2)} onChange={e => setInvFormData({ ...invFormData, minStock: parseFloat(e.target.value) })} className="w-full p-4 bg-slate-100 dark:bg-slate-800 border-none rounded-2xl focus:ring-2 focus:ring-blue-500 font-bold text-sm text-slate-800 dark:text-white" />
+                  <input 
+                    type="text" 
+                    required 
+                    inputMode="decimal"
+                    value={invFormData.minStock} 
+                    onChange={e => {
+                      const val = e.target.value.replace(',', '.');
+                      if (val === '' || /^-?\d*\.?\d*$/.test(val)) {
+                        setInvFormData({ ...invFormData, minStock: e.target.value });
+                      }
+                    }} 
+                    className="w-full p-4 bg-slate-100 dark:bg-slate-800 border-none rounded-2xl focus:ring-2 focus:ring-blue-500 font-bold text-sm text-slate-800 dark:text-white" 
+                  />
                 </div>
                 <div className="space-y-1">
                   <label className="text-[10px] font-black text-slate-400 dark:text-slate-500 uppercase tracking-widest ml-1">Custo Médio</label>
-                  <input type="number" required step="0.01" value={invFormData.cost.toFixed(2)} onChange={e => setInvFormData({ ...invFormData, cost: parseFloat(e.target.value) })} className="w-full p-4 bg-slate-100 dark:bg-slate-800 border-none rounded-2xl focus:ring-2 focus:ring-blue-500 font-bold text-sm text-slate-800 dark:text-white" />
+                  <input 
+                    type="text" 
+                    required 
+                    inputMode="decimal"
+                    value={invFormData.cost} 
+                    onChange={e => {
+                      const val = e.target.value.replace(',', '.');
+                      if (val === '' || /^-?\d*\.?\d*$/.test(val)) {
+                        setInvFormData({ ...invFormData, cost: e.target.value });
+                      }
+                    }} 
+                    className="w-full p-4 bg-slate-100 dark:bg-slate-800 border-none rounded-2xl focus:ring-2 focus:ring-blue-500 font-bold text-sm text-slate-800 dark:text-white" 
+                  />
                 </div>
               </div>
             </form>
@@ -387,7 +437,20 @@ const Inventory: React.FC = () => {
               <div className="grid grid-cols-2 gap-4">
                 <div className="space-y-1">
                   <label className="text-[10px] font-black text-slate-400 dark:text-slate-500 uppercase tracking-widest ml-1">Preço de Venda</label>
-                  <input type="number" step="0.01" placeholder="R$ 0,00" required value={prodFormData.price} onChange={e => setProdFormData({ ...prodFormData, price: parseFloat(e.target.value) })} className="w-full p-4 bg-slate-100 dark:bg-slate-800 border-none rounded-2xl focus:ring-2 focus:ring-blue-500 font-bold text-sm text-slate-800 dark:text-white" />
+                  <input 
+                    type="text" 
+                    inputMode="decimal"
+                    placeholder="R$ 0,00" 
+                    required 
+                    value={prodFormData.price} 
+                    onChange={e => {
+                      const val = e.target.value.replace(',', '.');
+                      if (val === '' || /^-?\d*\.?\d*$/.test(val)) {
+                        setProdFormData({ ...prodFormData, price: e.target.value });
+                      }
+                    }} 
+                    className="w-full p-4 bg-slate-100 dark:bg-slate-800 border-none rounded-2xl focus:ring-2 focus:ring-blue-500 font-bold text-sm text-slate-800 dark:text-white" 
+                  />
                 </div>
                 <div className="space-y-1">
                   <label className="text-[10px] font-black text-slate-400 dark:text-slate-500 uppercase tracking-widest ml-1">Categoria</label>
@@ -424,23 +487,37 @@ const Inventory: React.FC = () => {
                               </div>
                             </div>
                             <div className="w-20">
-                              <input type="number" step="0.01" placeholder="0" value={item.quantity === 0 ? '' : item.quantity.toFixed(2)} onChange={e => { const updated = [...tempRecipe]; updated[index].quantity = e.target.value === '' ? 0 : parseFloat(e.target.value); setTempRecipe(updated); }} className="w-full p-3 bg-white dark:bg-slate-900 border-none rounded-xl text-xs font-bold text-slate-800 dark:text-white text-center focus:ring-2 focus:ring-blue-500 [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none" />
+                              <input 
+                                type="text" 
+                                inputMode="decimal"
+                                placeholder="0" 
+                                value={item.quantity} 
+                                onChange={e => { 
+                                  const val = e.target.value.replace(',', '.');
+                                  if (val === '' || /^-?\d*\.?\d*$/.test(val)) {
+                                    const updated = [...tempRecipe]; 
+                                    updated[index].quantity = e.target.value; 
+                                    setTempRecipe(updated); 
+                                  }
+                                }} 
+                                className="w-full p-3 bg-white dark:bg-slate-900 border-none rounded-xl text-xs font-bold text-slate-800 dark:text-white text-center focus:ring-2 focus:ring-blue-500" 
+                              />
                             </div>
                             <div className="w-20">
                               <input
-                                type="number"
-                                step="1"
+                                type="text"
+                                inputMode="decimal"
                                 placeholder="0"
-                                value={item.wasteFactor === 1 ? '' : Math.round((item.wasteFactor - 1) * 100)}
-                                onKeyDown={e => { if (e.key === 'ArrowUp' || e.key === 'ArrowDown') e.preventDefault(); }}
+                                value={item.wasteFactor}
                                 onChange={e => {
-                                  let val = e.target.value;
-                                  const percentage = val === '' ? 0 : parseFloat(val);
-                                  const updated = [...tempRecipe];
-                                  updated[index].wasteFactor = 1 + (percentage / 100);
-                                  setTempRecipe(updated);
+                                  const val = e.target.value.replace(',', '.');
+                                  if (val === '' || /^-?\d*\.?\d*$/.test(val)) {
+                                    const updated = [...tempRecipe];
+                                    updated[index].wasteFactor = e.target.value;
+                                    setTempRecipe(updated);
+                                  }
                                 }}
-                                className="w-full p-3 bg-white dark:bg-slate-900 border-none rounded-xl text-xs font-bold text-slate-800 dark:text-white placeholder:text-slate-800 dark:placeholder:text-white text-center focus:ring-2 focus:ring-blue-500 [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
+                                className="w-full p-3 bg-white dark:bg-slate-900 border-none rounded-xl text-xs font-bold text-slate-800 dark:text-white placeholder:text-slate-800 dark:placeholder:text-white text-center focus:ring-2 focus:ring-blue-500"
                               />
                             </div>
                             <button type="button" onClick={() => setTempRecipe(tempRecipe.filter((_, i) => i !== index))} className="p-3 text-red-500 hover:bg-red-50 dark:hover:bg-red-900/20 rounded-xl transition-all shrink-0"><Icons.Delete className="h-4 w-4" /></button>
@@ -565,16 +642,19 @@ const Inventory: React.FC = () => {
                             ))}
                           </select>
                           <input
-                            type="number"
+                            type="text"
+                            inputMode="decimal"
                             placeholder="Qtd"
-                            value={item.quantity === 0 ? '' : item.quantity}
-                            min={1}
+                            value={item.quantity}
                             onChange={(e) => {
-                              const newComboItems = [...tempComboItems];
-                              newComboItems[idx].quantity = e.target.value === '' ? 0 : parseInt(e.target.value);
-                              setTempComboItems(newComboItems);
+                              const val = e.target.value.replace(',', '.');
+                              if (val === '' || /^-?\d*\.?\d*$/.test(val)) {
+                                const newComboItems = [...tempComboItems];
+                                newComboItems[idx].quantity = e.target.value;
+                                setTempComboItems(newComboItems);
+                              }
                             }}
-                            className="w-16 p-3 bg-white dark:bg-slate-900 border-none rounded-xl font-bold text-xs text-center text-slate-800 dark:text-white focus:ring-2 focus:ring-blue-500 [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
+                            className="w-16 p-3 bg-white dark:bg-slate-900 border-none rounded-xl font-bold text-xs text-center text-slate-800 dark:text-white focus:ring-2 focus:ring-blue-500"
                           />
                           <button
                             type="button"
@@ -589,7 +669,7 @@ const Inventory: React.FC = () => {
                     <div className="pt-2">
                       <button
                         type="button"
-                        onClick={() => setTempComboItems([...tempComboItems, { productId: '', quantity: 1 }])}
+                        onClick={() => setTempComboItems([...tempComboItems, { productId: '', quantity: '1' }])}
                         className="w-full py-3 border-2 border-dashed border-slate-200 dark:border-slate-700 rounded-xl text-[10px] font-black uppercase text-slate-400 hover:text-blue-500 hover:border-blue-200 transition-colors"
                       >
                         + Adicionar Produto
@@ -672,7 +752,7 @@ const Inventory: React.FC = () => {
                   const newRecipe = tempRecipe.filter(r => selectedStockIds.includes(r.inventoryItemId));
                   selectedStockIds.forEach(id => {
                     if (!newRecipe.find(r => r.inventoryItemId === id)) {
-                      newRecipe.push({ inventoryItemId: id, quantity: 0, wasteFactor: 1 });
+                      newRecipe.push({ inventoryItemId: id, quantity: '1', wasteFactor: '1' });
                     }
                   });
                   setTempRecipe(newRecipe);

@@ -41,7 +41,16 @@ export default function AddonGroupsTab() {
   };
 
   const openEditModal = (group: AddonGroup) => {
-    setEditingGroup(JSON.parse(JSON.stringify(group))); // Deep copy
+    const cloned = JSON.parse(JSON.stringify(group));
+    // Convert numbers to strings for input handling
+    if (cloned.options) {
+      cloned.options = cloned.options.map((opt: any) => ({
+        ...opt,
+        price: opt.price ? opt.price.toString() : '0',
+        stock: opt.stock ? opt.stock.toString() : '0'
+      }));
+    }
+    setEditingGroup(cloned);
     setIsModalOpen(true);
   };
 
@@ -80,7 +89,15 @@ export default function AddonGroupsTab() {
     }
 
     try {
-      await db.saveAddonGroup(editingGroup);
+      const groupToSave = {
+        ...editingGroup,
+        options: editingGroup.options?.map((opt: any) => ({
+          ...opt,
+          price: parseFloat(opt.price.toString().replace(',', '.')) || 0,
+          stock: parseFloat(opt.stock.toString().replace(',', '.')) || 0
+        }))
+      };
+      await db.saveAddonGroup(groupToSave as any);
       addToast({ title: 'Sucesso', message: 'Grupo salvo com sucesso.', type: 'SUCCESS' });
       setIsModalOpen(false);
       loadGroups();
@@ -95,7 +112,7 @@ export default function AddonGroupsTab() {
       ...editingGroup,
       options: [
         ...(editingGroup.options || []),
-        { id: `opt-${Date.now()}`, name: '', price: 0, trackStock: false, stock: 0, active: true } as unknown as AddonOption
+        { id: `opt-${Date.now()}`, name: '', price: '0', trackStock: false, stock: '0', active: true } as unknown as AddonOption
       ]
     });
   };
@@ -346,11 +363,15 @@ export default function AddonGroupsTab() {
                             </td>
                             <td className="px-4 py-2">
                               <input 
-                                type="number"
-                                step="0.01"
-                                min="0"
-                                value={opt.price.toFixed(2)}
-                                onChange={(e) => updateOption(index, 'price', parseFloat(e.target.value) || 0)}
+                                type="text"
+                                inputMode="decimal"
+                                value={opt.price}
+                                onChange={(e) => {
+                                  const val = e.target.value.replace(',', '.');
+                                  if (val === '' || /^-?\d*\.?\d*$/.test(val)) {
+                                    updateOption(index, 'price', e.target.value);
+                                  }
+                                }}
                                 className="w-full bg-transparent border border-slate-300 dark:border-slate-700 rounded px-2 py-1.5 focus:border-blue-500 focus:ring-1 focus:ring-blue-500 outline-none text-slate-900 dark:text-slate-100"
                               />
                             </td>
@@ -367,11 +388,15 @@ export default function AddonGroupsTab() {
                                 </label>
                                 {opt.trackStock && (
                                   <input 
-                                    type="number"
-                                    step="0.01"
-                                    min="0"
-                                    value={opt.stock.toFixed(2)}
-                                    onChange={(e) => updateOption(index, 'stock', parseFloat(e.target.value) || 0)}
+                                    type="text"
+                                    inputMode="decimal"
+                                    value={opt.stock}
+                                    onChange={(e) => {
+                                      const val = e.target.value.replace(',', '.');
+                                      if (val === '' || /^-?\d*\.?\d*$/.test(val)) {
+                                        updateOption(index, 'stock', e.target.value);
+                                      }
+                                    }}
                                     className="w-16 text-center bg-transparent border border-slate-300 dark:border-slate-700 rounded px-1 py-1 text-sm focus:border-blue-500 focus:ring-1 focus:ring-blue-500 outline-none"
                                   />
                                 )}

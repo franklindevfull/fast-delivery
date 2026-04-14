@@ -65,7 +65,7 @@ const POS: React.FC<POSProps> = ({ currentUser }) => {
   const [pendingReceivables, setPendingReceivables] = useState<(Receivable & { client: Client, order: Order })[]>([]);
   const [isReceivingFiado, setIsReceivingFiado] = useState<string | null>(null);
   const [isLoadingOrder, setIsLoadingOrder] = useState(false);
-  const [manualDeliveryFee, setManualDeliveryFee] = useState<number | null>(null);
+  const [manualDeliveryFee, setManualDeliveryFee] = useState<string | null>(null);
   const [currentOrderStatus, setCurrentOrderStatus] = useState<OrderStatus | null>(null);
 
   const [isClientModalOpen, setIsClientModalOpen] = useState(false);
@@ -185,7 +185,7 @@ const POS: React.FC<POSProps> = ({ currentUser }) => {
       setNeighborhoodName(neighborhoodCandidate); // Always set the name for UI feedback
 
       if (matchedZone) {
-        setManualDeliveryFee(matchedZone.fee);
+        setManualDeliveryFee(matchedZone.fee.toString());
         setSaveToZones(false);
         addToast({ 
           title: "FRETE AUTOMÁTICO", 
@@ -200,7 +200,7 @@ const POS: React.FC<POSProps> = ({ currentUser }) => {
           `O bairro "${neighborhoodCandidate}" foi identificado no cadastro do cliente, mas não consta nas Zonas de Entrega. Deseja cadastrá-lo agora?`,
           () => {
             setSaveToZones(true);
-            setManualDeliveryFee(0); // Suggest setting a fee
+            setManualDeliveryFee("0"); // Suggest setting a fee
             addToast({ title: "ZONA PENDENTE", message: "Informe a taxa e finalize o pedido para salvar esta nova zona.", type: "INFO" });
           },
           "INFO"
@@ -397,7 +397,7 @@ const POS: React.FC<POSProps> = ({ currentUser }) => {
     }
 
     if (order.deliveryFee !== undefined) {
-      setManualDeliveryFee(order.deliveryFee);
+      setManualDeliveryFee(order.deliveryFee.toString());
     }
 
     setTimeout(() => setIsLoadingOrder(false), 500);
@@ -428,7 +428,7 @@ const POS: React.FC<POSProps> = ({ currentUser }) => {
     setTableNumberInput(receivable.order.tableNumber?.toString() || '');
 
     if (receivable.order.deliveryFee) {
-      setManualDeliveryFee(receivable.order.deliveryFee);
+      setManualDeliveryFee(receivable.order.deliveryFee.toString());
     }
 
     setTimeout(() => setIsLoadingOrder(false), 500);
@@ -999,7 +999,7 @@ const POS: React.FC<POSProps> = ({ currentUser }) => {
   }, [cart, products]);
 
   const deliveryFeeValue = useMemo(() => {
-    if (manualDeliveryFee !== null) return manualDeliveryFee;
+    if (manualDeliveryFee !== null) return parseFloat(manualDeliveryFee.toString().replace(',', '.')) || 0;
     if (!businessSettings?.deliveryFee) return 0;
     const clean = businessSettings.deliveryFee.replace('R$', '').replace(',', '.').trim();
     return parseFloat(clean) || 0;
@@ -1214,12 +1214,17 @@ const POS: React.FC<POSProps> = ({ currentUser }) => {
                       <div className="animate-in fade-in duration-300">
                         <label className="text-[8px] font-black text-emerald-800 dark:text-emerald-500 uppercase tracking-widest ml-1">Valor Recebido (R$)</label>
                         <input
-                          type="number"
-                          step="0.01"
+                          type="text"
+                          inputMode="decimal"
                           placeholder="0,00"
                           className="w-full mt-0.5 p-3 bg-emerald-50 dark:bg-emerald-900/20 border-2 border-emerald-100 dark:border-emerald-500/20 rounded-2xl text-lg font-black outline-none focus:border-emerald-500 transition-all text-emerald-700 dark:text-emerald-400"
                           value={paymentData.receivedAmount}
-                          onChange={e => setPaymentData({ ...paymentData, receivedAmount: e.target.value })}
+                          onChange={e => {
+                            const val = e.target.value.replace(',', '.');
+                             if (val === '' || /^-?\d*\.?\d*$/.test(val)) {
+                               setPaymentData({ ...paymentData, receivedAmount: e.target.value });
+                             }
+                          }}
                         />
                       </div>
                     )}
@@ -1812,7 +1817,6 @@ const POS: React.FC<POSProps> = ({ currentUser }) => {
               )}
 
               {/* HIDE REDUNDANT "Forma de Recebimento" button - Removed as per user request */}
-
             </div>
           </div>
 
@@ -1914,10 +1918,15 @@ const POS: React.FC<POSProps> = ({ currentUser }) => {
                     <div className="flex items-center gap-2">
                        <span className="text-xs font-black text-blue-600/40 dark:text-blue-400/40">R$</span>
                        <input
-                        type="number"
-                        step="0.01"
-                        value={deliveryFeeValue}
-                        onChange={(e) => setManualDeliveryFee(parseFloat(e.target.value) || 0)}
+                        type="text"
+                        inputMode="decimal"
+                        value={manualDeliveryFee === null ? 0 : manualDeliveryFee}
+                        onChange={(e) => {
+                          const val = e.target.value.replace(',', '.');
+                          if (val === '' || /^-?\d*\.?\d*$/.test(val)) {
+                             setManualDeliveryFee(e.target.value);
+                          }
+                        }}
                         className="w-16 bg-transparent border-b border-blue-200 dark:border-blue-800 focus:border-blue-600 dark:focus:border-blue-400 outline-none text-right font-black text-blue-600 dark:text-blue-400 text-sm"
                       />
                     </div>
@@ -2657,9 +2666,15 @@ const POS: React.FC<POSProps> = ({ currentUser }) => {
                   <input
                     autoFocus
                     type="text"
+                    inputMode="decimal"
                     placeholder="0,00"
                     value={initialBalanceInput}
-                    onChange={(e) => setInitialBalanceInput(e.target.value)}
+                    onChange={(e) => {
+                       const val = e.target.value.replace(',', '.');
+                       if (val === '' || /^-?\d*\.?\d*$/.test(val)) {
+                         setInitialBalanceInput(e.target.value);
+                       }
+                    }}
                     className="w-full p-5 bg-slate-50 dark:bg-slate-800 rounded-2xl border-2 border-slate-100 dark:border-slate-700 focus:border-blue-500 outline-none font-black text-xl text-center text-blue-600 dark:text-blue-400"
                   />
                 </div>
@@ -2763,24 +2778,34 @@ const POS: React.FC<POSProps> = ({ currentUser }) => {
                   <div className="space-y-4 animate-in fade-in duration-500">
                     <div className="grid grid-cols-2 gap-4">
                       <div className="space-y-2">
-                        <label className="text-[9px] font-black text-slate-500 dark:text-slate-400 uppercase tracking-widest ml-1">Dinheiro (R$)</label>
+                        <label className="text-[9px] font-black text-slate-500 dark:text-slate-400 uppercase tracking-widest ml-1">Em Dinheiro (R$)</label>
                         <input
-                          type="number"
-                          step="0.01"
+                          type="text"
+                          inputMode="decimal"
                           placeholder="0,00"
                           value={closingReport.cash}
-                          onChange={(e) => setClosingReport(prev => ({ ...prev, cash: e.target.value }))}
+                          onChange={(e) => {
+                            const val = e.target.value.replace(',', '.');
+                            if (val === '' || /^-?\d*\.?\d*$/.test(val)) {
+                               setClosingReport(prev => ({ ...prev, cash: e.target.value }));
+                            }
+                          }}
                           className="w-full p-4 bg-slate-50 dark:bg-slate-800 rounded-2xl border-2 border-slate-100 dark:border-slate-700 focus:border-orange-500 dark:focus:border-orange-400 outline-none font-black text-lg text-center shadow-sm transition-all dark:text-white"
                         />
                       </div>
                       <div className="space-y-2">
                         <label className="text-[9px] font-black text-slate-500 dark:text-slate-400 uppercase tracking-widest ml-1">PIX (R$)</label>
                         <input
-                          type="number"
-                          step="0.01"
+                          type="text"
+                          inputMode="decimal"
                           placeholder="0,00"
                           value={closingReport.pix}
-                          onChange={(e) => setClosingReport(prev => ({ ...prev, pix: e.target.value }))}
+                          onChange={(e) => {
+                            const val = e.target.value.replace(',', '.');
+                            if (val === '' || /^-?\d*\.?\d*$/.test(val)) {
+                               setClosingReport(prev => ({ ...prev, pix: e.target.value }));
+                            }
+                          }}
                           className="w-full p-4 bg-slate-50 dark:bg-slate-800 rounded-2xl border-2 border-slate-100 dark:border-slate-700 focus:border-orange-500 dark:focus:border-orange-400 outline-none font-black text-lg text-center shadow-sm transition-all dark:text-white"
                         />
                       </div>
@@ -2790,22 +2815,32 @@ const POS: React.FC<POSProps> = ({ currentUser }) => {
                       <div className="space-y-2">
                         <label className="text-[9px] font-black text-slate-500 dark:text-slate-400 uppercase tracking-widest ml-1">Crédito (R$)</label>
                         <input
-                          type="number"
-                          step="0.01"
+                          type="text"
+                          inputMode="decimal"
                           placeholder="0,00"
                           value={closingReport.credit}
-                          onChange={(e) => setClosingReport(prev => ({ ...prev, credit: e.target.value }))}
+                          onChange={(e) => {
+                            const val = e.target.value.replace(',', '.');
+                            if (val === '' || /^-?\d*\.?\d*$/.test(val)) {
+                               setClosingReport(prev => ({ ...prev, credit: e.target.value }));
+                            }
+                          }}
                           className="w-full p-4 bg-slate-50 dark:bg-slate-800 rounded-2xl border-2 border-slate-100 dark:border-slate-700 focus:border-orange-500 dark:focus:border-orange-400 outline-none font-black text-lg text-center shadow-sm transition-all dark:text-white"
                         />
                       </div>
                       <div className="space-y-2">
                         <label className="text-[9px] font-black text-slate-500 dark:text-slate-400 uppercase tracking-widest ml-1">Débito (R$)</label>
                         <input
-                          type="number"
-                          step="0.01"
+                          type="text"
+                          inputMode="decimal"
                           placeholder="0,00"
                           value={closingReport.debit}
-                          onChange={(e) => setClosingReport(prev => ({ ...prev, debit: e.target.value }))}
+                          onChange={(e) => {
+                            const val = e.target.value.replace(',', '.');
+                            if (val === '' || /^-?\d*\.?\d*$/.test(val)) {
+                               setClosingReport(prev => ({ ...prev, debit: e.target.value }));
+                            }
+                          }}
                           className="w-full p-4 bg-slate-50 dark:bg-slate-800 rounded-2xl border-2 border-slate-100 dark:border-slate-700 focus:border-orange-500 dark:focus:border-orange-400 outline-none font-black text-lg text-center shadow-sm transition-all dark:text-white"
                         />
                       </div>
@@ -2815,17 +2850,30 @@ const POS: React.FC<POSProps> = ({ currentUser }) => {
                       <div className="space-y-2">
                         <label className="text-[9px] font-black text-emerald-700 dark:text-emerald-400 uppercase tracking-widest ml-1">Outros (R$)</label>
                         <input
-                          type="number"
-                          step="0.01"
+                          type="text"
+                          inputMode="decimal"
                           placeholder="0,00"
                           value={closingReport.others}
-                          onChange={(e) => setClosingReport(prev => ({ ...prev, others: e.target.value }))}
+                          onChange={(e) => {
+                            const val = e.target.value.replace(',', '.');
+                            if (val === '' || /^-?\d*\.?\d*$/.test(val)) {
+                               setClosingReport(prev => ({ ...prev, others: e.target.value }));
+                            }
+                          }}
                           className="w-full p-4 bg-emerald-50 dark:bg-emerald-900/20 rounded-2xl border-2 border-emerald-100 dark:border-emerald-500/20 focus:border-emerald-500 outline-none font-black text-lg text-center text-emerald-600 dark:text-emerald-400 shadow-sm transition-all"
                         />
                       </div>
                       <div className="space-y-1 text-right pt-4 flex flex-col justify-end">
                         <p className="text-[9px] font-black text-slate-300 dark:text-slate-600 uppercase tracking-widest">Total Informado</p>
-                        <p className="text-2xl font-black text-slate-700 dark:text-slate-300 tracking-tighter">{formatCurrency(Number(closingReport.cash || 0) + Number(closingReport.pix || 0) + Number(closingReport.credit || 0) + Number(closingReport.debit || 0) + Number(closingReport.others || 0))}</p>
+                        <p className="text-2xl font-black text-slate-700 dark:text-slate-300 tracking-tighter">
+                          {formatCurrency(
+                            (parseFloat(closingReport.cash?.toString().replace(',', '.')) || 0) + 
+                            (parseFloat(closingReport.pix?.toString().replace(',', '.')) || 0) + 
+                            (parseFloat(closingReport.credit?.toString().replace(',', '.')) || 0) + 
+                            (parseFloat(closingReport.debit?.toString().replace(',', '.')) || 0) + 
+                            (parseFloat(closingReport.others?.toString().replace(',', '.')) || 0)
+                          )}
+                        </p>
                       </div>
                     </div>
 
@@ -3145,14 +3193,14 @@ const POS: React.FC<POSProps> = ({ currentUser }) => {
                     onClick={handleSaveReview}
                     className="flex-1 py-5 bg-blue-600 hover:bg-blue-700 text-white rounded-2xl font-black uppercase text-xs tracking-widest shadow-xl transition-all active:scale-95"
                   >
-                    Salvar Correções ✓
-                  </button>
+                      <Icons.Ajustes className="w-4 h-4" /> APLICAR AJUSTES
+                    </button>
+                  </div>
                 </div>
               </div>
             </div>
-          </div>
-        )
-      }
+          )
+        }
 
 
       {/* MODAL DE MENSAGENS / FEEDBACK (SIDEBAR) */}
@@ -3209,7 +3257,7 @@ const POS: React.FC<POSProps> = ({ currentUser }) => {
           </div>
         )
       }
-    </div >
+    </div>
   );
 };
 

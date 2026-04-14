@@ -314,8 +314,10 @@ const Kitchen: React.FC = () => {
                                     const itemsToRenderMap = new Set();
                                     const itemsToRender = [];
                                     
-                                    // Adiciona o produto principal se tiver ficha
-                                    if ((product?.recipe && product.recipe.length > 0) || product?.preparation) {
+                                    const hasFlavors = item.pizzaFlavors && Array.isArray(item.pizzaFlavors) && item.pizzaFlavors.length > 0;
+                                    
+                                    // Adiciona o produto principal se tiver ficha E não houver sabores (para evitar duplicidade)
+                                    if (!hasFlavors && ((product?.recipe && product.recipe.length > 0) || product?.preparation)) {
                                       itemsToRender.push({ id: product?.id || 'main', name: product?.name, recipe: product?.recipe, preparation: product?.preparation });
                                       itemsToRenderMap.add(product?.id || 'main');
                                     }
@@ -564,7 +566,10 @@ const Kitchen: React.FC = () => {
                   const product = products.find(p => p.id === it.productId);
                   const fichasMap = new Map();
                   
-                  if ((product?.recipe && product.recipe.length > 0) || product?.preparation) {
+                  const hasFlavors = it.pizzaFlavors && Array.isArray(it.pizzaFlavors) && it.pizzaFlavors.length > 0;
+                  
+                  // Adiciona o produto principal apenas se não houver sabores (evita duplicidade em pizzas)
+                  if (!hasFlavors && ((product?.recipe && product.recipe.length > 0) || product?.preparation)) {
                     fichasMap.set(product?.id || 'main', { id: `${it.uid}-main`, name: product?.name });
                   }
                   
@@ -666,24 +671,27 @@ const Kitchen: React.FC = () => {
 
                     {/* Ficha Técnica no Cupom com Suporte a Múltiplos Sabores e Filtro */}
                     {(() => {
-                      const itemsWithRecipe = [];
+                      const fichasMap = new Map();
                       
-                      const mainProdId = `${it.uid}-main`;
-                      if (!excludedFichas.has(mainProdId) && ((product?.recipe && product.recipe.length > 0) || product?.preparation)) {
-                        itemsWithRecipe.push({ name: product?.name, recipe: product?.recipe, preparation: product?.preparation });
+                      const hasFlavors = it.pizzaFlavors && Array.isArray(it.pizzaFlavors) && it.pizzaFlavors.length > 0;
+                      
+                      // Adiciona o produto principal apenas se não houver sabores (evita duplicidade em pizzas)
+                      if (!hasFlavors && ((product?.recipe && product.recipe.length > 0) || product?.preparation)) {
+                        fichasMap.set(product?.id || 'main', { id: `${it.uid}-main`, name: product?.name, recipe: product?.recipe, preparation: product?.preparation });
                       }
 
                       if (it.pizzaFlavors && Array.isArray(it.pizzaFlavors)) {
                         it.pizzaFlavors.forEach((pf: any) => {
-                          const flavorProdId = `${it.uid}-${pf.productId}`;
-                          if (!excludedFichas.has(flavorProdId)) {
+                          if (!fichasMap.has(pf.productId)) {
                             const flavorProd = products.find(p => p.id === pf.productId);
                             if ((flavorProd?.recipe && flavorProd.recipe.length > 0) || flavorProd?.preparation) {
-                              itemsWithRecipe.push({ name: flavorProd?.name, recipe: flavorProd?.recipe, preparation: flavorProd?.preparation });
+                              fichasMap.set(pf.productId, { id: `${it.uid}-${pf.productId}`, name: flavorProd?.name, recipe: flavorProd?.recipe, preparation: flavorProd?.preparation });
                             }
                           }
                         });
                       }
+
+                      const itemsWithRecipe = Array.from(fichasMap.values()).filter(f => !excludedFichas.has(f.id));
 
                       if (itemsWithRecipe.length === 0) return null;
 
