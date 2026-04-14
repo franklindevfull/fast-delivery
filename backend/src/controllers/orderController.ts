@@ -231,13 +231,27 @@ const handleInventoryImpact = async (tx: any, items: any[], type: 'DECREMENT' | 
                                 where: { id: addon.id }
                             });
 
-                            if (addonOption && addonOption.trackStock) {
-                                await tx.addonOption.update({
-                                    where: { id: addon.id },
-                                    data: {
-                                        stock: type === 'DECREMENT' ? { decrement: iq } : { increment: iq }
+                            if (addonOption) {
+                                if (addonOption.productId) {
+                                    const addonProduct = await tx.product.findUnique({
+                                        where: { id: addonOption.productId },
+                                        include: { 
+                                            recipe: { include: { inventoryItem: true } }, 
+                                            comboItems: { include: { product: { include: { recipe: { include: { inventoryItem: true } } } } } } 
+                                        }
+                                    });
+                                    if (addonProduct) {
+                                        const addonQty = iq * (addon.quantity || 1);
+                                        await processProductInventory(tx, addonProduct, addonQty, type, orderId, `Adicional: ${addon.name}`);
                                     }
-                                });
+                                } else if (addonOption.trackStock) {
+                                    await tx.addonOption.update({
+                                        where: { id: addon.id },
+                                        data: {
+                                            stock: type === 'DECREMENT' ? { decrement: iq } : { increment: iq }
+                                        }
+                                    });
+                                }
                             }
                         }
                     }

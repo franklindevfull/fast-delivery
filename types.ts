@@ -250,6 +250,7 @@ export interface AddonOption {
   active: boolean;
   trackStock: boolean;
   stock: number;
+  productId?: string;
 }
 
 export interface CartItem {
@@ -274,6 +275,7 @@ export interface SelectedAddon {
   name: string;
   price: number;
   quantity: number;
+  productId?: string;
 }
 
 export interface OrderItem {

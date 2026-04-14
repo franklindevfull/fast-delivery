@@ -4,6 +4,7 @@ import { api } from '../services/api';
 import { socket } from '../services/socket';
 import { Icons } from '../constants';
 import { formatAddress, formatCurrency, normalizeNeighborhood } from '../services/formatUtils';
+import { AddonDisplay } from './AddonDisplay';
 import CustomAlert from './CustomAlert';
 import type { StoreStatus } from '../types';
 
@@ -313,6 +314,10 @@ const CheckoutTab: React.FC<{ onOrderPlaced: () => void }> = ({ onOrderPlaced })
                                     {item.observations && (
                                         <p className="text-[9px] italic text-slate-400 dark:text-slate-500 line-clamp-1">Obs: {item.observations}</p>
                                     )}
+                                    <AddonDisplay 
+                                        addons={item.selectedAddons || []} 
+                                        className="text-[9px] font-bold text-indigo-500 mt-0.5"
+                                    />
                                     <p className="text-[9px] font-bold text-slate-400 dark:text-slate-500 mt-0.5">{formatCurrency(item.product.price)}/un</p>
                                 </div>
                                 <div className="flex items-center gap-2">

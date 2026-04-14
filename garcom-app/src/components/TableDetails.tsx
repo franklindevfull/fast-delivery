@@ -5,6 +5,7 @@ import { X, Search, ShoppingCart, CheckCircle2, AlertCircle, Trash2, Plus, Minus
 import { formatCurrency } from '../utils';
 import Modal from './Modal';
 import ClientSelector from './ClientSelector';
+import { AddonDisplay } from './AddonDisplay';
 
 interface TableDetailsProps {
     table: TableSession;
@@ -213,7 +214,8 @@ const TableDetails: React.FC<TableDetailsProps> = ({ table, user, onClose, onRef
                     return {
                         ...item,
                         productName: item.productName || (product ? product.name : 'Item'),
-                        price: typeof item.price === 'number' ? item.price : (product ? product.price : 0)
+                        price: typeof item.price === 'number' ? item.price : (product ? product.price : 0),
+                        selectedAddons: item.selectedAddons ? (typeof item.selectedAddons === 'string' ? JSON.parse(item.selectedAddons) : item.selectedAddons) : []
                     };
                 });
 
@@ -461,15 +463,11 @@ const TableDetails: React.FC<TableDetailsProps> = ({ table, user, onClose, onRef
                                                     {formatCurrency((item.price + (item.selectedAddons?.reduce((s: number, a: any) => s + a.price, 0) || 0)) * item.quantity)}
                                                 </p>
                                             </div>
-                                            {item.selectedAddons && item.selectedAddons.length > 0 && (
-                                                <div className="mt-3 flex flex-wrap gap-1.5 pl-0.5">
-                                                    {item.selectedAddons.map((addon: any, idx: number) => (
-                                                        <span key={idx} className="text-[9px] font-black bg-blue-50 text-blue-600 px-2.5 py-1 rounded-lg border border-blue-100/50 uppercase tracking-widest">
-                                                            + {addon.name} ({formatCurrency(addon.price)})
-                                                        </span>
-                                                    ))}
-                                                </div>
-                                            )}
+                                            <AddonDisplay 
+                                                addons={item.selectedAddons || []} 
+                                                products={products} 
+                                                className="mt-3 text-[9px] font-black text-blue-500 uppercase tracking-widest pl-0.5"
+                                            />
                                         </div>
                                 ))
                             )}
@@ -616,14 +614,14 @@ const TableDetails: React.FC<TableDetailsProps> = ({ table, user, onClose, onRef
                             if (group.type === 'SINGLE') {
                                 setSelectedOptions(prev => [
                                     ...prev.filter(o => o.groupId !== group.id),
-                                    { ...option, groupId: group.id, groupName: group.name }
+                                    { ...option, groupId: group.id, groupName: group.name, productId: option.productId }
                                 ]);
                             } else {
                                 const exists = selectedOptions.find(o => o.id === option.id);
                                 if (exists) {
                                     setSelectedOptions(prev => prev.filter(o => o.id !== option.id));
                                 } else {
-                                    setSelectedOptions(prev => [...prev, { ...option, groupId: group.id, groupName: group.name }]);
+                                    setSelectedOptions(prev => [...prev, { ...option, groupId: group.id, groupName: group.name, productId: option.productId }]);
                                 }
                             }
                         };

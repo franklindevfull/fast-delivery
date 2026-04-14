@@ -30,6 +30,7 @@ export interface AddonOption {
     trackStock?: boolean;
     stock?: number;
     active?: boolean;
+    productId?: string;
 }
 
 export interface AddonGroup {
@@ -47,6 +48,7 @@ export interface SelectedAddon {
     price: number;
     groupId: string;
     groupName: string;
+    productId?: string;
 }
 
 export interface Product {

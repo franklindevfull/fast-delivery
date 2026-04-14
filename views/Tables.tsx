@@ -9,6 +9,7 @@ import CustomAlert from '../components/CustomAlert';
 import { useDigitalAlert } from '../hooks/useDigitalAlert';
 import { validateEmail, validateCPF, validateCNPJ, maskPhone, maskDocument, toTitleCase } from '../services/validationUtils';
 import { formatAddress, formatCurrency } from '../services/formatUtils';
+import { AddonDisplay } from '../components/AddonDisplay';
 import WaiterAuthModal from '../components/WaiterAuthModal';
 import { useToast } from '../hooks/useToast';
 
@@ -277,7 +278,7 @@ const Tables: React.FC<TablesProps> = ({ currentUser }) => {
     const currentSess = getSessForTable(selectedTable);
     let finalPrice = product.price;
     let finalItems: OrderItem[] = [];
-    
+
     if (product.isPizza && pizzaFlavors.length > 0) {
       const prices = [product.price, ...pizzaFlavors.map(f => f.price)];
       if (settings?.pizzaPriceRule === 'AVERAGE') {
@@ -285,34 +286,34 @@ const Tables: React.FC<TablesProps> = ({ currentUser }) => {
       } else {
         finalPrice = Math.max(...prices);
       }
-      
+
       if (settings?.pizzaNfeRule === 'FRACTIONED') {
-         // Create a fractioned item per flavor
-         const totalFlavors = pizzaFlavors.length + 1;
-         const fractionPrice = finalPrice / totalFlavors;
-         const fractionQty = modalQuantity / totalFlavors;
-         
-         finalItems.push({
-           uid: `item-${Date.now()}-${Math.random().toString(36).substr(2, 4)}`,
-           productId: product.id,
-           quantity: fractionQty,
-           price: finalPrice, 
-           isReady: false,
-           observations: `(1/${totalFlavors}) ${observationStr}`.trim(),
-           pizzaFlavors: null
-         });
-         
-         pizzaFlavors.forEach((f, idx) => {
-           finalItems.push({
-             uid: `item-${Date.now()}-${Math.random().toString(36).substr(2, 4)}-${idx}`,
-             productId: f.id,
-             quantity: fractionQty,
-             price: finalPrice,
-             isReady: false,
-             observations: `(1/${totalFlavors}) ${observationStr}`.trim(),
-             pizzaFlavors: null
-           });
-         });
+        // Create a fractioned item per flavor
+        const totalFlavors = pizzaFlavors.length + 1;
+        const fractionPrice = finalPrice / totalFlavors;
+        const fractionQty = modalQuantity / totalFlavors;
+
+        finalItems.push({
+          uid: `item-${Date.now()}-${Math.random().toString(36).substr(2, 4)}`,
+          productId: product.id,
+          quantity: fractionQty,
+          price: finalPrice,
+          isReady: false,
+          observations: `(1/${totalFlavors}) ${observationStr}`.trim(),
+          pizzaFlavors: null
+        });
+
+        pizzaFlavors.forEach((f, idx) => {
+          finalItems.push({
+            uid: `item-${Date.now()}-${Math.random().toString(36).substr(2, 4)}-${idx}`,
+            productId: f.id,
+            quantity: fractionQty,
+            price: finalPrice,
+            isReady: false,
+            observations: `(1/${totalFlavors}) ${observationStr}`.trim(),
+            pizzaFlavors: null
+          });
+        });
       } else {
         // OBSERVATION mode
         const allNames = [product.name, ...pizzaFlavors.map(p => p.name)].join(', ');
@@ -456,13 +457,15 @@ const Tables: React.FC<TablesProps> = ({ currentUser }) => {
 
       const resolvedItems: OrderItem[] = pendingItems.map((pi: any) => {
         const product = products.find(p => p.id === pi.productId);
+        const parsedAddons = pi.selectedAddons ? (typeof pi.selectedAddons === 'string' ? JSON.parse(pi.selectedAddons) : pi.selectedAddons) : [];
         return {
           uid: `item-${Date.now()}-${Math.random().toString(36).substr(2, 4)}`,
           productId: pi.productId,
           quantity: pi.quantity,
           price: product?.price || 0,
           isReady: false,
-          observations: pi.orderedBy ? `(${pi.orderedBy}) ${pi.observations || ''}`.trim() : (pi.observations || '')
+          observations: pi.orderedBy ? `(${pi.orderedBy}) ${pi.observations || ''}`.trim() : (pi.observations || ''),
+          selectedAddons: parsedAddons
         };
       });
 
@@ -539,16 +542,19 @@ const Tables: React.FC<TablesProps> = ({ currentUser }) => {
 
   // Lógica de agrupamento para exibição em cupons de mesa
   const getGroupedItems = (items: OrderItem[]) => {
-    const grouped: Record<string, { product: Product | undefined, quantity: number, price: number, allReady: boolean, observations?: string }> = {};
+    const grouped: Record<string, { product: Product | undefined, quantity: number, price: number, allReady: boolean, observations?: string, selectedAddons: any[] }> = {};
     items.forEach(item => {
-      const gKey = item.productId + (item.observations || '');
+      const addonKey = item.selectedAddons ? JSON.stringify(item.selectedAddons.map(a => ({ id: a.id, quantity: a.quantity })).sort((a, b) => a.id.localeCompare(b.id))) : '';
+      const gKey = item.productId + (item.observations || '') + addonKey;
+
       if (!grouped[gKey]) {
         grouped[gKey] = {
           product: products.find(p => p.id === item.productId),
           quantity: 0,
           price: item.price,
           allReady: true,
-          observations: item.observations
+          observations: item.observations,
+          selectedAddons: item.selectedAddons || []
         };
       }
       grouped[gKey].quantity += (item.quantity || 1);
@@ -632,7 +638,7 @@ const Tables: React.FC<TablesProps> = ({ currentUser }) => {
       if (!res.fallback) {
         addToast({ title: "Impressão", message: "Conferência enviada para a impressora térmica", type: "SUCCESS" });
       }
-    } catch(e: any) {
+    } catch (e: any) {
       addToast({ title: "Erro de Impressão", message: e.message || "Impressora Offline.", type: "DANGER" });
     }
   };
@@ -800,6 +806,11 @@ const Tables: React.FC<TablesProps> = ({ currentUser }) => {
                                   <div key={i} className="flex flex-col bg-slate-50 dark:bg-slate-700/50 p-3 rounded-xl border border-slate-100 dark:border-slate-700">
                                     <p className="font-black text-slate-800 dark:text-white text-sm">{it.quantity}x <span className="uppercase">{prod?.name || 'Item Desconhecido'}</span></p>
                                     {it.observations && <span className="text-[10px] text-orange-500 font-bold bg-orange-50 dark:bg-orange-950/40 px-2 py-1 rounded-lg mt-1 w-fit">Obs: {it.observations}</span>}
+                                    <AddonDisplay
+                                      addons={it.selectedAddons || []}
+                                      products={products}
+                                      className="text-[10px] font-bold text-blue-600 mt-1 pl-1"
+                                    />
                                   </div>
                                 );
                               });
@@ -816,10 +827,10 @@ const Tables: React.FC<TablesProps> = ({ currentUser }) => {
                     )}
                     <div className="bg-white dark:bg-slate-800 p-6 rounded-3xl border border-slate-100 dark:border-slate-700 shadow-sm mb-6">
                       <label className="text-[10px] font-black text-slate-400 dark:text-slate-500 uppercase tracking-widest block mb-2">Selecione o Garçom da Mesa:</label>
-                      <select 
-                        disabled={getTableStatus(selectedTable) === 'billing'} 
-                        value={selectedWaiterId} 
-                        onChange={(e) => handleWaiterChange(e.target.value)} 
+                      <select
+                        disabled={getTableStatus(selectedTable) === 'billing'}
+                        value={selectedWaiterId}
+                        onChange={(e) => handleWaiterChange(e.target.value)}
                         className="w-full max-w-sm p-4 bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-2xl text-sm font-bold focus:ring-4 focus:ring-blue-100 dark:focus:ring-blue-900 transition-all outline-none disabled:opacity-50 dark:text-white appearance-none"
                       >
                         <option value="">Selecione...</option>
@@ -838,7 +849,7 @@ const Tables: React.FC<TablesProps> = ({ currentUser }) => {
                     {/* Toggle Cardápio conforme prints do usuário */}
                     <div className="flex justify-center md:justify-start">
                       {!showMenu ? (
-                        <button 
+                        <button
                           onClick={() => setShowMenu(true)}
                           className="flex items-center justify-center gap-3 px-8 py-3 bg-indigo-600 text-white rounded-full font-black uppercase text-[10px] tracking-widest shadow-2xl shadow-indigo-500/40 hover:bg-indigo-700 transition-all active:scale-95 mb-10 group whitespace-nowrap min-w-[200px]"
                         >
@@ -846,7 +857,7 @@ const Tables: React.FC<TablesProps> = ({ currentUser }) => {
                           Mostrar Cardápio
                         </button>
                       ) : (
-                        <button 
+                        <button
                           onClick={() => setShowMenu(false)}
                           className="flex items-center justify-center gap-3 px-8 py-3 bg-slate-800/80 text-blue-400/90 rounded-full font-black uppercase text-[10px] tracking-widest border border-slate-700/50 hover:bg-slate-800 transition-all active:scale-95 mb-10 group whitespace-nowrap min-w-[200px]"
                         >
@@ -919,6 +930,11 @@ const Tables: React.FC<TablesProps> = ({ currentUser }) => {
                                 {it.observations}
                               </p>
                             )}
+                            <AddonDisplay
+                              addons={it.selectedAddons || []}
+                              products={products}
+                              className="text-[10px] font-bold text-blue-600 mt-1 ml-8"
+                            />
                           </div>
                           <span className="font-black text-[13px] dark:text-slate-100">{formatCurrency(it.quantity * it.price)}</span>
                         </div>
@@ -926,7 +942,7 @@ const Tables: React.FC<TablesProps> = ({ currentUser }) => {
                       {settings.serviceFeeStatus && (
                         <div className="flex justify-between border-b border-dashed border-slate-200 dark:border-slate-700 pb-2 text-slate-500 dark:text-slate-400">
                           <span className="font-bold text-[11px] uppercase">Taxa de Serviço ({settings.serviceFeePercentage || 10}%)</span>
-                           <span className="font-black text-[12px]">{formatCurrency((getSessForTable(selectedTable)?.items.reduce((acc, it) => acc + (it.price * it.quantity), 0) || 0) * (settings.serviceFeePercentage || 10) / 100)}</span>
+                          <span className="font-black text-[12px]">{formatCurrency((getSessForTable(selectedTable)?.items.reduce((acc, it) => acc + (it.price * it.quantity), 0) || 0) * (settings.serviceFeePercentage || 10) / 100)}</span>
                         </div>
                       )}
                       <div className="pt-6 flex justify-between items-end"><span className="font-black text-[11px] dark:text-slate-400 uppercase opacity-50">Total Mesa:</span><span className="text-4xl font-black text-indigo-600 dark:text-indigo-400">{formatCurrency(
@@ -968,15 +984,15 @@ const Tables: React.FC<TablesProps> = ({ currentUser }) => {
       {selectedProductForLaunch !== null && (
         <div className="fixed inset-0 z-[60] flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-sm animate-in zoom-in duration-200">
           <div className="bg-white dark:bg-slate-900 rounded-[2rem] shadow-2xl p-8 w-full max-w-sm border border-white/20 dark:border-slate-800 relative">
-            <button 
-              onClick={() => { setSelectedProductForLaunch(null); setPizzaFlavors([]); setIsPizzaSelectionMode(false); }} 
+            <button
+              onClick={() => { setSelectedProductForLaunch(null); setPizzaFlavors([]); setIsPizzaSelectionMode(false); }}
               className="absolute top-6 right-6 p-2 text-slate-400 hover:text-slate-600 dark:hover:text-slate-300 transition-all"
             >
               <Icons.X className="w-6 h-6" />
             </button>
             <h3 className="text-lg font-black text-slate-800 dark:text-white uppercase mb-2 tracking-tighter text-center">Lançar Item</h3>
             <p className="text-center text-[10px] font-bold text-slate-400 dark:text-slate-500 uppercase mb-4">{selectedProductForLaunch.name}</p>
-            
+
             {isPizzaSelectionMode ? (
               <div className="space-y-4">
                 <p className="text-center text-sm font-bold text-slate-800 dark:text-white mb-2">Quantos sabores adicionais?</p>
@@ -985,40 +1001,40 @@ const Tables: React.FC<TablesProps> = ({ currentUser }) => {
                     const maxFlavors = selectedProductForLaunch.pizzaSize === 'P' ? 2 : selectedProductForLaunch.pizzaSize === 'M' ? 3 : selectedProductForLaunch.pizzaSize === 'G' ? 4 : 2;
                     const canSelectMore = pizzaFlavors.length + 1 < maxFlavors;
                     return (
-                       <div className="w-full">
-                         <div className="flex justify-between items-center bg-blue-50 dark:bg-blue-900/20 p-3 rounded-xl mb-3">
-                           <span className="text-xs font-bold text-blue-800 dark:text-blue-300">Sabores permitidos: {maxFlavors}</span>
-                           <span className="text-xs font-black text-blue-600 dark:text-blue-400">Selecionados: {pizzaFlavors.length + 1}</span>
-                         </div>
-                         
-                         {pizzaFlavors.length > 0 && (
-                            <div className="mb-4 space-y-2">
-                              {pizzaFlavors.map((pf, idx) => (
-                                 <div key={idx} className="flex justify-between items-center bg-slate-50 dark:bg-slate-800 p-2 rounded-xl text-xs font-bold text-slate-600 dark:text-slate-300">
-                                   <span>{pf.name}</span>
-                                   <button onClick={() => setPizzaFlavors(prev => prev.filter((_, i) => i !== idx))} className="text-red-500 font-black px-2">X</button>
-                                 </div>
-                              ))}
-                            </div>
-                         )}
+                      <div className="w-full">
+                        <div className="flex justify-between items-center bg-blue-50 dark:bg-blue-900/20 p-3 rounded-xl mb-3">
+                          <span className="text-xs font-bold text-blue-800 dark:text-blue-300">Sabores permitidos: {maxFlavors}</span>
+                          <span className="text-xs font-black text-blue-600 dark:text-blue-400">Selecionados: {pizzaFlavors.length + 1}</span>
+                        </div>
 
-                         {canSelectMore ? (
-                           <div className="space-y-2 max-h-[160px] overflow-y-auto custom-scrollbar pr-2 pb-2">
-                             {products.filter(p => p.isPizza && p.pizzaSize === selectedProductForLaunch.pizzaSize && p.id !== selectedProductForLaunch.id).map(p => (
-                               <button 
-                                 key={p.id}
-                                 onClick={() => setPizzaFlavors([...pizzaFlavors, p])}
-                                 className="w-full text-left p-3 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl hover:border-blue-400 transition-all text-xs font-bold dark:text-white"
-                               >
-                                 {p.name} - {formatCurrency(p.price)}
-                               </button>
-                             ))}
-                           </div>
-                         ) : (
-                           <div className="text-center p-3 text-[10px] font-bold text-slate-400">Limite de sabores atingido.</div>
-                         )}
-                         <button onClick={() => setIsPizzaSelectionMode(false)} className="w-full mt-4 bg-emerald-500 hover:bg-emerald-600 text-white p-4 rounded-2xl font-black text-xs uppercase shadow-xl hover:shadow-emerald-200 transition-all">Avançar →</button>
-                       </div>
+                        {pizzaFlavors.length > 0 && (
+                          <div className="mb-4 space-y-2">
+                            {pizzaFlavors.map((pf, idx) => (
+                              <div key={idx} className="flex justify-between items-center bg-slate-50 dark:bg-slate-800 p-2 rounded-xl text-xs font-bold text-slate-600 dark:text-slate-300">
+                                <span>{pf.name}</span>
+                                <button onClick={() => setPizzaFlavors(prev => prev.filter((_, i) => i !== idx))} className="text-red-500 font-black px-2">X</button>
+                              </div>
+                            ))}
+                          </div>
+                        )}
+
+                        {canSelectMore ? (
+                          <div className="space-y-2 max-h-[160px] overflow-y-auto custom-scrollbar pr-2 pb-2">
+                            {products.filter(p => p.isPizza && p.pizzaSize === selectedProductForLaunch.pizzaSize && p.id !== selectedProductForLaunch.id).map(p => (
+                              <button
+                                key={p.id}
+                                onClick={() => setPizzaFlavors([...pizzaFlavors, p])}
+                                className="w-full text-left p-3 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl hover:border-blue-400 transition-all text-xs font-bold dark:text-white"
+                              >
+                                {p.name} - {formatCurrency(p.price)}
+                              </button>
+                            ))}
+                          </div>
+                        ) : (
+                          <div className="text-center p-3 text-[10px] font-bold text-slate-400">Limite de sabores atingido.</div>
+                        )}
+                        <button onClick={() => setIsPizzaSelectionMode(false)} className="w-full mt-4 bg-emerald-500 hover:bg-emerald-600 text-white p-4 rounded-2xl font-black text-xs uppercase shadow-xl hover:shadow-emerald-200 transition-all">Avançar →</button>
+                      </div>
                     );
                   })()}
                 </div>
@@ -1028,14 +1044,14 @@ const Tables: React.FC<TablesProps> = ({ currentUser }) => {
                 <div className="flex flex-col items-center justify-center p-3 bg-slate-50 dark:bg-slate-800 rounded-[1.5rem] border border-slate-100 dark:border-slate-700 mb-4 group/qt">
                   <p className="text-[10px] font-black text-slate-400 dark:text-slate-500 uppercase tracking-widest mb-2">Defina a Quantidade</p>
                   <div className="flex items-center gap-4">
-                    <button 
+                    <button
                       onClick={() => setModalQuantity(prev => Math.max(1, prev - 1))}
                       className="w-10 h-10 bg-white dark:bg-slate-700 hover:bg-red-50 dark:hover:bg-red-900/30 text-slate-400 dark:text-slate-500 hover:text-red-500 dark:hover:text-red-400 rounded-xl flex items-center justify-center font-black text-xl transition-all shadow-sm active:scale-90"
                     >
                       -
                     </button>
                     <span className="text-3xl font-black text-slate-800 dark:text-white tracking-tighter w-10 text-center select-none group-hover/qt:scale-110 transition-transform">{modalQuantity}</span>
-                    <button 
+                    <button
                       onClick={() => setModalQuantity(prev => prev + 1)}
                       className="w-10 h-10 bg-white dark:bg-slate-700 hover:bg-blue-50 dark:hover:bg-blue-900/30 text-slate-400 dark:text-slate-500 hover:text-blue-500 dark:hover:text-blue-400 rounded-xl flex items-center justify-center font-black text-xl transition-all shadow-sm active:scale-90"
                     >
@@ -1045,7 +1061,7 @@ const Tables: React.FC<TablesProps> = ({ currentUser }) => {
                   <div className="mt-3 pt-2 border-t border-slate-200/50 dark:border-slate-700/50 w-full text-center">
                     <p className="text-[9px] font-bold text-slate-400 dark:text-slate-500 uppercase">Subtotal do Item</p>
                     <p className="text-base font-black text-blue-600 dark:text-blue-400">
-                       {formatCurrency((pizzaFlavors.length > 0 ? (settings?.pizzaPriceRule === 'AVERAGE' ? ([selectedProductForLaunch.price, ...pizzaFlavors.map(f => f.price)].reduce((a,b)=>a+b,0)/(pizzaFlavors.length+1)) : Math.max(selectedProductForLaunch.price, ...pizzaFlavors.map(f=>f.price))) : selectedProductForLaunch.price) * modalQuantity)}
+                      {formatCurrency((pizzaFlavors.length > 0 ? (settings?.pizzaPriceRule === 'AVERAGE' ? ([selectedProductForLaunch.price, ...pizzaFlavors.map(f => f.price)].reduce((a, b) => a + b, 0) / (pizzaFlavors.length + 1)) : Math.max(selectedProductForLaunch.price, ...pizzaFlavors.map(f => f.price))) : selectedProductForLaunch.price) * modalQuantity)}
                     </p>
                   </div>
                 </div>
@@ -1077,54 +1093,58 @@ const Tables: React.FC<TablesProps> = ({ currentUser }) => {
                 <h2 className="font-bold text-xs uppercase tracking-tighter mb-0">{settings.name}</h2>
                 <p className="text-[8px] font-bold uppercase">CNPJ: {settings.cnpj}</p>
                 <p className="text-[10px] font-bold uppercase tracking-widest mt-1">
-                   {isConfirmingBilling ? "FECHAMENTO DE CONTA" : "CONFERENCIA DE MESA"}
+                  {isConfirmingBilling ? "FECHAMENTO DE CONTA" : "CONFERENCIA DE MESA"}
                 </p>
               </div>
               <div className="space-y-0.5 mb-2 text-[8px] border-t border-dashed border-black pt-1">
                 <div className="flex justify-between">
                   <span>DATA: {new Date().toLocaleDateString('pt-BR')}</span>
                   <span>{new Date().toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' })}</span>
+                  <p>MESA: {selectedTable}</p>
+                  <p>CLIENTE: {isConfirmingBilling ? (selectedClient?.name.toUpperCase() || 'NÃO IDENTIFICADO') : (getSessForTable(selectedTable!)?.clientName?.toUpperCase() || 'EM ATENDIMENTO')}</p>
                 </div>
-                <p>MESA: {selectedTable}</p>
-                <p>CLIENTE: {isConfirmingBilling ? (selectedClient?.name.toUpperCase() || 'NÃO IDENTIFICADO') : (getSessForTable(selectedTable!)?.clientName?.toUpperCase() || 'EM ATENDIMENTO')}</p>
-              </div>
-              <div className="mb-2 border-t border-dashed border-black pt-1">
-                {getGroupedItems((isConfirmingBilling ? printingPreBill : getSessForTable(selectedTable!))?.items || []).map((it, i) => (
-                  <div key={i} className="flex flex-col border-b border-dotted border-black/10 py-1">
-                    <div className="flex justify-between font-bold uppercase text-[9px]">
-                      <span>{it.quantity}x {it.product?.name.substring(0, 20)}</span>
-                      <span>{formatCurrency(it.quantity * it.price)}</span>
+                <div className="mb-2 border-t border-dashed border-black pt-1">
+                  {getGroupedItems((isConfirmingBilling ? printingPreBill : getSessForTable(selectedTable!))?.items || []).map((it, i) => (
+                    <div key={i} className="flex flex-col border-b border-dotted border-black/10 py-1">
+                      <div className="flex justify-between font-bold uppercase text-[9px]">
+                        <span>{it.quantity}x {it.product?.name.substring(0, 20)}</span>
+                        <span>{formatCurrency(it.quantity * it.price)}</span>
+                      </div>
+                      <AddonDisplay
+                        addons={it.selectedAddons || []}
+                        products={products}
+                        className="text-[7px] font-bold uppercase text-slate-500 mt-0.5 ml-2"
+                      />
+                      {it.observations && (
+                        <span className="text-[7px] font-bold uppercase text-slate-600 mt-0.5 ml-2 leading-tight">📝 {it.observations}</span>
+                      )}
                     </div>
-                    {it.observations && (
-                      <p className="text-[7px] font-bold uppercase mt-0.5 ml-2 italic">
-                        * {it.observations}
-                      </p>
-                    )}
-                  </div>
-                ))}
-              </div>
-              <div className="space-y-0.5 border-t border-dashed border-black pt-1">
-                <div className="flex justify-between items-center text-[8px] font-bold uppercase">
-                  <span>SUBTOTAL:</span>
-                  <span>{formatCurrency((isConfirmingBilling ? printingPreBill : getSessForTable(selectedTable!))?.items.reduce((acc, it) => acc + (it.price * it.quantity), 0) || 0)}</span>
+                  ))}
                 </div>
-                {settings.serviceFeeStatus && (
+                <div className="space-y-0.5 border-t border-dashed border-black pt-1">
                   <div className="flex justify-between items-center text-[8px] font-bold uppercase">
-                    <span>TAXA SERVICO ({settings.serviceFeePercentage || 10}%):</span>
-                    <span>{formatCurrency(((isConfirmingBilling ? printingPreBill : getSessForTable(selectedTable!))?.items.reduce((acc, it) => acc + (it.price * it.quantity), 0) || 0) * (settings.serviceFeePercentage || 10) / 100)}</span>
+                    <span>SUBTOTAL:</span>
+                    <span>{formatCurrency((isConfirmingBilling ? printingPreBill : getSessForTable(selectedTable!))?.items.reduce((acc, it) => acc + (it.price * it.quantity), 0) || 0)}</span>
                   </div>
-                )}
-                <div className="flex justify-between items-end pt-1">
-                  <span className="font-bold text-[10px] uppercase">TOTAL:</span>
-                  <span className="text-sm font-bold">
-                    {formatCurrency(
-                      ((isConfirmingBilling ? printingPreBill : getSessForTable(selectedTable!))?.items.reduce((acc, it) => acc + (it.price * it.quantity), 0) || 0) +
-                      (settings.serviceFeeStatus ? (((isConfirmingBilling ? printingPreBill : getSessForTable(selectedTable!))?.items.reduce((acc, it) => acc + (it.price * it.quantity), 0) || 0) * (settings.serviceFeePercentage || 10) / 100) : 0)
-                    )}
-                  </span>
+                  {settings.serviceFeeStatus && (
+                    <div className="flex justify-between items-center text-[8px] font-bold uppercase">
+                      <span>TAXA SERVICO ({settings.serviceFeePercentage || 10}%):</span>
+                      <span>{formatCurrency(((isConfirmingBilling ? printingPreBill : getSessForTable(selectedTable!))?.items.reduce((acc, it) => acc + (it.price * it.quantity), 0) || 0) * (settings.serviceFeePercentage || 10) / 100)}</span>
+                    </div>
+                  )}
+                  <div className="flex justify-between items-end pt-1">
+                    <span className="font-bold text-[10px] uppercase">TOTAL:</span>
+                    <span className="text-sm font-bold">
+                      {formatCurrency(
+                        ((isConfirmingBilling ? printingPreBill : getSessForTable(selectedTable!))?.items.reduce((acc, it) => acc + (it.price * it.quantity), 0) || 0) +
+                        (settings.serviceFeeStatus ? (((isConfirmingBilling ? printingPreBill : getSessForTable(selectedTable!))?.items.reduce((acc, it) => acc + (it.price * it.quantity), 0) || 0) * (settings.serviceFeePercentage || 10) / 100) : 0)
+                      )}
+                    </span>
+                  </div>
                 </div>
               </div>
             </div>
+
             {/* Modal Header */}
             <div className={`p-6 pb-4 text-center border-b border-slate-50 dark:border-slate-800 ${isConfirmingBilling ? 'bg-orange-50/50 dark:bg-orange-500/10' : 'bg-blue-50/50 dark:bg-blue-500/10'}`}>
               <div className="flex justify-center mb-3">
@@ -1140,249 +1160,249 @@ const Tables: React.FC<TablesProps> = ({ currentUser }) => {
               </p>
             </div>
 
-            {/* Modal Content */}
-            <div className="p-6 space-y-4">
-              {/* Client Info Section */}
-              <div className="bg-slate-50 dark:bg-slate-800/50 p-4 rounded-2xl border border-slate-100 dark:border-slate-700">
-                <p className="text-[9px] font-black text-slate-400 uppercase tracking-widest mb-1.5">Identificação</p>
-                <div className="flex items-center gap-3">
-                  <div className="w-8 h-8 rounded-full bg-white dark:bg-slate-800 flex items-center justify-center text-slate-400 border border-slate-100 dark:border-slate-700">
-                    <Icons.User className="w-4 h-4" />
-                  </div>
-                  <div>
-                    <p className="text-xs font-black text-slate-700 dark:text-white uppercase truncate">
-                      {isConfirmingBilling
-                        ? (selectedClient?.name.toUpperCase() || 'NÃO IDENTIFICADO')
-                        : (getSessForTable(selectedTable!)?.clientName?.toUpperCase() || 'EM ATENDIMENTO')}
-                    </p>
-                    {(isConfirmingBilling ? selectedClient?.phone : getSessForTable(selectedTable!)?.clientPhone) && (
-                      <p className="text-[10px] font-bold text-slate-400/80 uppercase">
-                        Contato: {isConfirmingBilling ? selectedClient?.phone : getSessForTable(selectedTable!)?.clientPhone}
-                      </p>
-                    )}
-                  </div>
-                </div>
-              </div>
-
-              {/* Items List */}
-              <div className="space-y-3">
-                <p className="text-[9px] font-black text-slate-400 uppercase tracking-widest ml-1">Itens Consumidos</p>
-                <div className="max-h-56 overflow-y-auto pr-2 space-y-2 custom-scrollbar">
-                  {getGroupedItems((isConfirmingBilling ? printingPreBill : getSessForTable(selectedTable!))?.items || []).map((it, i) => (
-                    <div key={i} className="flex justify-between items-center p-3 bg-white dark:bg-slate-800 rounded-xl border border-slate-100 dark:border-slate-700">
-                      <div className="flex-1 min-w-0">
-                        <p className={`text-[11px] font-black uppercase truncate ${it.allReady ? 'text-slate-800 dark:text-white' : 'text-slate-400'}`}>
-                          {it.quantity}x {it.product?.name.toUpperCase()}
-                        </p>
-                        {it.observations && (
-                          <p className="text-[9px] font-bold text-slate-400 dark:text-slate-500 uppercase mt-0.5 italic leading-tight">
-                            {it.observations}
-                          </p>
-                        )}
-                      </div>
-                      <div className="flex items-center gap-3">
-                        {it.allReady && <span className="text-emerald-500 font-black text-xs">✓</span>}
-                        <span className="text-xs font-black text-slate-600 dark:text-slate-400">
-                          {formatCurrency(it.price, false)}
-                        </span>
-                      </div>
+              {/* Modal Content */}
+              <div className="p-6 space-y-4">
+                {/* Client Info Section */}
+                <div className="bg-slate-50 dark:bg-slate-800/50 p-4 rounded-2xl border border-slate-100 dark:border-slate-700">
+                  <p className="text-[9px] font-black text-slate-400 uppercase tracking-widest mb-1.5">Identificação</p>
+                  <div className="flex items-center gap-3">
+                    <div className="w-8 h-8 rounded-full bg-white dark:bg-slate-800 flex items-center justify-center text-slate-400 border border-slate-100 dark:border-slate-700">
+                      <Icons.User className="w-4 h-4" />
                     </div>
-                  ))}
+                    <div>
+                      <p className="text-xs font-black text-slate-700 dark:text-white uppercase truncate">
+                        {isConfirmingBilling
+                          ? (selectedClient?.name.toUpperCase() || 'NÃO IDENTIFICADO')
+                          : (getSessForTable(selectedTable!)?.clientName?.toUpperCase() || 'EM ATENDIMENTO')}
+                      </p>
+                      {(isConfirmingBilling ? selectedClient?.phone : getSessForTable(selectedTable!)?.clientPhone) && (
+                        <p className="text-[10px] font-bold text-slate-400/80 uppercase">
+                          Contato: {isConfirmingBilling ? selectedClient?.phone : getSessForTable(selectedTable!)?.clientPhone}
+                        </p>
+                      )}
+                    </div>
+                  </div>
                 </div>
-              </div>
 
-              {/* Totals Section */}
-              <div className="pt-4 border-t border-slate-100 dark:border-slate-800 space-y-2">
-                {settings.serviceFeeStatus && (
-                  <div className="flex justify-between items-center px-1">
-                    <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Taxa de Serviço ({settings.serviceFeePercentage || 10}%)</span>
-                    <span className="text-xs font-black text-slate-600 dark:text-slate-400">
-                      {formatCurrency(((isConfirmingBilling ? printingPreBill : getSessForTable(selectedTable!))?.items.reduce((acc, it) => acc + (it.price * it.quantity), 0) || 0) * (settings.serviceFeePercentage || 10) / 100)}
+                {/* Items List */}
+                <div className="space-y-3">
+                  <p className="text-[9px] font-black text-slate-400 uppercase tracking-widest ml-1">Itens Consumidos</p>
+                  <div className="max-h-56 overflow-y-auto pr-2 space-y-2 custom-scrollbar">
+                    {getGroupedItems((isConfirmingBilling ? printingPreBill : getSessForTable(selectedTable!))?.items || []).map((it, i) => (
+                      <div key={i} className="flex justify-between items-center p-3 bg-white dark:bg-slate-800 rounded-xl border border-slate-100 dark:border-slate-700">
+                        <div className="flex-1 min-w-0">
+                          <p className={`text-[11px] font-black uppercase truncate ${it.allReady ? 'text-slate-800 dark:text-white' : 'text-slate-400'}`}>
+                            {it.quantity}x {it.product?.name.toUpperCase()}
+                          </p>
+                          {it.observations && (
+                            <p className="text-[9px] font-bold text-slate-400 dark:text-slate-500 uppercase mt-0.5 italic leading-tight">
+                              {it.observations}
+                            </p>
+                          )}
+                        </div>
+                        <div className="flex items-center gap-3">
+                          {it.allReady && <span className="text-emerald-500 font-black text-xs">✓</span>}
+                          <span className="text-xs font-black text-slate-600 dark:text-slate-400">
+                            {formatCurrency(it.price, false)}
+                          </span>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+
+                {/* Totals Section */}
+                <div className="pt-4 border-t border-slate-100 dark:border-slate-800 space-y-2">
+                  {settings.serviceFeeStatus && (
+                    <div className="flex justify-between items-center px-1">
+                      <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Taxa de Serviço ({settings.serviceFeePercentage || 10}%)</span>
+                      <span className="text-xs font-black text-slate-600 dark:text-slate-400">
+                        {formatCurrency(((isConfirmingBilling ? printingPreBill : getSessForTable(selectedTable!))?.items.reduce((acc, it) => acc + (it.price * it.quantity), 0) || 0) * (settings.serviceFeePercentage || 10) / 100)}
+                      </span>
+                    </div>
+                  )}
+                  <div className="flex justify-between items-end p-4 bg-slate-900 text-white rounded-[2rem]">
+                    <span className="text-[10px] font-black uppercase tracking-[0.2em] mb-1">Total Geral</span>
+                    <span className="text-2xl font-black tracking-tighter">
+                      {formatCurrency(
+                        ((isConfirmingBilling ? printingPreBill : getSessForTable(selectedTable!))?.items.reduce((acc, it) => acc + (it.price * it.quantity), 0) || 0) +
+                        (settings.serviceFeeStatus ? (((isConfirmingBilling ? printingPreBill : getSessForTable(selectedTable!))?.items.reduce((acc, it) => acc + (it.price * it.quantity), 0) || 0) * (settings.serviceFeePercentage || 10) / 100) : 0)
+                      )}
                     </span>
                   </div>
+                </div>
+              </div>
+
+              {/* Modal Actions */}
+              <div className="p-6 pt-0 flex gap-3">
+                <button
+                  onClick={() => { setShowConsumptionTicket(false); setIsConfirmingBilling(false); }}
+                  className="flex-1 py-4 bg-slate-200 dark:bg-slate-800 text-slate-700 dark:text-slate-200 rounded-2xl font-black uppercase text-[10px] tracking-widest transition-all hover:bg-slate-300 dark:hover:bg-slate-700 active:scale-95"
+                >
+                  {isConfirmingBilling ? 'Cancelar' : 'Fechar'}
+                </button>
+                {isConfirmingBilling ? (
+                  <button
+                    onClick={confirmBilling}
+                    className="flex-[1.5] py-4 bg-blue-600 hover:bg-blue-700 text-white rounded-2xl font-black uppercase text-[10px] tracking-widest shadow-xl transition-all active:scale-95 flex items-center justify-center gap-2"
+                  >
+                    <Icons.Check className="w-4 h-4" /> Confirmar
+                  </button>
+                ) : (
+                  <button
+                    onClick={handlePrintTable}
+                    className="flex-[1.5] py-4 bg-blue-600 hover:bg-blue-700 text-white rounded-2xl font-black uppercase text-[10px] tracking-widest shadow-xl transition-all active:scale-95 flex items-center justify-center gap-2"
+                  >
+                    <Icons.View className="w-4 h-4" /> Imprimir
+                  </button>
                 )}
-                <div className="flex justify-between items-end p-4 bg-slate-900 text-white rounded-[2rem]">
-                  <span className="text-[10px] font-black uppercase tracking-[0.2em] mb-1">Total Geral</span>
-                  <span className="text-2xl font-black tracking-tighter">
-                    {formatCurrency(
-                      ((isConfirmingBilling ? printingPreBill : getSessForTable(selectedTable!))?.items.reduce((acc, it) => acc + (it.price * it.quantity), 0) || 0) +
-                      (settings.serviceFeeStatus ? (((isConfirmingBilling ? printingPreBill : getSessForTable(selectedTable!))?.items.reduce((acc, it) => acc + (it.price * it.quantity), 0) || 0) * (settings.serviceFeePercentage || 10) / 100) : 0)
-                    )}
-                  </span>
-                </div>
               </div>
-            </div>
-
-            {/* Modal Actions */}
-            <div className="p-6 pt-0 flex gap-3">
-              <button
-                onClick={() => { setShowConsumptionTicket(false); setIsConfirmingBilling(false); }}
-                className="flex-1 py-4 bg-slate-200 dark:bg-slate-800 text-slate-700 dark:text-slate-200 rounded-2xl font-black uppercase text-[10px] tracking-widest transition-all hover:bg-slate-300 dark:hover:bg-slate-700 active:scale-95"
-              >
-                {isConfirmingBilling ? 'Cancelar' : 'Fechar'}
-              </button>
-              {isConfirmingBilling ? (
-                <button
-                  onClick={confirmBilling}
-                  className="flex-[1.5] py-4 bg-blue-600 hover:bg-blue-700 text-white rounded-2xl font-black uppercase text-[10px] tracking-widest shadow-xl transition-all active:scale-95 flex items-center justify-center gap-2"
-                >
-                  <Icons.Check className="w-4 h-4" /> Confirmar
-                </button>
-              ) : (
-                <button
-                  onClick={handlePrintTable}
-                  className="flex-[1.5] py-4 bg-blue-600 hover:bg-blue-700 text-white rounded-2xl font-black uppercase text-[10px] tracking-widest shadow-xl transition-all active:scale-95 flex items-center justify-center gap-2"
-                >
-                  <Icons.View className="w-4 h-4" /> Imprimir
-                </button>
-              )}
             </div>
           </div>
-        </div>
       )}
 
-      {/* MODAL DE MENSAGENS / FEEDBACK */}
-      {showFeedbacks && (
-        <div className="fixed inset-0 z-[100] flex items-center justify-end p-4 bg-slate-900/60 backdrop-blur-sm">
-          <div className="absolute inset-0" onClick={() => setShowFeedbacks(false)} />
-          <div className="bg-white dark:bg-slate-900 rounded-[3rem] shadow-2xl w-full max-w-md h-[95vh] flex flex-col overflow-hidden animate-in slide-in-from-right duration-300 relative border-l border-white/20 dark:border-slate-800">
-            <div className="p-8 border-b dark:border-slate-800 bg-indigo-50 dark:bg-indigo-950/20 flex justify-between items-center">
-              <div>
-                <h3 className="text-xl font-black text-indigo-900 dark:text-indigo-100 uppercase tracking-tighter">Mensagens dos Clientes</h3>
-                <p className="text-[9px] font-bold text-indigo-400 dark:text-indigo-500 uppercase tracking-widest">Feedbacks e Sugestões do dia</p>
-              </div>
-              <button
-                onClick={() => setShowFeedbacks(false)}
-                className="p-3 bg-white dark:bg-slate-800 text-slate-400 dark:text-slate-500 rounded-2xl hover:text-slate-600 dark:hover:text-slate-300 transition-all shadow-sm"
-              >
-                ✕
-              </button>
-            </div>
+          {/* MODAL DE MENSAGENS / FEEDBACK */}
+          {showFeedbacks && (
+            <div className="fixed inset-0 z-[100] flex items-center justify-end p-4 bg-slate-900/60 backdrop-blur-sm">
+              <div className="absolute inset-0" onClick={() => setShowFeedbacks(false)} />
+              <div className="bg-white dark:bg-slate-900 rounded-[3rem] shadow-2xl w-full max-w-md h-[95vh] flex flex-col overflow-hidden animate-in slide-in-from-right duration-300 relative border-l border-white/20 dark:border-slate-800">
+                <div className="p-8 border-b dark:border-slate-800 bg-indigo-50 dark:bg-indigo-950/20 flex justify-between items-center">
+                  <div>
+                    <h3 className="text-xl font-black text-indigo-900 dark:text-indigo-100 uppercase tracking-tighter">Mensagens dos Clientes</h3>
+                    <p className="text-[9px] font-bold text-indigo-400 dark:text-indigo-500 uppercase tracking-widest">Feedbacks e Sugestões do dia</p>
+                  </div>
+                  <button
+                    onClick={() => setShowFeedbacks(false)}
+                    className="p-3 bg-white dark:bg-slate-800 text-slate-400 dark:text-slate-500 rounded-2xl hover:text-slate-600 dark:hover:text-slate-300 transition-all shadow-sm"
+                  >
+                    ✕
+                  </button>
+                </div>
 
-            <div className="flex-1 overflow-y-auto p-6 space-y-4">
-              {feedbacks.length > 0 ? (
-                feedbacks.map((fb, i) => (
-                  <div key={fb.id} className="bg-slate-50 dark:bg-slate-800/50 border border-slate-100 dark:border-slate-700 p-5 rounded-[2rem] shadow-sm animate-in fade-in slide-in-from-bottom-2" style={{ animationDelay: `${i * 50}ms` }}>
-                    <div className="flex justify-between items-start mb-3">
-                      <div className="flex items-center gap-2">
-                        <div className="bg-indigo-600 text-white w-8 h-8 rounded-xl flex items-center justify-center text-[10px] font-black">M{fb.tableNumber}</div>
-                        <span className="text-xs font-black text-slate-800 dark:text-white uppercase tracking-tight">{fb.name || 'Cliente Anônimo'}</span>
+                <div className="flex-1 overflow-y-auto p-6 space-y-4">
+                  {feedbacks.length > 0 ? (
+                    feedbacks.map((fb, i) => (
+                      <div key={fb.id} className="bg-slate-50 dark:bg-slate-800/50 border border-slate-100 dark:border-slate-700 p-5 rounded-[2rem] shadow-sm animate-in fade-in slide-in-from-bottom-2" style={{ animationDelay: `${i * 50}ms` }}>
+                        <div className="flex justify-between items-start mb-3">
+                          <div className="flex items-center gap-2">
+                            <div className="bg-indigo-600 text-white w-8 h-8 rounded-xl flex items-center justify-center text-[10px] font-black">M{fb.tableNumber}</div>
+                            <span className="text-xs font-black text-slate-800 dark:text-white uppercase tracking-tight">{fb.name || 'Cliente Anônimo'}</span>
+                          </div>
+                          <span className="text-[8px] font-bold text-slate-400 dark:text-slate-500 uppercase">{new Date(fb.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</span>
+                        </div>
+                        <p className="text-sm font-bold text-slate-600 dark:text-slate-300 leading-relaxed bg-white/50 dark:bg-slate-800/80 p-4 rounded-2xl border border-slate-50 dark:border-slate-700 italic">
+                          "{fb.message}"
+                        </p>
                       </div>
-                      <span className="text-[8px] font-bold text-slate-400 dark:text-slate-500 uppercase">{new Date(fb.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</span>
+                    ))
+                  ) : (
+                    <div className="h-full flex flex-col items-center justify-center text-center p-12 space-y-4">
+                      <div className="w-16 h-16 bg-slate-100 rounded-full flex items-center justify-center text-slate-300">
+                        <svg xmlns="http://www.w3.org/2000/svg" className="h-8 w-8" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z" />
+                        </svg>
+                      </div>
+                      <p className="text-xs font-bold text-slate-400 uppercase tracking-widest">Nenhuma mensagem recebida hoje.</p>
                     </div>
-                    <p className="text-sm font-bold text-slate-600 dark:text-slate-300 leading-relaxed bg-white/50 dark:bg-slate-800/80 p-4 rounded-2xl border border-slate-50 dark:border-slate-700 italic">
-                      "{fb.message}"
-                    </p>
-                  </div>
-                ))
-              ) : (
-                <div className="h-full flex flex-col items-center justify-center text-center p-12 space-y-4">
-                  <div className="w-16 h-16 bg-slate-100 rounded-full flex items-center justify-center text-slate-300">
-                    <svg xmlns="http://www.w3.org/2000/svg" className="h-8 w-8" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z" />
-                    </svg>
-                  </div>
-                  <p className="text-xs font-bold text-slate-400 uppercase tracking-widest">Nenhuma mensagem recebida hoje.</p>
+                  )}
                 </div>
-              )}
+              </div>
             </div>
-          </div>
-        </div>
-      )}
+          )}
 
-      {/* MODAL DE TRANSFERENCIA */}
-      {transferModal.isOpen && transferModal.sourceTable !== null && (
-        <div className="fixed inset-0 z-[60] flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-sm">
-          <div className="bg-white dark:bg-slate-900 p-8 rounded-[3rem] shadow-2xl w-full max-w-md animate-in zoom-in duration-200 text-center border border-white/20 dark:border-slate-800">
-            <div className="text-orange-500 dark:text-orange-400 mb-6 flex justify-center"><Icons.Dashboard /></div>
-            <h3 className="text-2xl font-black text-slate-800 dark:text-white uppercase tracking-tighter mb-2">Transferir Mesa {transferModal.sourceTable}</h3>
-            <p className="text-sm font-bold text-slate-500 dark:text-slate-400 uppercase tracking-widest mb-6 px-4">Digite o número da mesa de destino (Livre)</p>
+          {/* MODAL DE TRANSFERENCIA */}
+          {transferModal.isOpen && transferModal.sourceTable !== null && (
+            <div className="fixed inset-0 z-[60] flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-sm">
+              <div className="bg-white dark:bg-slate-900 p-8 rounded-[3rem] shadow-2xl w-full max-w-md animate-in zoom-in duration-200 text-center border border-white/20 dark:border-slate-800">
+                <div className="text-orange-500 dark:text-orange-400 mb-6 flex justify-center"><Icons.Dashboard /></div>
+                <h3 className="text-2xl font-black text-slate-800 dark:text-white uppercase tracking-tighter mb-2">Transferir Mesa {transferModal.sourceTable}</h3>
+                <p className="text-sm font-bold text-slate-500 dark:text-slate-400 uppercase tracking-widest mb-6 px-4">Digite o número da mesa de destino (Livre)</p>
 
-            <input
-              autoFocus
-              type="number"
-              className="w-full text-center text-4xl font-black text-slate-800 dark:text-white bg-slate-50 dark:bg-slate-800 border-2 border-slate-200 dark:border-slate-700 rounded-3xl p-6 mb-8 focus:border-orange-500 dark:focus:border-orange-400 focus:ring-4 focus:ring-orange-500/20 dark:focus:ring-orange-900/40 outline-none transition-all placeholder:text-slate-300 dark:placeholder:text-slate-600"
-              placeholder="00"
-              value={transferTargetStr}
-              onChange={e => setTransferTargetStr(e.target.value)}
-              onKeyDown={async (e) => {
-                if (e.key === 'Enter') {
-                  const target = parseInt(transferTargetStr);
-                  if (isNaN(target) || target <= 0 || target > (settings?.tableCount || 0)) {
-                    return showAlert("Erro", "Mesa de destino inválida.", "DANGER");
-                  }
+                <input
+                  autoFocus
+                  type="number"
+                  className="w-full text-center text-4xl font-black text-slate-800 dark:text-white bg-slate-50 dark:bg-slate-800 border-2 border-slate-200 dark:border-slate-700 rounded-3xl p-6 mb-8 focus:border-orange-500 dark:focus:border-orange-400 focus:ring-4 focus:ring-orange-500/20 dark:focus:ring-orange-900/40 outline-none transition-all placeholder:text-slate-300 dark:placeholder:text-slate-600"
+                  placeholder="00"
+                  value={transferTargetStr}
+                  onChange={e => setTransferTargetStr(e.target.value)}
+                  onKeyDown={async (e) => {
+                    if (e.key === 'Enter') {
+                      const target = parseInt(transferTargetStr);
+                      if (isNaN(target) || target <= 0 || target > (settings?.tableCount || 0)) {
+                        return showAlert("Erro", "Mesa de destino inválida.", "DANGER");
+                      }
 
-                  if (target === transferModal.sourceTable) return;
-                  if (getTableStatus(target) !== 'available') {
-                    return showAlert("Mesa Ocupada", `A mesa ${target} encontra-se ocupada. Só é possível transferir para mesas livres.`, "DANGER");
-                  }
+                      if (target === transferModal.sourceTable) return;
+                      if (getTableStatus(target) !== 'available') {
+                        return showAlert("Mesa Ocupada", `A mesa ${target} encontra-se ocupada. Só é possível transferir para mesas livres.`, "DANGER");
+                      }
 
-                  const sess = getSessForTable(transferModal.sourceTable!);
-                  if (!sess || !sess.waiterId) return;
+                      const sess = getSessForTable(transferModal.sourceTable!);
+                      if (!sess || !sess.waiterId) return;
 
-                  try {
-                    setTransferModal({ isOpen: false, sourceTable: null });
-                    if (!currentUser.permissions.includes('admin')) {
-                      await requireWaiterAuth(sess.waiterId, `Transferir Mesa ${transferModal.sourceTable} para ${target}`);
+                      try {
+                        setTransferModal({ isOpen: false, sourceTable: null });
+                        if (!currentUser.permissions.includes('admin')) {
+                          await requireWaiterAuth(sess.waiterId, `Transferir Mesa ${transferModal.sourceTable} para ${target}`);
+                        }
+                        await db.transferTable(transferModal.sourceTable, target, sess.waiterId, currentUser.permissions);
+                        setSelectedTable(null);
+                        await refreshData();
+                        addToast({ title: "SUCESSO", message: "Transferência realizada com sucesso!", type: "SUCCESS" });
+                      } catch (err: any) {
+                        if (err.message && err.message !== 'Garçom não encontrado') {
+                          showAlert("Erro ao Transferir", err.message, "DANGER");
+                        }
+                      }
                     }
-                    await db.transferTable(transferModal.sourceTable, target, sess.waiterId, currentUser.permissions);
-                    setSelectedTable(null);
-                    await refreshData();
-                    addToast({ title: "SUCESSO", message: "Transferência realizada com sucesso!", type: "SUCCESS" });
-                  } catch (err: any) {
-                    if (err.message && err.message !== 'Garçom não encontrado') {
-                      showAlert("Erro ao Transferir", err.message, "DANGER");
-                    }
-                  }
-                }
-              }}
-            />
+                  }}
+                />
 
-            <div className="flex gap-4">
-              <button
-                onClick={() => setTransferModal({ isOpen: false, sourceTable: null })}
-                className="flex-1 py-5 text-slate-400 dark:text-slate-500 font-black uppercase text-xs tracking-widest hover:bg-slate-50 dark:hover:bg-slate-800 rounded-2xl transition-all"
-              >
-                Cancelar
-              </button>
-              <button
-                onClick={async () => {
-                  const target = parseInt(transferTargetStr);
-                  if (isNaN(target) || target <= 0 || target > (settings?.tableCount || 0)) {
-                    return showAlert("Erro", "Mesa de destino inválida.", "DANGER");
-                  }
+                <div className="flex gap-4">
+                  <button
+                    onClick={() => setTransferModal({ isOpen: false, sourceTable: null })}
+                    className="flex-1 py-5 text-slate-400 dark:text-slate-500 font-black uppercase text-xs tracking-widest hover:bg-slate-50 dark:hover:bg-slate-800 rounded-2xl transition-all"
+                  >
+                    Cancelar
+                  </button>
+                  <button
+                    onClick={async () => {
+                      const target = parseInt(transferTargetStr);
+                      if (isNaN(target) || target <= 0 || target > (settings?.tableCount || 0)) {
+                        return showAlert("Erro", "Mesa de destino inválida.", "DANGER");
+                      }
 
-                  if (target === transferModal.sourceTable) return;
-                  if (getTableStatus(target) !== 'available') {
-                    return showAlert("Mesa Ocupada", `A mesa ${target} encontra-se ocupada. Só é possível transferir para mesas livres.`, "DANGER");
-                  }
+                      if (target === transferModal.sourceTable) return;
+                      if (getTableStatus(target) !== 'available') {
+                        return showAlert("Mesa Ocupada", `A mesa ${target} encontra-se ocupada. Só é possível transferir para mesas livres.`, "DANGER");
+                      }
 
-                  const sess = getSessForTable(transferModal.sourceTable!);
-                  if (!sess || !sess.waiterId) return;
+                      const sess = getSessForTable(transferModal.sourceTable!);
+                      if (!sess || !sess.waiterId) return;
 
-                  try {
-                    setTransferModal({ isOpen: false, sourceTable: null });
-                    if (!currentUser.permissions.includes('admin')) {
-                      await requireWaiterAuth(sess.waiterId, `Transferir Mesa ${transferModal.sourceTable} para ${target}`);
-                    }
-                    await db.transferTable(transferModal.sourceTable, target, sess.waiterId, currentUser.permissions);
-                    setSelectedTable(null);
-                    await refreshData();
-                    addToast({ title: "SUCESSO", message: "Transferência realizada com sucesso!", type: "SUCCESS" });
-                  } catch (err: any) {
-                    if (err.message && err.message !== 'Garçom não encontrado') {
-                      showAlert("Erro ao Transferir", err.message, "DANGER");
-                    }
-                  }
-                }}
-                className="flex-1 bg-orange-500 text-white font-black uppercase text-xs tracking-widest rounded-2xl shadow-xl shadow-orange-500/30 hover:bg-orange-600 hover:scale-[1.02] active:scale-95 transition-all"
-              >
-                Confirmar
-              </button>
+                      try {
+                        setTransferModal({ isOpen: false, sourceTable: null });
+                        if (!currentUser.permissions.includes('admin')) {
+                          await requireWaiterAuth(sess.waiterId, `Transferir Mesa ${transferModal.sourceTable} para ${target}`);
+                        }
+                        await db.transferTable(transferModal.sourceTable, target, sess.waiterId, currentUser.permissions);
+                        setSelectedTable(null);
+                        await refreshData();
+                        addToast({ title: "SUCESSO", message: "Transferência realizada com sucesso!", type: "SUCCESS" });
+                      } catch (err: any) {
+                        if (err.message && err.message !== 'Garçom não encontrado') {
+                          showAlert("Erro ao Transferir", err.message, "DANGER");
+                        }
+                      }
+                    }}
+                    className="flex-1 bg-orange-500 text-white font-black uppercase text-xs tracking-widest rounded-2xl shadow-xl shadow-orange-500/30 hover:bg-orange-600 hover:scale-[1.02] active:scale-95 transition-all"
+                  >
+                    Confirmar
+                  </button>
+                </div>
+              </div>
             </div>
-          </div>
-        </div>
-      )}
+          )}
     </div>
   );
 };

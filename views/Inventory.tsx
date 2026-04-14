@@ -685,11 +685,11 @@ const Inventory: React.FC = () => {
                 <p className="text-[9px] font-black text-blue-600 dark:text-blue-500 uppercase tracking-[0.2em] mb-2">Opções & Adicionais</p>
                 <div className="bg-slate-50 dark:bg-slate-800/50 rounded-2xl p-4 border border-slate-100 dark:border-slate-800">
                   <p className="text-xs text-slate-500 mb-3">Vincule os Grupos de Opções a este Produto:</p>
-                  {addonGroups.length === 0 ? (
-                    <p className="text-xs text-amber-600 italic">Nenhum grupo cadastrado. Crie grupos na aba "Grupos de Opções".</p>
+                  {addonGroups.filter(g => g.active).length === 0 ? (
+                    <p className="text-xs text-amber-600 italic">Nenhum grupo ativo cadastrado. Crie ou ative grupos na aba "Grupos de Opções".</p>
                   ) : (
                     <div className="space-y-2 max-h-[160px] overflow-y-auto custom-scrollbar pr-2">
-                      {addonGroups.map(group => {
+                      {addonGroups.filter(g => g.active).map(group => {
                         const isChecked = prodFormData.addonGroupIds.includes(group.id);
                         return (
                           <label key={group.id} className={`flex items-center gap-3 p-3 rounded-xl border cursor-pointer transition-colors ${isChecked ? 'bg-blue-50 dark:bg-blue-900/20 border-blue-200 dark:border-blue-800' : 'bg-white dark:bg-slate-900 border-slate-200 dark:border-slate-700'}`}>

@@ -6,6 +6,7 @@ import { Order, User, OrderStatusLabels, DeliveryDriver, Product, SaleType, Busi
 import { Icons } from '../constants';
 import { useToast } from '../hooks/useToast';
 import { formatCurrency } from '../services/formatUtils';
+import { AddonDisplay } from '../components/AddonDisplay';
 
 import CustomAlert from '../components/CustomAlert';
 import { sendOrderToThermalPrinter } from '../services/printService';
@@ -97,15 +98,19 @@ const DeliveryOrders: React.FC<DeliveryOrdersProps> = ({ currentUser }) => {
 
     const groupedPrintingItems = React.useMemo(() => {
         if (!printingOrder) return [];
-        const grouped: Record<string, { name: string, quantity: number, price: number }> = {};
+        const grouped: Record<string, { name: string, quantity: number, price: number, selectedAddons: any[], observations?: string }> = {};
         printingOrder.items.forEach(item => {
             const prod = products.find(p => p.id === item.productId);
-            const key = item.productId || item.product?.id || 'unknown';
+            const addonKey = item.selectedAddons ? JSON.stringify(item.selectedAddons.map((a: any) => ({ id: a.id, quantity: a.quantity })).sort((a: any, b: any) => a.id.localeCompare(b.id))) : '';
+            const key = (item.productId || item.product?.id || 'unknown') + (item.observations || '') + addonKey;
+            
             if (!grouped[key]) {
                 grouped[key] = {
                     name: prod?.name || item.product?.name || '...',
                     quantity: 0,
-                    price: item.price
+                    price: item.price,
+                    selectedAddons: item.selectedAddons || [],
+                    observations: item.observations
                 };
             }
             grouped[key].quantity += (item.quantity || 1);
@@ -354,9 +359,16 @@ const DeliveryOrders: React.FC<DeliveryOrdersProps> = ({ currentUser }) => {
                                             <p className="text-[10px] font-bold text-slate-400 dark:text-slate-500 uppercase leading-relaxed">{order.clientAddress}</p>
                                             <div className="bg-slate-50 dark:bg-slate-800/50 rounded-2xl p-4">
                                                 {order.items.map((it, idx) => (
-                                                    <div key={idx} className="flex gap-2 text-xs font-bold text-slate-600 dark:text-slate-400">
-                                                        <span className="text-indigo-600 dark:text-indigo-400">{it.quantity}x</span> {it.product?.name || 'Item'}
+                                                  <div key={idx} className="flex flex-col mb-1 last:mb-0">
+                                                    <div className="flex gap-2 text-xs font-bold text-slate-600 dark:text-slate-400">
+                                                      <span className="text-indigo-600 dark:text-indigo-400">{it.quantity}x</span> {it.product?.name || 'Item'}
                                                     </div>
+                                                    <AddonDisplay 
+                                                      addons={it.selectedAddons || []} 
+                                                      products={products} 
+                                                      className="text-[10px] font-bold text-blue-500 mt-0.5 ml-4"
+                                                    />
+                                                  </div>
                                                 ))}
                                             </div>
                                         </div>
@@ -625,9 +637,19 @@ const DeliveryOrders: React.FC<DeliveryOrdersProps> = ({ currentUser }) => {
                         {groupedPrintingItems.length > 0 && (
                             <div className="mb-1">
                                 {groupedPrintingItems.map(([id, data]: [string, any]) => (
-                                    <div key={id} className="flex justify-between font-bold uppercase py-0.5 text-[10px]">
-                                        <span className="flex-1 pr-2">{data.quantity}X {data.name.substring(0, 20)}</span>
+                                    <div key={id} className="border-b border-dotted border-black/10 py-1">
+                                      <div className="flex justify-between font-bold uppercase text-[10px]">
+                                        <span className="flex-1 pr-2">{data.quantity}X {data.name.substring(0, 25)}</span>
                                         <span className="shrink-0">{formatCurrency(data.price, false)}</span>
+                                      </div>
+                                      <AddonDisplay 
+                                        addons={data.selectedAddons || []} 
+                                        products={products} 
+                                        className="text-[7px] font-bold uppercase text-slate-500 mt-0.5 ml-2"
+                                      />
+                                      {data.observations && (
+                                        <span className="text-[7px] font-bold uppercase text-slate-600 mt-0.5 ml-2 leading-tight italic block">📝 {data.observations}</span>
+                                      )}
                                     </div>
                                 ))}
                             </div>

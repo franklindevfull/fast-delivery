@@ -9,6 +9,7 @@ import { formatCurrency } from '../services/formatUtils';
 
 import { useReactToPrint } from 'react-to-print';
 import CustomAlert from '../components/CustomAlert';
+import { AddonDisplay } from '../components/AddonDisplay';
 import { getLocalIsoDate } from '../services/dateUtils';
 
 const BlinkCSS = () => (
@@ -198,23 +199,29 @@ const Logistics: React.FC = () => {
     return drivers.find(d => d.id === driverId)?.name || 'Removido';
   };
 
-  // Agrupamento para o cupom de entrega
-  const groupedPrintingItems = useMemo(() => {
-    if (!printingOrder) return [];
-    const grouped: Record<string, { name: string, quantity: number, price: number }> = {};
-    printingOrder.items.forEach(item => {
+  // Agrupamento para o cupom de entrega (Funciona para Pedido Atual ou Histórico)
+  const groupedItems = useMemo(() => {
+    const order = printingOrder || printingHistoryOrder;
+    if (!order) return [];
+    const grouped: Record<string, { name: string, quantity: number, price: number, selectedAddons: any[], observations?: string }> = {};
+    order.items.forEach(item => {
       const prod = products.find(p => p.id === item.productId);
-      if (!grouped[item.productId]) {
-        grouped[item.productId] = {
-          name: prod?.name || '...',
+      const addonKey = item.selectedAddons ? JSON.stringify(item.selectedAddons.map((a: any) => ({ id: a.id, quantity: a.quantity })).sort((a: any, b: any) => a.id.localeCompare(b.id))) : '';
+      const key = (item.productId || item.product?.id || 'unknown') + (item.observations || '') + addonKey;
+      
+      if (!grouped[key]) {
+        grouped[key] = {
+          name: prod?.name || item.product?.name || '...',
           quantity: 0,
-          price: item.price
+          price: item.price,
+          selectedAddons: item.selectedAddons || [],
+          observations: item.observations
         };
       }
-      grouped[item.productId].quantity += item.quantity;
+      grouped[key].quantity += (item.quantity || 1);
     });
     return Object.entries(grouped);
-  }, [printingOrder, products]);
+  }, [printingOrder, printingHistoryOrder, products]);
 
   return (
     <div className="p-6 h-full flex flex-col bg-slate-50 dark:bg-slate-950 relative">
@@ -593,14 +600,24 @@ const Logistics: React.FC = () => {
                     {viewingHistoryOrder.items.map((item, idx) => {
                       const prod = products.find(p => p.id === item.productId);
                       return (
-                        <div key={idx} className="flex justify-between items-center py-3 border-b border-slate-100 dark:border-slate-800 last:border-0 px-2">
-                          <div className="flex items-center gap-3">
-                            <span className="w-6 h-6 flex items-center justify-center bg-slate-900 dark:bg-blue-600 text-white text-[10px] font-black rounded-lg">
-                              {item.quantity}x
-                            </span>
-                            <span className="text-[11px] font-black text-slate-700 dark:text-slate-200 uppercase">{prod?.name || '...'}</span>
+                        <div key={idx} className="flex flex-col py-3 border-b border-slate-100 dark:border-slate-800 last:border-0 px-2">
+                          <div className="flex justify-between items-center">
+                            <div className="flex items-center gap-3">
+                              <span className="w-6 h-6 flex items-center justify-center bg-slate-900 dark:bg-blue-600 text-white text-[10px] font-black rounded-lg">
+                                {item.quantity}x
+                              </span>
+                              <span className="text-[11px] font-black text-slate-700 dark:text-slate-200 uppercase">{prod?.name || item.product?.name || '...'}</span>
+                            </div>
+                            <span className="text-[11px] font-black text-slate-400 dark:text-slate-500">{formatCurrency(item.price, false)}</span>
                           </div>
-                          <span className="text-[11px] font-black text-slate-400 dark:text-slate-500">{formatCurrency(item.price, false)}</span>
+                          <AddonDisplay 
+                            addons={item.selectedAddons || []} 
+                            products={products} 
+                            className="text-[10px] font-bold text-blue-500 mt-1 ml-9"
+                          />
+                          {item.observations && (
+                            <p className="text-[9px] font-bold text-slate-500 mt-1 ml-9 italic">📝 {item.observations}</p>
+                          )}
                         </div>
                       );
                     })}
@@ -666,17 +683,20 @@ const Logistics: React.FC = () => {
             <div className="section-divider"></div>
 
             <div className="mb-1">
-              {Object.entries(printingOrder.items.reduce((acc: Record<string, any>, item) => {
-                const prod = products.find(p => p.id === item.productId);
-                if (!acc[item.productId]) {
-                  acc[item.productId] = { name: prod?.name || '...', quantity: 0, price: item.price };
-                }
-                acc[item.productId].quantity += item.quantity;
-                return acc;
-              }, {} as Record<string, any>)).map(([id, data]: [string, any]) => (
-                <div key={id} className="flex justify-between font-bold uppercase py-0.5 text-[10px]">
-                  <span className="flex-1 pr-2">{data.quantity}X {data.name.substring(0, 20)}</span>
-                  <span className="shrink-0">{formatCurrency(data.price, false)}</span>
+              {groupedItems.map(([id, data]: [string, any]) => (
+                <div key={id} className="border-b border-dotted border-black/10 py-1">
+                  <div className="flex justify-between font-bold uppercase text-[10px]">
+                    <span className="flex-1 pr-2">{data.quantity}X {data.name.substring(0, 25)}</span>
+                    <span className="shrink-0">{formatCurrency(data.price, false)}</span>
+                  </div>
+                  <AddonDisplay 
+                    addons={data.selectedAddons || []} 
+                    products={products} 
+                    className="text-[7px] font-bold uppercase text-slate-500 mt-0.5 ml-2"
+                  />
+                  {data.observations && (
+                    <span className="text-[7px] font-bold uppercase text-slate-600 mt-0.5 ml-2 leading-tight italic block">📝 {data.observations}</span>
+                  )}
                 </div>
               ))}
             </div>
@@ -746,18 +766,24 @@ const Logistics: React.FC = () => {
               <p className="font-bold border-t border-black/10 mt-1 pt-1 uppercase">ENTREGADOR: {getDriverName(printingHistoryOrder.driverId)}</p>
             </div>
 
-            {groupedPrintingItems.length > 0 && (
-              <div className="section-divider"></div>
-            )}
-            
-            {groupedPrintingItems.length > 0 && (
+            {groupedItems.length > 0 && (
               <div className="mb-1">
-                {groupedPrintingItems.map(([id, data]: [string, any]) => (
-                  <div key={id} className="flex justify-between font-bold uppercase py-0.5 text-[10px]">
-                    <span className="flex-1 pr-2">{data.quantity}X {data.name.substring(0, 20)}</span>
-                    <span className="shrink-0">{formatCurrency(data.price, false)}</span>
+                {groupedItems.map(([id, data]: [string, any]) => (
+                  <div key={id} className="border-b border-dotted border-black/10 py-1">
+                    <div className="flex justify-between font-bold uppercase text-[10px]">
+                      <span className="flex-1 pr-2">{data.quantity}X {data.name.substring(0, 25)}</span>
+                      <span className="shrink-0">{formatCurrency(data.price, false)}</span>
+                    </div>
+                    <AddonDisplay 
+                      addons={data.selectedAddons || []} 
+                      products={products} 
+                      className="text-[7px] font-bold uppercase text-slate-500 mt-0.5 ml-2"
+                    />
+                    {data.observations && (
+                      <span className="text-[7px] font-bold uppercase text-slate-600 mt-0.5 ml-2 leading-tight italic block">📝 {data.observations}</span>
+                    )}
                   </div>
-                  ))}
+                ))}
               </div>
             )}
 

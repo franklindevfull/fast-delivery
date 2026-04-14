@@ -7,6 +7,7 @@ import { formatCurrency } from '../services/formatUtils';
 
 import { useReactToPrint } from 'react-to-print';
 import CustomAlert from '../components/CustomAlert';
+import { AddonDisplay } from '../components/AddonDisplay';
 
 interface ReceivablesProps {
     currentUser: User;
@@ -387,15 +388,22 @@ const Receivables: React.FC<ReceivablesProps> = ({ currentUser, setActiveTab }) 
                                 {selectedOrder.items.map((item: any, idx: number) => {
                                     const prod = availableProducts.find(p => p.id === item.productId);
                                     return (
-                                        <div key={idx} className="flex justify-between items-center bg-slate-50 dark:bg-slate-800/50 p-4 rounded-2xl border border-slate-100 dark:border-slate-800">
-                                            <div className="flex items-center gap-4">
-                                                <div className="w-8 h-8 rounded-lg bg-white dark:bg-slate-700 flex items-center justify-center font-black text-xs text-slate-400 dark:text-slate-500">{item.quantity}x</div>
-                                                <div>
-                                                    <p className="text-xs font-black text-slate-800 dark:text-white uppercase tracking-tight">{prod?.name || 'Produto'} {formatCurrency(item.price, false)}</p>
-                                                    {item.observations && <p className="text-[8px] text-slate-400 dark:text-slate-500 font-bold uppercase">{item.observations}</p>}
+                                        <div key={idx} className="flex flex-col bg-slate-50 dark:bg-slate-800/50 p-4 rounded-2xl border border-slate-100 dark:border-slate-800 gap-2">
+                                            <div className="flex justify-between items-center">
+                                                <div className="flex items-center gap-4">
+                                                    <div className="w-8 h-8 rounded-lg bg-white dark:bg-slate-700 flex items-center justify-center font-black text-xs text-slate-400 dark:text-slate-500">{item.quantity}x</div>
+                                                    <div>
+                                                        <p className="text-xs font-black text-slate-800 dark:text-white uppercase tracking-tight">{prod?.name || item.product?.name || 'Produto'} {formatCurrency(item.price, false)}</p>
+                                                        {item.observations && <p className="text-[8px] text-slate-400 dark:text-slate-500 font-bold uppercase">{item.observations}</p>}
+                                                    </div>
                                                 </div>
+                                                <span className="text-[10px] font-black text-slate-800 dark:text-white tracking-tight">{formatCurrency(item.price * item.quantity)}</span>
                                             </div>
-                                            <span className="text-[10px] font-black text-slate-800 dark:text-white tracking-tight">{formatCurrency(item.price * item.quantity)}</span>
+                                            <AddonDisplay 
+                                                addons={item.selectedAddons || []} 
+                                                products={availableProducts} 
+                                                className="text-[10px] font-bold text-blue-500 ml-12"
+                                            />
                                         </div>
                                     );
                                 })}
@@ -535,12 +543,22 @@ const Receivables: React.FC<ReceivablesProps> = ({ currentUser, setActiveTab }) 
                             <p className="text-slate-500 italic mt-1">Este documento NÃO é um cupom fiscal.</p>
                         </div>
                         <div className="border-t border-dashed my-3 py-3">
-                            {printingOrder.items.map((item: any, idx: number) => {
+                            {selectedOrder.items.map((item: any, idx: number) => {
                                 const prod = availableProducts.find(p => p.id === item.productId);
                                 return (
-                                    <div key={idx} className="flex justify-between items-start font-black uppercase py-0.5 text-[8px] gap-2">
-                                        <span className="flex-1 leading-tight">{item.quantity}x {prod?.name.substring(0, 25) || 'Item'}</span>
-                                        <span className="whitespace-nowrap">{formatCurrency(item.price, false)}</span>
+                                    <div key={idx} className="border-b border-dotted border-black/10 py-1">
+                                        <div className="flex justify-between items-start font-black uppercase text-[8px] gap-2">
+                                            <span className="flex-1 leading-tight">{item.quantity}x {prod?.name.substring(0, 25) || item.product?.name?.substring(0, 25) || 'Item'}</span>
+                                            <span className="whitespace-nowrap">{formatCurrency(item.price, false)}</span>
+                                        </div>
+                                        <AddonDisplay 
+                                            addons={item.selectedAddons || []} 
+                                            products={availableProducts} 
+                                            className="text-[7px] font-bold uppercase text-slate-500 mt-0.5 ml-2"
+                                        />
+                                        {item.observations && (
+                                            <span className="text-[7px] font-bold uppercase text-slate-600 mt-0.5 ml-2 leading-tight italic block">📝 {item.observations}</span>
+                                        )}
                                     </div>
                                 );
                             })}

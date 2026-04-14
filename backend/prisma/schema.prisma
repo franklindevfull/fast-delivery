@@ -284,6 +284,7 @@ model AddonOption {
   active        Boolean    @default(true)
   trackStock    Boolean    @default(false)
   stock         Int        @default(0)
+  productId     String?
   group         AddonGroup @relation(fields: [groupId], references: [id], onDelete: Cascade)
 }
 

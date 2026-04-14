@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { CartItem } from '../types';
 import { submitOrder, StoreStatus } from '../api';
+import { AddonDisplay } from './AddonDisplay';
 
 interface CartModalProps {
     isOpen: boolean;
@@ -191,15 +192,10 @@ const CartModal: React.FC<CartModalProps> = ({ isOpen, onClose, cart, tableNumbe
                                     {item.pizzaFlavors && item.pizzaFlavors.length > 0 && (
                                         <p className="text-[10px] font-bold text-indigo-500 line-clamp-1">+ {item.pizzaFlavors.map(f => f.name).join(', ')}</p>
                                     )}
-                                    {item.selectedAddons && item.selectedAddons.length > 0 && (
-                                        <div className="flex flex-wrap gap-1 mt-1">
-                                            {item.selectedAddons.map((addon, idx) => (
-                                                <span key={idx} className="text-[9px] font-bold bg-blue-100 text-blue-600 px-1.5 py-0.5 rounded-md">
-                                                    + {addon.name}
-                                                </span>
-                                            ))}
-                                        </div>
-                                    )}
+                                    <AddonDisplay 
+                                        addons={item.selectedAddons || []} 
+                                        className="text-[10px] font-bold text-blue-500 mt-1"
+                                    />
                                     {item.observations && (
                                         <p className="text-[10px] italic text-slate-400 dark:text-slate-500 line-clamp-1 mt-1">Obs: {item.observations}</p>
                                     )}

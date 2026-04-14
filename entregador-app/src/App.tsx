@@ -6,6 +6,7 @@ import { socket } from './services/socket';
 import { Icons } from './constants';
 import LogoutModal from './components/LogoutModal';
 import Login from './components/Login';
+import { AddonDisplay } from './components/AddonDisplay';
 import PaymentRequiredModal from './components/PaymentRequiredModal';
 import PixInfoModal from './components/PixInfoModal';
 
@@ -319,11 +320,12 @@ const App: React.FC = () => {
 
   const groupedPrintingItems = useMemo(() => {
     if (!printingOrder) return [];
-    const grouped: Record<string, { name: string, quantity: number, price: number, selectedAddons?: any[] }> = {};
+    const grouped: Record<string, { name: string, quantity: number, price: number, selectedAddons?: any[], observations?: string }> = {};
     
     printingOrder.items.forEach(item => {
-      const addonIds = (item.selectedAddons || []).map(a => a.id).sort().join(',');
-      const key = `${item.productId}-${addonIds}-${item.observations || ''}`;
+      const sortedAddons = item.selectedAddons ? [...item.selectedAddons].sort((a, b) => a.id.localeCompare(b.id)) : [];
+      const addonKey = JSON.stringify(sortedAddons);
+      const key = `${item.productId}-${addonKey}-${item.observations || ''}`;
       
       if (!grouped[key]) {
         const prod = products.find(p => p.id === item.productId);
@@ -331,7 +333,8 @@ const App: React.FC = () => {
           name: prod?.name || item.productName || '...',
           quantity: 0,
           price: item.price,
-          selectedAddons: item.selectedAddons
+          selectedAddons: item.selectedAddons,
+          observations: item.observations
         };
       }
       grouped[key].quantity += item.quantity;
@@ -787,18 +790,17 @@ const App: React.FC = () => {
             <div className="border-y border-dashed border-slate-200 py-3 mb-4 max-h-40 overflow-y-auto custom-scrollbar">
               {groupedPrintingItems.map(([key, data]) => (
                 <div key={key} className="flex flex-col py-1 border-b border-slate-50 last:border-0">
-                  <div className="flex justify-between items-center">
-                    <span className="text-[11px] font-black">{data.quantity}x {data.name}</span>
-                    <span className="text-[11px] font-black">R$ {((data.price + (data.selectedAddons?.reduce((s, a) => s + a.price, 0) || 0)) * data.quantity).toFixed(2)}</span>
+                  <div className="flex justify-between items-center text-[10px] uppercase font-black">
+                    <span className="leading-tight">{data.quantity}x {data.name}</span>
+                    <span className="shrink-0">{formatCurrency(data.price * data.quantity, false)}</span>
                   </div>
-                  {data.selectedAddons && data.selectedAddons.length > 0 && (
-                    <div className="flex flex-wrap gap-1 mt-0.5">
-                      {data.selectedAddons.map((addon: any, idx: number) => (
-                        <span key={idx} className="text-[8px] font-black text-blue-600 uppercase tracking-tight">
-                          + {addon.name} ({addon.price.toFixed(2)})
-                        </span>
-                      ))}
-                    </div>
+                  <AddonDisplay 
+                    addons={data.selectedAddons || []} 
+                    products={products} 
+                    className="text-[8px] font-bold uppercase text-slate-500 mt-0.5 ml-2"
+                  />
+                  {data.observations && (
+                    <span className="text-[8px] italic text-slate-400 mt-0.5 ml-2 leading-tight">Obs: {data.observations}</span>
                   )}
                 </div>
               ))}

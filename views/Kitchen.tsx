@@ -8,6 +8,7 @@ import { Icons } from '../constants';
 import { useDigitalAlert } from '../hooks/useDigitalAlert';
 import { useToast } from '../hooks/useToast';
 import { formatAddress, formatCurrency } from '../services/formatUtils';
+import { AddonDisplay } from '../components/AddonDisplay';
 
 
 
@@ -308,6 +309,11 @@ const Kitchen: React.FC = () => {
                                       Obs: {item.observations}
                                     </p>
                                   )}
+                                  <AddonDisplay 
+                                    addons={item.selectedAddons || []} 
+                                    products={products} 
+                                    className="text-[9px] font-bold text-blue-600 dark:text-blue-400 mt-1 pl-1"
+                                  />
                                   
                                   {/* Ficha Técnica / Instruções de Preparo */}
                                   {(() => {

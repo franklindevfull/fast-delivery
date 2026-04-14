@@ -8,7 +8,8 @@ import { socket, feedbackUnreadManager } from '../services/socket';
 import { Icons, PLACEHOLDER_FOOD_IMAGE, formatImageUrl } from '../constants';
 import CustomAlert from '../components/CustomAlert';
 import { validateEmail, validateCPF, validateCNPJ, maskPhone, maskDocument, toTitleCase } from '../services/validationUtils';
-import { formatAddress, formatCurrency, normalizeNeighborhood } from '../services/formatUtils';
+import { formatAddress, formatCurrency } from '../services/formatUtils';
+import { AddonDisplay } from '../components/AddonDisplay';
 import { QRCodeCanvas } from 'qrcode.react';
 import { sendOrderToThermalPrinter } from '../services/printService';
 
@@ -2165,13 +2166,13 @@ const POS: React.FC<POSProps> = ({ currentUser }) => {
                         
                         if (group.selectionType === 'SINGLE' && selectedAddons.some(a => group.options.some((o: any) => o.id === a.addonOptionId) && a.addonOptionId !== option.id)) {
                            // Remove others from this group before adding
-                           setSelectedAddons(prev => [...prev.filter(a => !group.options.some((o: any) => o.id === a.addonOptionId)), { addonOptionId: option.id, name: option.name, price: option.price, quantity: 1 }]);
+                           setSelectedAddons(prev => [...prev.filter(a => !group.options.some((o: any) => o.id === a.addonOptionId)), { addonOptionId: option.id, name: option.name, price: option.price, quantity: 1, productId: option.productId }]);
                         } else {
                            if (isSelected) {
                               if (group.selectionType === 'SINGLE') return; // Cannot add more than 1 in SINGLE
                               setSelectedAddons(prev => prev.map(a => a.addonOptionId === option.id ? { ...a, quantity: a.quantity + 1 } : a));
                            } else {
-                              setSelectedAddons(prev => [...prev, { addonOptionId: option.id, name: option.name, price: option.price, quantity: 1 }]);
+                              setSelectedAddons(prev => [...prev, { addonOptionId: option.id, name: option.name, price: option.price, quantity: 1, productId: option.productId }]);
                            }
                         }
                       };
@@ -2385,9 +2386,11 @@ const POS: React.FC<POSProps> = ({ currentUser }) => {
                             <span className="flex-1 leading-tight whitespace-normal">{data.quantity}X {data.product?.name.substring(0, 25)}</span>
                             <span className="shrink-0 whitespace-nowrap">{formatCurrency(data.price + addonsTotal, false)}</span>
                           </div>
-                          {data.selectedAddons && data.selectedAddons.map((addon: any, idx: number) => (
-                            <span key={idx} className="text-[7px] font-bold uppercase text-slate-500 mt-0.5 ml-3 leading-none">+ {addon.quantity}X {addon.name}</span>
-                          ))}
+                          <AddonDisplay 
+                            addons={data.selectedAddons} 
+                            products={products} 
+                            className="text-[7px] font-bold uppercase text-slate-500 mt-0.5 ml-3"
+                          />
                           {data.notes && (
                             <span className="text-[7px] font-bold uppercase text-slate-600 mt-0.5 ml-3 leading-tight">📝 {data.notes}</span>
                           )}
