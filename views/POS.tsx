@@ -2469,6 +2469,7 @@ const POS: React.FC<POSProps> = ({ currentUser }) => {
                     <h3 className="text-xs font-black text-slate-800 dark:text-white uppercase tracking-widest">Itens Consumidos</h3>
                   </div>
                   <div className="bg-slate-50 dark:bg-slate-800/50 rounded-3xl p-4 border border-slate-100 dark:border-slate-700 space-y-2 font-receipt shadow-inner max-h-40 overflow-y-auto custom-scrollbar">
+                    {printingOrder.items.map((data, id) => (
                       <div key={id} className="flex flex-col border-b border-dashed border-slate-200 dark:border-slate-700 pb-2">
                         <div className="flex justify-between">
                           <span className="text-[10px] font-black text-slate-600 dark:text-slate-400 uppercase max-w-[70%]">{data.quantity}x {data.product?.name}</span>
@@ -2480,6 +2481,7 @@ const POS: React.FC<POSProps> = ({ currentUser }) => {
                           className="text-[8px] font-bold text-blue-600 dark:text-blue-400 mt-0.5"
                         />
                       </div>
+                    ))}
                   </div>
                 </div>
 
