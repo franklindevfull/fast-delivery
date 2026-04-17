@@ -2381,7 +2381,6 @@ const POS: React.FC<POSProps> = ({ currentUser }) => {
 
                   <div className="mb-1 border-t border-black pt-1">
                     {groupedPrintingItems.map(([id, data]) => {
-                      const addonsTotal = data.selectedAddons ? data.selectedAddons.reduce((sum: number, a: any) => sum + (a.price * a.quantity), 0) : 0;
                       return (
                         <div key={id} className={`flex flex-col py-0.5 ${(data.notes || data.selectedAddons) ? 'mb-1 border-b border-dotted border-black/10 pb-1' : ''}`}>
                           <div className="flex justify-between items-start font-bold uppercase text-[8px] gap-2">

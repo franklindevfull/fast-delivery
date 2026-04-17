@@ -278,7 +278,6 @@ const OrderHistory: React.FC = () => {
                         <div className="border-t border-dashed dark:border-slate-700 my-3 py-3 font-receipt">
                             {printingOrder.items.map((it: any, idx: number) => {
                                 const prodName = it.product?.name || it.productName || 'PRODUTO';
-                                const addonsTotal = it.selectedAddons ? it.selectedAddons.reduce((sum: number, a: any) => sum + (a.price * a.quantity), 0) : 0;
                                 return (
                                     <div key={idx} className="mb-3 last:mb-0 border-b border-dotted border-black/10 dark:border-slate-800 pb-2">
                                         <div className="flex justify-between font-black uppercase py-0.5 text-[11px] text-slate-700 dark:text-slate-300">
