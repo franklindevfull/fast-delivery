@@ -738,8 +738,9 @@ const Kitchen: React.FC = () => {
                             </div>
                           )}
                         </div>
-                      ));
-                    })()}
+                      );
+                    })
+                  })()}
                   </div>
                 );
               })}
