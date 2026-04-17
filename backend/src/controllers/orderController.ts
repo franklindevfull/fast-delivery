@@ -169,6 +169,12 @@ const processProductInventory = async (tx: any, product: any, productQtyMultipli
         }
     }
 
+    // 3. Combo Item (Recursion)
+    if (product.comboItems && product.comboItems.length > 0) {
+        for (const cItem of product.comboItems) {
+            if (!cItem.product) continue;
+            const subQty = cItem.quantity * productQtyMultiplier;
+            await processProductInventory(tx, cItem.product, subQty, type, orderId, productName);
         }
     }
 };
@@ -280,13 +286,14 @@ const handleAddonInventoryImpact = async (tx: any, items: any[], type: 'DECREMEN
                         const addonOption = addonMap.get(addon.id);
 
                         if (addonOption) {
-                            if (addonOption.productId) {
-                                const addonProduct = productMap.get(addonOption.productId);
+                            const opt = addonOption as any;
+                            if (opt.productId) {
+                                const addonProduct = productMap.get(opt.productId);
                                 if (addonProduct) {
                                     const addonQty = iq * (addon.quantity || 1);
                                     await processProductInventory(tx, addonProduct, addonQty, type, orderId, `Adicional: ${addon.name}`);
                                 }
-                            } else if (addonOption.trackStock) {
+                            } else if (opt.trackStock) {
                                 await tx.addonOption.update({
                                     where: { id: addon.id },
                                     data: {
