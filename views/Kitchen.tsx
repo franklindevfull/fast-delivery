@@ -574,19 +574,21 @@ const Kitchen: React.FC = () => {
                   
                   const hasFlavors = it.pizzaFlavors && Array.isArray(it.pizzaFlavors) && it.pizzaFlavors.length > 0;
                   
-                  // Adiciona o produto principal apenas se não houver sabores (evita duplicidade em pizzas)
-                  if (!hasFlavors && ((product?.recipe && product.recipe.length > 0) || product?.preparation)) {
-                    fichasMap.set(product?.id || 'main', { id: `${it.uid}-main`, name: product?.name });
+                  // Adiciona o produto principal 
+                  // Sempre adiciona se for pizza para garantir que o tamanho apareça, ou se tiver ficha
+                  if (!hasFlavors || product?.isPizza) {
+                    if ((product?.recipe && product.recipe.length > 0) || product?.preparation || product?.isPizza) {
+                      fichasMap.set(product?.id || 'main', { id: `${it.uid}-main`, name: product?.name });
+                    }
                   }
                   
                   if (it.pizzaFlavors && Array.isArray(it.pizzaFlavors)) {
                     it.pizzaFlavors.forEach((pf: any) => {
-                      // Se já adicionamos este produto (mesmo como principal), pulamos
+                      // Se já adicionamos este produto (mesmo como principal), pulamos se o nome for igual
                       if (!fichasMap.has(pf.productId)) {
                         const flavorProd = products.find(p => p.id === pf.productId);
-                        if ((flavorProd?.recipe && flavorProd.recipe.length > 0) || flavorProd?.preparation) {
-                          fichasMap.set(pf.productId, { id: `${it.uid}-${pf.productId}`, name: flavorProd?.name });
-                        }
+                        // Sempre adiciona sabores de pizza na lista de opções
+                        fichasMap.set(pf.productId, { id: `${it.uid}-${pf.productId}`, name: flavorProd?.name || pf.name });
                       }
                     });
                   }
@@ -687,27 +689,29 @@ const Kitchen: React.FC = () => {
                       
                       const hasFlavors = it.pizzaFlavors && Array.isArray(it.pizzaFlavors) && it.pizzaFlavors.length > 0;
                       
-                      // Adiciona o produto principal apenas se não houver sabores (evita duplicidade em pizzas)
-                      if (!hasFlavors && ((product?.recipe && product.recipe.length > 0) || product?.preparation)) {
-                        fichasMap.set(product?.id || 'main', { id: `${it.uid}-main`, name: product?.name, recipe: product?.recipe, preparation: product?.preparation });
+                      // Adiciona o produto principal se não houver sabores ou se for pizza
+                      if (!hasFlavors || product?.isPizza) {
+                        if ((product?.recipe && product.recipe.length > 0) || product?.preparation || product?.isPizza) {
+                          fichasMap.set(product?.id || 'main', { id: `${it.uid}-main`, name: product?.name, recipe: product?.recipe, preparation: product?.preparation });
+                        }
                       }
 
                       if (it.pizzaFlavors && Array.isArray(it.pizzaFlavors)) {
                         it.pizzaFlavors.forEach((pf: any) => {
                           if (!fichasMap.has(pf.productId)) {
                             const flavorProd = products.find(p => p.id === pf.productId);
-                            if ((flavorProd?.recipe && flavorProd.recipe.length > 0) || flavorProd?.preparation) {
-                              fichasMap.set(pf.productId, { id: `${it.uid}-${pf.productId}`, name: flavorProd?.name, recipe: flavorProd?.recipe, preparation: flavorProd?.preparation });
-                            }
+                            fichasMap.set(pf.productId, { id: `${it.uid}-${pf.productId}`, name: flavorProd?.name || pf.name, recipe: flavorProd?.recipe, preparation: flavorProd?.preparation });
                           }
                         });
                       }
 
                       const itemsWithRecipe = Array.from(fichasMap.values()).filter(f => !excludedFichas.has(f.id));
 
-                      if (itemsWithRecipe.length === 0) return null;
+                      return itemsWithRecipe.map((info, infoIdx) => {
+                        const hasContent = (info.recipe && info.recipe.length > 0) || info.preparation;
+                        if (!hasContent) return null;
 
-                      return itemsWithRecipe.map((info, infoIdx) => (
+                        return (
                         <div key={infoIdx} className="mt-1 ml-1 p-1 border-l-2 border-black/20 bg-slate-50">
                           <p className="text-[9px] font-black uppercase mb-0.5 border-b border-black/10">Ficha Técnica: {info.name}</p>
                           
