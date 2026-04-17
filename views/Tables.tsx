@@ -48,6 +48,8 @@ const Tables: React.FC<TablesProps> = ({ currentUser }) => {
   const [selectedProductForLaunch, setSelectedProductForLaunch] = useState<Product | null>(null);
   const [pizzaFlavors, setPizzaFlavors] = useState<Product[]>([]);
   const [isPizzaSelectionMode, setIsPizzaSelectionMode] = useState(false);
+  const [addonGroups, setAddonGroups] = useState<any[]>([]);
+  const [selectedAddons, setSelectedAddons] = useState<any[]>([]);
 
 
   const [clientSearch, setClientSearch] = useState('');
@@ -127,14 +129,16 @@ const Tables: React.FC<TablesProps> = ({ currentUser }) => {
   }, []);
 
   const refreshData = async () => {
-    const [s, allSessions, prods, wa, cl] = await Promise.all([
+    const [s, allSessions, prods, wa, cl, ags] = await Promise.all([
       db.getSettings(),
       db.getTableSessions(),
       db.getProducts(),
       db.getWaiters(),
-      db.getClients()
+      db.getClients(),
+      db.getAddonGroups()
     ]);
     setSettings(s);
+    setAddonGroups(ags || []);
     // Enriquecer sessões com flag isSoftRejected para filtrar no PDV
     const enrichedSessions = allSessions.map(s => {
       let isSoftRejected = false;
@@ -275,6 +279,22 @@ const Tables: React.FC<TablesProps> = ({ currentUser }) => {
       return addToast({ title: "SEM ESTOQUE", message: validation.message || "Produto sem estoque.", type: "DANGER" });
     }
 
+    // Validate mandatory addon groups
+    const productAddonGroupIds = product.addonGroups 
+      ? product.addonGroups.map((g: any) => g.addonGroupId) 
+      : (product as any).addonGroupIds || [];
+      
+    const productAddonGroups = addonGroups.filter(g => productAddonGroupIds.includes(g.id) && g.active);
+    
+    for (const group of productAddonGroups) {
+      if (group.isRequired) {
+        const hasSelection = selectedAddons.some(a => group.options.some((o: any) => o.id === a.addonOptionId));
+        if (!hasSelection) {
+          return addToast({ title: "Opção Obrigatória", message: `Você precisa selecionar uma opção do grupo: ${group.name}`, type: "DANGER" });
+        }
+      }
+    }
+
     const currentSess = getSessForTable(selectedTable);
     let finalPrice = product.price;
     let finalItems: OrderItem[] = [];
@@ -300,7 +320,8 @@ const Tables: React.FC<TablesProps> = ({ currentUser }) => {
           price: finalPrice,
           isReady: false,
           observations: `(1/${totalFlavors}) ${observationStr}`.trim(),
-          pizzaFlavors: null
+          pizzaFlavors: null,
+          selectedAddons: selectedAddons.length > 0 ? selectedAddons : undefined
         });
 
         pizzaFlavors.forEach((f, idx) => {
@@ -311,7 +332,8 @@ const Tables: React.FC<TablesProps> = ({ currentUser }) => {
             price: finalPrice,
             isReady: false,
             observations: `(1/${totalFlavors}) ${observationStr}`.trim(),
-            pizzaFlavors: null
+            pizzaFlavors: null,
+            selectedAddons: selectedAddons.length > 0 ? selectedAddons : undefined
           });
         });
       } else {
@@ -324,7 +346,8 @@ const Tables: React.FC<TablesProps> = ({ currentUser }) => {
           price: finalPrice,
           isReady: false,
           observations: `Sabores: ${allNames} | ${observationStr}`.trim(),
-          pizzaFlavors: pizzaFlavors.map(f => f.id)
+          pizzaFlavors: pizzaFlavors.map(f => f.id),
+          selectedAddons: selectedAddons.length > 0 ? selectedAddons : undefined
         });
       }
     } else {
@@ -334,7 +357,8 @@ const Tables: React.FC<TablesProps> = ({ currentUser }) => {
         quantity: modalQuantity,
         price: product.price,
         isReady: false,
-        observations: observationStr || ''
+        observations: observationStr || '',
+        selectedAddons: selectedAddons.length > 0 ? selectedAddons : undefined
       });
     }
 
@@ -366,6 +390,7 @@ const Tables: React.FC<TablesProps> = ({ currentUser }) => {
     try {
       await db.saveTableSession(newSess);
       console.log('Product launched successfully to Table', selectedTable);
+      setSelectedAddons([]); // Clear addons after successful launch
     } catch (err: any) {
       console.error('Error saving table session:', err);
       const errorMessage = err.message || "Erro desconhecido";
@@ -1041,6 +1066,74 @@ const Tables: React.FC<TablesProps> = ({ currentUser }) => {
               </div>
             ) : (
               <>
+                {/* Adicionais Menu (Se existirem) */}
+                <div className="max-h-[30vh] overflow-y-auto custom-scrollbar mb-4 px-1">
+                  {addonGroups.filter(g => {
+                    const productGroupIds = selectedProductForLaunch.addonGroups ? selectedProductForLaunch.addonGroups.map((ag: any) => ag.addonGroupId) : (selectedProductForLaunch as any).addonGroupIds || [];
+                    return productGroupIds.includes(g.id) && g.active;
+                  }).map(group => (
+                    <div key={group.id} className="mb-4 last:mb-0">
+                      <div className="flex justify-between items-end mb-2">
+                        <p className="text-[10px] font-black text-slate-400 dark:text-slate-500 uppercase tracking-widest">{group.name}</p>
+                        <span className={`text-[9px] px-2 py-0.5 rounded-full font-bold uppercase transition-colors ${group.isRequired ? 'bg-orange-100 text-orange-600 dark:bg-orange-900/30 dark:text-orange-400' : 'bg-slate-100 text-slate-400 dark:bg-slate-800'}`}>
+                          {group.isRequired ? 'Obrigatório' : 'Opcional'}
+                        </span>
+                      </div>
+                      <div className="space-y-2">
+                        {group.options.filter((o: any) => o.active).map((option: any) => {
+                          const selectedCount = selectedAddons.filter(a => a.addonOptionId === option.id).reduce((sum, a) => sum + a.quantity, 0);
+                          const isSelected = selectedCount > 0;
+                          
+                          const handleAdd = () => {
+                            if (group.selectionType === 'SINGLE' && selectedAddons.some(a => group.options.some((o: any) => o.id === a.addonOptionId) && a.addonOptionId !== option.id)) {
+                               setSelectedAddons(prev => [...prev.filter(a => !group.options.some((o: any) => o.id === a.addonOptionId)), { addonOptionId: option.id, name: option.name, price: option.price, quantity: 1, productId: option.productId }]);
+                            } else {
+                               if (isSelected) {
+                                  if (group.selectionType === 'SINGLE') return;
+                                  setSelectedAddons(prev => prev.map(a => a.addonOptionId === option.id ? { ...a, quantity: a.quantity + 1 } : a));
+                               } else {
+                                  setSelectedAddons(prev => [...prev, { addonOptionId: option.id, name: option.name, price: option.price, quantity: 1, productId: option.productId }]);
+                               }
+                            }
+                          };
+
+                          const handleRemove = (e: React.MouseEvent) => {
+                            e.stopPropagation();
+                            if (selectedCount > 1) {
+                               setSelectedAddons(prev => prev.map(a => a.addonOptionId === option.id ? { ...a, quantity: a.quantity - 1 } : a));
+                            } else {
+                               setSelectedAddons(prev => prev.filter(a => a.addonOptionId !== option.id));
+                            }
+                          };
+
+                          return (
+                            <div key={option.id} onClick={handleAdd} className={`p-3 rounded-xl border flex items-center justify-between cursor-pointer transition-all duration-200 ${isSelected ? 'bg-blue-50 dark:bg-blue-900/20 border-blue-200 dark:border-blue-800 ring-2 ring-blue-500/10' : 'bg-white dark:bg-slate-800/50 border-slate-100 dark:border-slate-700 hover:border-slate-300 dark:hover:border-slate-600'}`}>
+                               <div>
+                                 <p className={`text-xs font-bold leading-tight ${isSelected ? 'text-blue-700 dark:text-blue-300' : 'text-slate-800 dark:text-slate-200'}`}>{option.name}</p>
+                                 <p className="text-[9px] text-slate-400 mt-0.5 font-bold">{formatCurrency(option.price)}</p>
+                               </div>
+                               
+                               {isSelected ? (
+                                 <div className="flex items-center gap-2">
+                                   {group.selectionType === 'MULTIPLE' && (
+                                     <button onClick={handleRemove} className="w-6 h-6 bg-white dark:bg-slate-700 text-blue-600 dark:text-blue-400 rounded-lg font-black text-sm flex items-center justify-center shadow-sm border border-blue-100 dark:border-blue-900/30 transition-transform active:scale-90">-</button>
+                                   )}
+                                   <span className="text-xs font-black text-blue-700 dark:text-blue-300 w-4 text-center">{selectedCount}</span>
+                                   {group.selectionType === 'MULTIPLE' && (
+                                     <button onClick={(e) => { e.stopPropagation(); handleAdd(); }} className="w-6 h-6 bg-blue-600 text-white rounded-lg font-black text-sm flex items-center justify-center shadow-md transition-transform active:scale-90">+</button>
+                                   )}
+                                 </div>
+                               ) : (
+                                 <div className="w-5 h-5 rounded-full border-2 flex items-center justify-center border-slate-200 dark:border-slate-700 transition-colors"></div>
+                               )}
+                            </div>
+                          )
+                        })}
+                      </div>
+                    </div>
+                  ))}
+                </div>
+
                 <div className="flex flex-col items-center justify-center p-3 bg-slate-50 dark:bg-slate-800 rounded-[1.5rem] border border-slate-100 dark:border-slate-700 mb-4 group/qt">
                   <p className="text-[10px] font-black text-slate-400 dark:text-slate-500 uppercase tracking-widest mb-2">Defina a Quantidade</p>
                   <div className="flex items-center gap-4">
@@ -1061,7 +1154,7 @@ const Tables: React.FC<TablesProps> = ({ currentUser }) => {
                   <div className="mt-3 pt-2 border-t border-slate-200/50 dark:border-slate-700/50 w-full text-center">
                     <p className="text-[9px] font-bold text-slate-400 dark:text-slate-500 uppercase">Subtotal do Item</p>
                     <p className="text-base font-black text-blue-600 dark:text-blue-400">
-                      {formatCurrency((pizzaFlavors.length > 0 ? (settings?.pizzaPriceRule === 'AVERAGE' ? ([selectedProductForLaunch.price, ...pizzaFlavors.map(f => f.price)].reduce((a, b) => a + b, 0) / (pizzaFlavors.length + 1)) : Math.max(selectedProductForLaunch.price, ...pizzaFlavors.map(f => f.price))) : selectedProductForLaunch.price) * modalQuantity)}
+                      {formatCurrency(((pizzaFlavors.length > 0 ? (settings?.pizzaPriceRule === 'AVERAGE' ? ([selectedProductForLaunch.price, ...pizzaFlavors.map(f => f.price)].reduce((a, b) => a + b, 0) / (pizzaFlavors.length + 1)) : Math.max(selectedProductForLaunch.price, ...pizzaFlavors.map(f => f.price))) : selectedProductForLaunch.price) + (selectedAddons.reduce((sum, a) => sum + (a.price * a.quantity), 0))) * modalQuantity)}
                     </p>
                   </div>
                 </div>
@@ -1071,8 +1164,8 @@ const Tables: React.FC<TablesProps> = ({ currentUser }) => {
                     <label className="text-[10px] font-black text-slate-500 dark:text-slate-400 uppercase tracking-widest mb-2 block">Deseja adicionar alguma observação?</label>
                     <input autoFocus type="text" placeholder="Ex: Sem sal, bem passado..." value={modalObservation} onChange={(e) => setModalObservation(e.target.value)} onKeyDown={(e) => e.key === 'Enter' && confirmLaunchProduct()} className="w-full p-4 bg-slate-100 dark:bg-slate-800 rounded-2xl border-none focus:ring-2 focus:ring-blue-600 dark:focus:ring-blue-500 font-bold text-sm outline-none placeholder:font-normal dark:text-white" maxLength={60} />
                   </div>
-                  <div className="flex gap-2">
-                    <button onClick={() => { setSelectedProductForLaunch(null); setPizzaFlavors([]); setIsPizzaSelectionMode(false); }} className="flex-1 py-4 font-black text-[10px] uppercase text-slate-400 dark:text-slate-500 hover:text-slate-600 dark:hover:text-slate-300 transition-colors">Cancelar</button>
+                  <div className="flex gap-4">
+                    <button onClick={() => { setSelectedProductForLaunch(null); setPizzaFlavors([]); setIsPizzaSelectionMode(false); setSelectedAddons([]); }} className="flex-1 py-4 font-black text-[10px] uppercase text-slate-400 dark:text-slate-500 hover:text-slate-600 dark:hover:text-slate-300 transition-colors">Cancelar</button>
                     <button onClick={confirmLaunchProduct} className="flex-1 py-4 bg-blue-600 hover:bg-blue-700 text-white rounded-xl font-black text-[10px] uppercase shadow-xl hover:shadow-blue-200 dark:hover:shadow-blue-900/40 transition-all active:scale-95">Confirmar ✓</button>
                   </div>
                 </div>

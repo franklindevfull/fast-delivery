@@ -1837,13 +1837,11 @@ const POS: React.FC<POSProps> = ({ currentUser }) => {
                     </div>
                   )}
 
-                  {data.selectedAddons && data.selectedAddons.length > 0 && (
-                    <div className="flex flex-col gap-0.5 mb-1">
-                      {data.selectedAddons.map((addon: any, idx: number) => (
-                        <p key={idx} className="text-[9px] font-bold text-slate-500 dark:text-slate-400 uppercase leading-none italic">+ {addon.quantity}x {addon.name} ({formatCurrency(addon.price)})</p>
-                      ))}
-                    </div>
-                  )}
+                  <AddonDisplay 
+                    addons={data.selectedAddons} 
+                    products={products} 
+                    className="text-[9px] font-bold text-blue-600 dark:text-blue-400 mt-1 ml-1"
+                  />
 
                   {data.observations && (
                     <p className="text-[9px] font-bold text-slate-400 dark:text-slate-500 uppercase leading-tight italic mb-1">
@@ -2143,77 +2141,81 @@ const POS: React.FC<POSProps> = ({ currentUser }) => {
               )}
 
               {/* Adicionais Menu (Se existirem) */}
-              {addonGroups.filter(g => {
-                const productGroupIds = selectedProductForCart.addonGroups ? selectedProductForCart.addonGroups.map((ag: any) => ag.addonGroupId) : (selectedProductForCart as any).addonGroupIds || [];
-                return productGroupIds.includes(g.id) && g.active;
-              }).map(group => (
-                <div key={group.id} className="mb-4">
-                  <div className="flex justify-between items-end mb-2">
-                    <p className="text-[10px] font-black text-slate-400 dark:text-slate-500 uppercase tracking-widest">{group.name}</p>
-                    <span className="text-[9px] text-slate-400 bg-slate-100 dark:bg-slate-800 px-2 py-0.5 rounded-full">{group.isRequired ? 'Obrigatório' : 'Opcional'}</span>
-                  </div>
-                  <div className="max-h-40 overflow-y-auto space-y-2 custom-scrollbar border border-slate-100 dark:border-slate-800 rounded-xl p-2 bg-slate-50/50 dark:bg-slate-900/50">
-                    {group.options.filter((o: any) => o.active).map((option: any) => {
-                      const selectedCount = selectedAddons.filter(a => a.addonOptionId === option.id).reduce((sum, a) => sum + a.quantity, 0);
-                      const isSelected = selectedCount > 0;
-                      
-                      const handleAdd = () => {
-                        // Prevent adding out-of-stock items if stock tracking is on
-                        if (option.trackStock && option.stock <= 0) {
-                           addToast({ title: 'Esgotado', message: 'Este adicional está sem estoque.', type: 'INFO' });
-                           return;
-                        }
+              <div className="max-h-[35vh] overflow-y-auto custom-scrollbar mb-4 px-1">
+                {addonGroups.filter(g => {
+                  const productGroupIds = selectedProductForCart.addonGroups ? selectedProductForCart.addonGroups.map((ag: any) => ag.addonGroupId) : (selectedProductForCart as any).addonGroupIds || [];
+                  return productGroupIds.includes(g.id) && g.active;
+                }).map(group => (
+                  <div key={group.id} className="mb-4 last:mb-0">
+                    <div className="flex justify-between items-end mb-2">
+                      <p className="text-[10px] font-black text-slate-400 dark:text-slate-500 uppercase tracking-widest">{group.name}</p>
+                      <span className={`text-[9px] px-2 py-0.5 rounded-full font-bold uppercase transition-colors ${group.isRequired ? 'bg-orange-100 text-orange-600 dark:bg-orange-900/30 dark:text-orange-400' : 'bg-slate-100 text-slate-400 dark:bg-slate-800'}`}>
+                        {group.isRequired ? 'Obrigatório' : 'Opcional'}
+                      </span>
+                    </div>
+                    <div className="space-y-2">
+                      {group.options.filter((o: any) => o.active).map((option: any) => {
+                        const selectedCount = selectedAddons.filter(a => a.addonOptionId === option.id).reduce((sum, a) => sum + a.quantity, 0);
+                        const isSelected = selectedCount > 0;
                         
-                        if (group.selectionType === 'SINGLE' && selectedAddons.some(a => group.options.some((o: any) => o.id === a.addonOptionId) && a.addonOptionId !== option.id)) {
-                           // Remove others from this group before adding
-                           setSelectedAddons(prev => [...prev.filter(a => !group.options.some((o: any) => o.id === a.addonOptionId)), { addonOptionId: option.id, name: option.name, price: option.price, quantity: 1, productId: option.productId }]);
-                        } else {
-                           if (isSelected) {
-                              if (group.selectionType === 'SINGLE') return; // Cannot add more than 1 in SINGLE
-                              setSelectedAddons(prev => prev.map(a => a.addonOptionId === option.id ? { ...a, quantity: a.quantity + 1 } : a));
-                           } else {
-                              setSelectedAddons(prev => [...prev, { addonOptionId: option.id, name: option.name, price: option.price, quantity: 1, productId: option.productId }]);
-                           }
-                        }
-                      };
+                        const handleAdd = () => {
+                          // Prevent adding out-of-stock items if stock tracking is on
+                          if (option.trackStock && option.stock <= 0) {
+                             addToast({ title: 'Esgotado', message: 'Este adicional está sem estoque.', type: 'INFO' });
+                             return;
+                          }
+                          
+                          if (group.selectionType === 'SINGLE' && selectedAddons.some(a => group.options.some((o: any) => o.id === a.addonOptionId) && a.addonOptionId !== option.id)) {
+                             // Remove others from this group before adding
+                             setSelectedAddons(prev => [...prev.filter(a => !group.options.some((o: any) => o.id === a.addonOptionId)), { addonOptionId: option.id, name: option.name, price: option.price, quantity: 1, productId: option.productId }]);
+                          } else {
+                             if (isSelected) {
+                                if (group.selectionType === 'SINGLE') return; // Cannot add more than 1 in SINGLE
+                                setSelectedAddons(prev => prev.map(a => a.addonOptionId === option.id ? { ...a, quantity: a.quantity + 1 } : a));
+                             } else {
+                                setSelectedAddons(prev => [...prev, { addonOptionId: option.id, name: option.name, price: option.price, quantity: 1, productId: option.productId }]);
+                             }
+                          }
+                        };
 
-                      const handleRemove = (e: React.MouseEvent) => {
-                        e.stopPropagation();
-                        if (selectedCount > 1) {
-                           setSelectedAddons(prev => prev.map(a => a.addonOptionId === option.id ? { ...a, quantity: a.quantity - 1 } : a));
-                        } else {
-                           setSelectedAddons(prev => prev.filter(a => a.addonOptionId !== option.id));
-                        }
-                      };
+                        const handleRemove = (e: React.MouseEvent) => {
+                          e.stopPropagation();
+                          if (selectedCount > 1) {
+                             setSelectedAddons(prev => prev.map(a => a.addonOptionId === option.id ? { ...a, quantity: a.quantity - 1 } : a));
+                          } else {
+                             setSelectedAddons(prev => prev.filter(a => a.addonOptionId !== option.id));
+                          }
+                        };
 
-                      return (
-                        <div key={option.id} onClick={handleAdd} className={`p-3 rounded-xl border flex items-center justify-between cursor-pointer transition-colors ${isSelected ? 'bg-blue-50 dark:bg-blue-900/30 border-blue-200 dark:border-blue-800' : 'bg-white dark:bg-slate-800 border-transparent hover:border-slate-200 dark:hover:border-slate-700'}`}>
-                           <div>
-                             <p className={`text-xs font-bold leading-tight ${isSelected ? 'text-blue-700 dark:text-blue-300' : 'text-slate-800 dark:text-slate-200'}`}>
-                               {option.name} {option.trackStock && option.stock <= 0 && <span className="text-red-500 ml-1">(Esgotado)</span>}
-                             </p>
-                             <p className="text-[9px] text-slate-400 mt-0.5">{formatCurrency(option.price)}</p>
-                           </div>
-                           
-                           {isSelected ? (
-                             <div className="flex items-center gap-2">
-                               {group.selectionType === 'MULTIPLE' && (
-                                 <button onClick={handleRemove} className="w-6 h-6 bg-white dark:bg-slate-700 text-blue-600 dark:text-blue-400 rounded-md font-bold text-lg flex items-center justify-center shadow-sm">-</button>
-                               )}
-                               <span className="text-xs font-black text-blue-700 dark:text-blue-300">{selectedCount}</span>
-                               {group.selectionType === 'MULTIPLE' && (
-                                 <button onClick={(e) => { e.stopPropagation(); handleAdd(); }} className="w-6 h-6 bg-blue-600 text-white rounded-md font-bold text-lg flex items-center justify-center shadow-sm">+</button>
-                               )}
+                        return (
+                          <div key={option.id} onClick={handleAdd} className={`p-3 rounded-xl border flex items-center justify-between cursor-pointer transition-all duration-200 ${isSelected ? 'bg-blue-50 dark:bg-blue-900/20 border-blue-200 dark:border-blue-800 ring-4 ring-blue-500/5' : 'bg-white dark:bg-slate-800/50 border-slate-100 dark:border-slate-700 hover:border-slate-300 dark:hover:border-slate-600'}`}>
+                             <div>
+                               <p className={`text-xs font-bold leading-tight ${isSelected ? 'text-blue-700 dark:text-blue-300' : 'text-slate-800 dark:text-slate-200'}`}>
+                                 {option.name} {option.trackStock && option.stock <= 0 && <span className="text-red-500 ml-1">(Esgotado)</span>}
+                               </p>
+                               <p className="text-[9px] text-slate-400 mt-0.5 font-bold">{formatCurrency(option.price)}</p>
                              </div>
-                           ) : (
-                             <div className="w-5 h-5 rounded-full border-2 flex items-center justify-center border-slate-300 dark:border-slate-600"></div>
-                           )}
-                        </div>
-                      )
-                    })}
+                             
+                             {isSelected ? (
+                               <div className="flex items-center gap-2">
+                                 {group.selectionType === 'MULTIPLE' && (
+                                   <button onClick={handleRemove} className="w-6 h-6 bg-white dark:bg-slate-700 text-blue-600 dark:text-blue-400 rounded-lg font-black text-sm flex items-center justify-center shadow-sm border border-blue-100 dark:border-blue-900/30 transition-transform active:scale-90">-</button>
+                                 )}
+                                 <span className="text-xs font-black text-blue-700 dark:text-blue-300 w-4 text-center">{selectedCount}</span>
+                                 {group.selectionType === 'MULTIPLE' && (
+                                   <button onClick={(e) => { e.stopPropagation(); handleAdd(); }} className="w-6 h-6 bg-blue-600 text-white rounded-lg font-black text-sm flex items-center justify-center shadow-md transition-transform active:scale-90">+</button>
+                                 )}
+                               </div>
+                             ) : (
+                               <div className="w-5 h-5 rounded-full border-2 flex items-center justify-center border-slate-200 dark:border-slate-700 transition-colors"></div>
+                             )}
+                          </div>
+                        )
+                      })}
+                    </div>
                   </div>
-                </div>
-              ))}
+                ))}
+              </div>
 
               {/* Seletor de Quantidade */}
               <div className="flex flex-col items-center justify-center p-3 bg-slate-50 dark:bg-slate-800 rounded-[1.5rem] border border-slate-100 dark:border-slate-700 mb-4 group/qt">
@@ -2467,12 +2469,17 @@ const POS: React.FC<POSProps> = ({ currentUser }) => {
                     <h3 className="text-xs font-black text-slate-800 dark:text-white uppercase tracking-widest">Itens Consumidos</h3>
                   </div>
                   <div className="bg-slate-50 dark:bg-slate-800/50 rounded-3xl p-4 border border-slate-100 dark:border-slate-700 space-y-2 font-receipt shadow-inner max-h-40 overflow-y-auto custom-scrollbar">
-                    {groupedPrintingItems.map(([id, data]) => (
-                      <div key={id} className="flex justify-between border-b border-dashed border-slate-200 dark:border-slate-700 pb-2">
-                        <span className="text-[10px] font-black text-slate-600 dark:text-slate-400 uppercase max-w-[70%]">{data.quantity}x {data.product?.name}</span>
-                        <span className="text-[10px] font-black text-slate-800 dark:text-white">{formatCurrency(data.quantity * data.price)}</span>
+                      <div key={id} className="flex flex-col border-b border-dashed border-slate-200 dark:border-slate-700 pb-2">
+                        <div className="flex justify-between">
+                          <span className="text-[10px] font-black text-slate-600 dark:text-slate-400 uppercase max-w-[70%]">{data.quantity}x {data.product?.name}</span>
+                          <span className="text-[10px] font-black text-slate-800 dark:text-white">{formatCurrency(data.quantity * (data.price + (data.selectedAddons ? data.selectedAddons.reduce((sum: number, a: any) => sum + (a.price * a.quantity), 0) : 0)))}</span>
+                        </div>
+                        <AddonDisplay 
+                          addons={data.selectedAddons} 
+                          products={products} 
+                          className="text-[8px] font-bold text-blue-600 dark:text-blue-400 mt-0.5"
+                        />
                       </div>
-                    ))}
                   </div>
                 </div>
 

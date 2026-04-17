@@ -54,3 +54,4 @@ export const warmupDatabase = async (retries = 5, delay = 2000) => {
 };
 
 export default prisma;
+
