@@ -219,45 +219,56 @@ const handleInventoryImpact = async (tx: any, items: any[], type: 'DECREMENT' | 
             }
 
             // --- DECREMENT/INCREMENT Addon Options stock ---
-            if (item.selectedAddons) {
-                try {
-                    const addons = typeof item.selectedAddons === 'string' ? JSON.parse(item.selectedAddons) : item.selectedAddons;
-                    if (Array.isArray(addons)) {
-                        for (const addon of addons) {
-                            if (!addon.id) continue;
-                            
-                            // Check if this addon option exists and tracks stock
-                            const addonOption = await tx.addonOption.findUnique({
-                                where: { id: addon.id }
-                            });
+            // Moved to a dedicated function `handleAddonInventoryImpact` to run at 'PREPARING' phase.
+        }
+    }
+};
 
-                            if (addonOption) {
-                                if (addonOption.productId) {
-                                    const addonProduct = await tx.product.findUnique({
-                                        where: { id: addonOption.productId },
-                                        include: { 
-                                            recipe: { include: { inventoryItem: true } }, 
-                                            comboItems: { include: { product: { include: { recipe: { include: { inventoryItem: true } } } } } } 
-                                        }
-                                    });
-                                    if (addonProduct) {
-                                        const addonQty = iq * (addon.quantity || 1);
-                                        await processProductInventory(tx, addonProduct, addonQty, type, orderId, `Adicional: ${addon.name}`);
+const handleAddonInventoryImpact = async (tx: any, items: any[], type: 'DECREMENT' | 'INCREMENT', orderId?: string) => {
+    for (const item of items) {
+        if (!item.productId) continue;
+        
+        const iq = parseFloat(item.quantity?.toString() || '0');
+
+        if (item.selectedAddons) {
+            try {
+                const addons = typeof item.selectedAddons === 'string' ? JSON.parse(item.selectedAddons) : item.selectedAddons;
+                if (Array.isArray(addons)) {
+                    for (const addon of addons) {
+                        if (!addon.id) continue;
+                        
+                        // Check if this addon option exists
+                        const addonOption = await tx.addonOption.findUnique({
+                            where: { id: addon.id }
+                        });
+
+                        if (addonOption) {
+                            if (addonOption.productId) {
+                                // Addon is linked to another product (e.g. "Combo Addon")
+                                const addonProduct = await tx.product.findUnique({
+                                    where: { id: addonOption.productId },
+                                    include: { 
+                                        recipe: { include: { inventoryItem: true } }, 
+                                        comboItems: { include: { product: { include: { recipe: { include: { inventoryItem: true } } } } } } 
                                     }
-                                } else if (addonOption.trackStock) {
-                                    await tx.addonOption.update({
-                                        where: { id: addon.id },
-                                        data: {
-                                            stock: type === 'DECREMENT' ? { decrement: iq } : { increment: iq }
-                                        }
-                                    });
+                                });
+                                if (addonProduct) {
+                                    const addonQty = iq * (addon.quantity || 1);
+                                    await processProductInventory(tx, addonProduct, addonQty, type, orderId, `Adicional: ${addon.name}`);
                                 }
+                            } else if (addonOption.trackStock) {
+                                await tx.addonOption.update({
+                                    where: { id: addon.id },
+                                    data: {
+                                        stock: type === 'DECREMENT' ? { decrement: iq } : { increment: iq }
+                                    }
+                                });
                             }
                         }
                     }
-                } catch (e) {
-                    console.error("Error processing addon options inventory:", e);
                 }
+            } catch (e) {
+                console.error("Error processing addon options inventory:", e);
             }
         }
     }
@@ -416,6 +427,12 @@ export const saveOrder = async (req: Request, res: Response) => {
             // 1. Inventory Sync & Historical Record Archival (Only on Finalization or Reversion)
             const itemsForInventory = order.items; // Use current items for stock calculation
             let orderIdToSave = order.id;
+
+            if (newStatus === 'PREPARING' && oldStatus !== 'PREPARING') {
+                await handleAddonInventoryImpact(tx, itemsForInventory, 'DECREMENT', order.id);
+            } else if (newStatus !== 'PREPARING' && oldStatus === 'PREPARING') {
+                await handleAddonInventoryImpact(tx, itemsForInventory, 'INCREMENT', order.id);
+            }
 
             if (newStatus === 'DELIVERED' && oldStatus !== 'DELIVERED') {
                 await handleInventoryImpact(tx, itemsForInventory, 'DECREMENT', order.id);
@@ -722,6 +739,8 @@ export const deleteOrder = async (req: Request, res: Response) => {
             if (orderToDelete.status === 'DELIVERED') {
                 // Re-estoca os ingredientes virtualmente
                 await handleInventoryImpact(tx, orderToDelete.items, 'INCREMENT', orderToDelete.id);
+                // Re-estoca adicionais se também era entregue (ou preparando)
+                await handleAddonInventoryImpact(tx, orderToDelete.items, 'INCREMENT', orderToDelete.id);
 
                 // Se tinha um ID próprio de CRM, abassa 1
                 if (orderToDelete.clientId) {
@@ -839,6 +858,14 @@ export const updateOrderStatus = async (req: Request, res: Response) => {
             }
 
             // 1. Inventory Sync
+            if (newStatus === 'PREPARING' && oldStatus !== 'PREPARING') {
+                console.log(`[OrderController] Processing addon impact (DECREMENT) for order ${id}`);
+                await handleAddonInventoryImpact(tx, oldOrder.items, 'DECREMENT', id as string);
+            } else if (newStatus !== 'PREPARING' && oldStatus === 'PREPARING') {
+                console.log(`[OrderController] Processing addon impact (INCREMENT - Reversion) for order ${id}`);
+                await handleAddonInventoryImpact(tx, oldOrder.items, 'INCREMENT', id as string);
+            }
+
             if (newStatus === 'DELIVERED' && oldStatus !== 'DELIVERED') {
                 console.log(`[OrderController] Processing inventory impact (DECREMENT) for order ${id}`);
                 await handleInventoryImpact(tx, oldOrder.items, 'DECREMENT', id as string);

@@ -27,6 +27,7 @@ function AppContent() {
   const [currentPin, setCurrentPin] = useState<string | null>(null);
   const [isOwner, setIsOwner] = useState(false);
   const [isSessionFinished, setIsSessionFinished] = useState(false);
+  const [isAnyModalOpen, setIsAnyModalOpen] = useState(false);
   const [banner, setBanner] = useState<{ message: string; type: 'info' | 'error' | 'success' } | null>(null);
   const [blockingRejection, setBlockingRejection] = useState<{ message: string } | null>(null);
   const [orderReadyNotify, setOrderReadyNotify] = useState<{ message: string } | null>(null);
@@ -755,7 +756,7 @@ function AppContent() {
   }
 
   return (
-    <div className="min-h-[100dvh] w-full max-w-6xl mx-auto relative lg:shadow-2xl bg-slate-50 overflow-hidden flex flex-col">
+    <div className="h-[100dvh] w-full max-w-6xl mx-auto flex flex-col bg-slate-50 overflow-hidden relative">
       {orderReadyNotify && (
         <OrderReadyNotification
           message={orderReadyNotify.message}
@@ -765,7 +766,7 @@ function AppContent() {
       )}
       {/* Banner de Status da Loja */}
       {(storeStatus.status === 'offline' || countdown !== null) && (
-        <div className={`text-center py-2 text-[10px] font-black uppercase tracking-widest text-white px-4 sticky top-0 z-50 animate-in slide-in-from-top duration-300 ${storeStatus.status === 'offline' ? 'bg-rose-600/90 backdrop-blur-md' : 'bg-orange-500/90 backdrop-blur-md'}`}>
+        <div className={`shrink-0 text-center py-2 text-[10px] font-black uppercase tracking-widest text-white px-4 z-50 ${storeStatus.status === 'offline' ? 'bg-rose-600/90 backdrop-blur-md' : 'bg-orange-500/90 backdrop-blur-md'}`}>
           {storeStatus.status === 'offline'
             ? (storeStatus.is_manually_closed ? 'Fechado Temporariamente' : 'Não estamos aceitando pedidos')
             : `Atenção: A loja fechará em ${countdown} minutos!`
@@ -774,7 +775,7 @@ function AppContent() {
       )}
 
       {/* Header Fixo */}
-      <header className={`sticky ${storeStatus.status === 'offline' || countdown !== null ? 'top-[30px]' : 'top-0'} z-40 bg-white/80 backdrop-blur-md border-b border-slate-100 p-4 pt-6 flex justify-between items-center`}>
+      <header className="shrink-0 bg-white/80 backdrop-blur-md border-b border-slate-100 p-4 pt-6 flex justify-between items-center z-40">
         <div>
           <h1 className="text-xl font-black text-slate-900 tracking-tighter uppercase">Menu Digital</h1>
           <div className="flex flex-col gap-0.5 mt-0.5">
@@ -790,7 +791,6 @@ function AppContent() {
             </p>
           </div>
         </div>
-        
         
         {/* Lado Direito do Header (Status + Notificações) */}
         <div className="flex flex-col items-end gap-2">
@@ -817,14 +817,14 @@ function AppContent() {
 
 
 
-      <main className="flex-1 overflow-y-auto hide-scrollbar">
+      <main className="flex-1 min-h-0 relative z-50">
         <Routes>
-          <Route path="/" element={<Home cart={cart} addToCart={addToCart} updateQuantity={updateQuantity} />} />
+          <Route path="/" element={<Home cart={cart} addToCart={addToCart} updateQuantity={updateQuantity} onModalStateChange={setIsAnyModalOpen} />} />
         </Routes>
       </main>
 
       {/* Floating Cart Placeholder */}
-      {cart.length > 0 && !isCartOpen && (
+      {cart.length > 0 && !isCartOpen && !isAnyModalOpen && (
         <div className="fixed bottom-32 left-4 right-4 max-w-6xl mx-auto z-[60] animate-slide-up">
           <button onClick={() => setIsCartOpen(true)} className="w-full bg-slate-900 text-white rounded-2xl p-4 flex items-center justify-between shadow-2xl shadow-slate-900/40 transform active:scale-95 transition-all">
             <div className="flex items-center gap-3">

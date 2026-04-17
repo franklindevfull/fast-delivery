@@ -23,6 +23,21 @@ const CartModal: React.FC<CartModalProps> = ({ isOpen, onClose, cart, tableNumbe
     const [showClearConfirm, setShowClearConfirm] = useState(false);
     const [errorModal, setErrorModal] = useState<{ message: string, isPinError: boolean, title?: string } | null>(null);
 
+    // Bloquear scroll do body quando o modal estiver aberto
+    React.useEffect(() => {
+        if (isOpen) {
+            document.body.style.overflow = 'hidden';
+            document.documentElement.style.overflow = 'hidden';
+        } else {
+            document.body.style.overflow = '';
+            document.documentElement.style.overflow = '';
+        }
+        return () => {
+            document.body.style.overflow = '';
+            document.documentElement.style.overflow = '';
+        };
+    }, [isOpen]);
+
 
     if (!isOpen) return null;
 
@@ -150,11 +165,8 @@ const CartModal: React.FC<CartModalProps> = ({ isOpen, onClose, cart, tableNumbe
     }
 
     return (
-        <div className="fixed inset-0 z-[100] bg-slate-900/60 backdrop-blur-sm flex flex-col justify-end">
-            {/* Background click to close */}
-            <div className="absolute inset-0" onClick={onClose} />
-
-            <div className="bg-white rounded-t-[2rem] w-full max-w-2xl mx-auto relative flex flex-col max-h-[90vh] shadow-2xl animate-slide-up">
+        <div className="fixed inset-0 z-[999] bg-white flex flex-col animate-in fade-in duration-300">
+            <div className="bg-white w-full max-w-2xl mx-auto flex flex-col h-full relative z-10">
                 {/* Header */}
                 <div className="p-6 pb-4 border-b border-slate-100 flex justify-between items-center shrink-0">
                     <div>
@@ -180,7 +192,7 @@ const CartModal: React.FC<CartModalProps> = ({ isOpen, onClose, cart, tableNumbe
                 </div>
 
                 {/* Itens */}
-                <div className="flex-1 overflow-y-auto p-4 space-y-2.5 hide-scrollbar">
+                <div className="flex-1 min-h-0 overflow-y-auto p-4 space-y-2.5 hide-scrollbar">
                     {cart.length === 0 ? (
                         <p className="text-center text-slate-400 py-8 font-bold text-sm uppercase tracking-widest">Seu carrinho está vazio</p>
                     ) : (
@@ -240,7 +252,7 @@ const CartModal: React.FC<CartModalProps> = ({ isOpen, onClose, cart, tableNumbe
                 </div>
 
                 {/* Footer Acabamento */}
-                <div className="p-6 bg-white border-t border-slate-100 shrink-0 space-y-4 rounded-t-3xl shadow-[0_-10px_40px_-15px_rgba(0,0,0,0.1)]">
+                <div className="p-6 bg-white border-t border-slate-100 shrink-0 space-y-4 rounded-t-3xl shadow-[0_-10px_40px_-15px_rgba(0,0,0,0.1)] pb-[calc(1.5rem+env(safe-area-inset-bottom))]">
                     <div className="flex justify-between items-center text-slate-800">
                         <span className="font-black text-sm uppercase tracking-widest">Total</span>
                         <span className="text-3xl font-black text-blue-600 tracking-tighter">R$ {total.toFixed(2)}</span>

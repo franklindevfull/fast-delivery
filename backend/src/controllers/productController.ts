@@ -29,12 +29,18 @@ export const getAllProducts = async (req: Request, res: Response) => {
 
 export const saveProduct = async (req: Request, res: Response) => {
     const data = req.body;
-    const { recipe, comboItems, user, isCombo, ...productData } = data;
+    const { recipe, comboItems, addonGroups, user, isCombo, addonGroupIds, ...productData } = data;
 
     const product = await prisma.product.upsert({
         where: { id: data.id || '' },
         update: {
             ...productData,
+            addonGroups: addonGroups ? {
+                deleteMany: {},
+                create: addonGroups.map((a: any) => ({
+                    addonGroupId: a.addonGroupId
+                }))
+            } : undefined,
             recipe: recipe ? {
                 deleteMany: {},
                 create: recipe.map((r: any) => ({
@@ -53,6 +59,11 @@ export const saveProduct = async (req: Request, res: Response) => {
         },
         create: {
             ...productData,
+            addonGroups: addonGroups ? {
+                create: addonGroups.map((a: any) => ({
+                    addonGroupId: a.addonGroupId
+                }))
+            } : undefined,
             recipe: recipe ? {
                 create: recipe.map((r: any) => ({
                     inventoryItemId: r.inventoryItemId,

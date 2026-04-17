@@ -53,7 +53,7 @@ const FooterNav: React.FC<FooterNavProps> = ({ tableNumber, isOwner, pin }) => {
     return (
         <>
             {/* Nav Bar Fixo no Fundo */}
-            <nav className="fixed bottom-0 left-0 right-0 bg-white/90 backdrop-blur-xl border-t border-slate-100 px-6 py-3 pb-8 z-50 flex justify-between items-center w-full max-w-6xl mx-auto shadow-[0_-10px_30px_-15px_rgba(0,0,0,0.1)]">
+            <nav className="fixed bottom-0 left-0 right-0 bg-white/90 backdrop-blur-xl border-t border-slate-100 px-6 py-3 pb-8 z-40 flex justify-between items-center w-full max-w-6xl mx-auto shadow-[0_-10px_30px_-15px_rgba(0,0,0,0.1)]">
                 {/* Botão Extrato */}
                 <button
                     onClick={handleOpenConsumption}
