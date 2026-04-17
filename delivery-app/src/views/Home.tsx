@@ -147,6 +147,25 @@ const Home: React.FC = () => {
             socket.off('store_status_changed');
         };
     }, []);
+    
+    // Centralized modal state reset
+    useEffect(() => {
+        if (selectedProductForAddons) {
+            setSelectedAddonsForProduct([]);
+            setProductModalQuantity(1);
+            setProductModalObservation('');
+        }
+    }, [selectedProductForAddons]);
+
+    useEffect(() => {
+        if (selectedPizzaForLaunch) {
+            setSelectedAddonsForProduct([]);
+            setPizzaModalQuantity(1);
+            setPizzaObservation('');
+            setPizzaFlavors([]);
+            setIsPizzaSelectionMode(false);
+        }
+    }, [selectedPizzaForLaunch]);
 
     useEffect(() => {
         if (location.state?.openQuickModal) {
@@ -908,7 +927,9 @@ const Home: React.FC = () => {
                         modalSubTotal = highest;
                     }
                 }
-                modalSubTotal *= pizzaModalQuantity;
+                
+                const addonsTotal = selectedAddonsForProduct.reduce((sum, a) => sum + (a.price * a.quantity), 0);
+                modalSubTotal = (modalSubTotal + addonsTotal) * pizzaModalQuantity;
 
                 return (
                     <div className="fixed inset-0 z-[150] flex flex-col justify-end bg-slate-900/60 backdrop-blur-sm animate-in fade-in duration-300">
@@ -1000,6 +1021,66 @@ const Home: React.FC = () => {
                                         </div>
                                     </div>
                                 )}
+                                
+                                {/* Addon Groups for Pizza */}
+                                {selectedPizzaForLaunch.addonGroups?.map(({ addonGroup: group }: any) => (
+                                    <div key={group.id} className="space-y-4">
+                                        <div className="flex justify-between items-end">
+                                            <div>
+                                                <h4 className="text-[10px] font-black text-slate-400 dark:text-slate-500 uppercase tracking-widest flex items-center gap-2">
+                                                    <div className="w-1.5 h-1.5 rounded-full bg-slate-400"></div> {group.name}
+                                                </h4>
+                                                <p className="text-[9px] text-slate-400 font-bold uppercase tracking-widest mt-1">
+                                                    {group.selectionType === 'SINGLE' ? 'Selecione 1 opção' : 'Selecione uma ou mais'}
+                                                </p>
+                                            </div>
+                                            {group.isRequired && (
+                                                <span className="bg-amber-100 text-amber-600 dark:bg-amber-900/30 dark:text-amber-400 text-[8px] font-black px-2 py-0.5 rounded-full uppercase tracking-widest">Obrigatório</span>
+                                            )}
+                                        </div>
+
+                                        <div className="grid grid-cols-1 gap-3">
+                                            {group.options.filter((o: any) => o.active).map((option: any) => {
+                                                const isSelected = selectedAddonsForProduct.find(a => a.addonOptionId === option.id);
+                                                const isOutOfStock = option.trackStock && option.stock <= 0;
+
+                                                return (
+                                                    <div
+                                                        key={option.id}
+                                                        onClick={() => {
+                                                            if (isOutOfStock) return;
+                                                            
+                                                            if (group.selectionType === 'SINGLE') {
+                                                                const otherGroupOptions = group.options.map((o: any) => o.id);
+                                                                setSelectedAddonsForProduct(prev => [
+                                                                    ...prev.filter(a => !otherGroupOptions.includes(a.addonOptionId)),
+                                                                    { addonOptionId: option.id, name: option.name, price: option.price, quantity: 1, productId: option.productId }
+                                                                ]);
+                                                            } else {
+                                                                if (isSelected) {
+                                                                    setSelectedAddonsForProduct(prev => prev.filter(a => a.addonOptionId !== option.id));
+                                                                } else {
+                                                                    setSelectedAddonsForProduct(prev => [...prev, { addonOptionId: option.id, name: option.name, price: option.price, quantity: 1, productId: option.productId }]);
+                                                                }
+                                                            }
+                                                        }}
+                                                        className={`p-4 rounded-2xl border transition-all cursor-pointer flex justify-between items-center group ${isSelected ? 'bg-indigo-50 dark:bg-indigo-500/10 border-indigo-500' : 'bg-white dark:bg-slate-800 border-slate-100 dark:border-slate-700'} ${isOutOfStock ? 'opacity-50 grayscale cursor-not-allowed' : 'active:scale-95'}`}
+                                                    >
+                                                        <div className="flex items-center gap-3">
+                                                            <div className={`w-5 h-5 rounded-full border-2 flex items-center justify-center transition-all ${isSelected ? 'border-indigo-500 bg-indigo-500 text-white' : 'border-slate-200 dark:border-slate-600'}`}>
+                                                                {isSelected && <div className="w-2 h-2 bg-white rounded-full"></div>}
+                                                            </div>
+                                                            <div className="font-bold text-slate-700 dark:text-slate-200 text-sm">{option.name}</div>
+                                                        </div>
+                                                        <div className={`text-xs font-black ${isSelected ? 'text-indigo-600 dark:text-indigo-400' : 'text-slate-500 dark:text-slate-400'}`}>
+                                                            {option.price > 0 ? `+ ${formatCurrency(option.price)}` : 'Grátis'}
+                                                        </div>
+                                                    </div>
+                                                );
+                                            })}
+                                        </div>
+                                    </div>
+                                ))}
 
                                 {/* Observações e Quantidade */}
                                 <div className="space-y-4 pt-4 border-t border-slate-100 dark:border-slate-800">
@@ -1049,10 +1130,11 @@ const Home: React.FC = () => {
                                         }));
 
                                         addToCart(
-                                            {...selectedPizzaForLaunch, price: modalSubTotal / pizzaModalQuantity}, 
+                                            {...selectedPizzaForLaunch, price: (modalSubTotal / pizzaModalQuantity) - (selectedAddonsForProduct.reduce((s, a) => s + a.price, 0))}, 
                                             pizzaModalQuantity, 
                                             allFlavors as any,
-                                            finalObs || undefined
+                                            finalObs || undefined,
+                                            selectedAddonsForProduct
                                         );
                                         setSelectedPizzaForLaunch(null);
                                     }}
