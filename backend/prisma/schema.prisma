@@ -61,26 +61,26 @@ model Waiter {
 }
 
 model Product {
-  id           String       @id @default(uuid())
+  id           String              @id @default(uuid())
   name         String
   price        Float
   category     String
-  stock        Int          @default(0)
+  stock        Int                 @default(0)
   imageUrl     String
-  active       Boolean      @default(true)
+  active       Boolean             @default(true)
   cest         String?
   cfop         String?
   ncm          String?
   preparation  String?
-  comboItems   ComboItem[]  @relation("ComboParent")
-  partOfCombos ComboItem[]  @relation("ComboChild")
-  orderItems   OrderItem[]
-  recipe       RecipeItem[]
-  isPizza      Boolean      @default(false)
+  isPizza      Boolean             @default(false)
   pizzaSize    String?
-  isFeatured   Boolean      @default(false)
-  showInMenu   Boolean      @default(true)
+  isFeatured   Boolean             @default(false)
+  showInMenu   Boolean             @default(true)
+  comboItems   ComboItem[]         @relation("ComboParent")
+  partOfCombos ComboItem[]         @relation("ComboChild")
+  orderItems   OrderItem[]
   addonGroups  ProductAddonGroup[]
+  recipe       RecipeItem[]
 }
 
 model InventoryItem {
@@ -135,54 +135,54 @@ model SupportMessage {
 }
 
 model Order {
-  id                  String           @id @default(uuid())
-  clientId            String?
-  clientName          String
-  clientAddress       String?
-  clientPhone         String?
-  total               Float
-  status              OrderStatus      @default(PENDING)
-  type                SaleType
-  createdAt           DateTime         @default(now())
-  paymentMethod       String?
-  driverId            String?
-  tableNumber         Int?
-  waiterId            String?
-  appliedServiceFee   Float?
-  assignedAt          DateTime?
-  clientCep           String?
-  clientCity          String?
-  clientComplement    String?
-  clientDocument      String?
-  clientEmail         String?
-  clientNeighborhood  String?
-  clientState         String?
-  clientStreet        String?
-  couponId            String?
-  deliveryFee         Float?
+  id                     String           @id @default(uuid())
+  clientId               String?
+  clientName             String
+  clientAddress          String?
+  clientPhone            String?
+  total                  Float
+  status                 OrderStatus      @default(PENDING)
+  type                   SaleType
+  createdAt              DateTime         @default(now())
+  paymentMethod          String?
+  driverId               String?
+  tableNumber            Int?
+  waiterId               String?
+  appliedServiceFee      Float?
+  assignedAt             DateTime?
+  clientCep              String?
+  clientCity             String?
+  clientComplement       String?
+  clientDocument         String?
+  clientEmail            String?
+  clientNeighborhood     String?
+  clientState            String?
+  clientStreet           String?
+  couponId               String?
+  deliveryFee            Float?
   deliveryFeeNeedsReview Boolean          @default(false)
-  digitalPin          String?
-  digitalToken        String?
-  discountValue       Float?           @default(0)
-  isOriginDeliveryApp Boolean          @default(false)
-  isOriginDigitalMenu Boolean          @default(false)
-  mpPaymentId         String?
-  mpPreferenceId      String?
-  nfeError            String?
-  nfeNumber           String?
-  nfeStatus           String?
-  nfeUrl              String?
-  paymentStatus       String?          @default("PENDING")
-  splitAmount1        Float?
-  updatedAt           DateTime         @default(now()) @updatedAt
-  client              Client?          @relation(fields: [clientId], references: [id])
-  coupon              Coupon?          @relation(fields: [couponId], references: [id])
-  driver              DeliveryDriver?  @relation(fields: [driverId], references: [id])
-  waiter              Waiter?          @relation(fields: [waiterId], references: [id])
-  items               OrderItem[]
-  messages            OrderMessage[]
-  rejections          OrderRejection[]
-  receivables         Receivable[]
+  digitalPin             String?
+  digitalToken           String?
+  discountValue          Float?           @default(0)
+  isOriginDeliveryApp    Boolean          @default(false)
+  isOriginDigitalMenu    Boolean          @default(false)
+  mpPaymentId            String?
+  mpPreferenceId         String?
+  nfeError               String?
+  nfeNumber              String?
+  nfeStatus              String?
+  nfeUrl                 String?
+  paymentStatus          String?          @default("PENDING")
+  splitAmount1           Float?
+  updatedAt              DateTime         @default(now()) @updatedAt
+  client                 Client?          @relation(fields: [clientId], references: [id])
+  coupon                 Coupon?          @relation(fields: [couponId], references: [id])
+  driver                 DeliveryDriver?  @relation(fields: [driverId], references: [id])
+  waiter                 Waiter?          @relation(fields: [waiterId], references: [id])
+  items                  OrderItem[]
+  messages               OrderMessage[]
+  rejections             OrderRejection[]
+  receivables            Receivable[]
 }
 
 model Coupon {
@@ -218,17 +218,17 @@ model Campaign {
 }
 
 model Notification {
-  id        String   @id @default(uuid())
-  clientId  String
-  title     String
-  message   String
-  isRead    Boolean  @default(false)
-  link      String?
-  imageUrl  String?
+  id         String   @id @default(uuid())
+  clientId   String
+  title      String
+  message    String
+  isRead     Boolean  @default(false)
+  link       String?
+  imageUrl   String?
   couponCode String?
-  termsText String?
-  createdAt DateTime @default(now())
-  client    Client   @relation(fields: [clientId], references: [id])
+  termsText  String?
+  createdAt  DateTime @default(now())
+  client     Client   @relation(fields: [clientId], references: [id])
 }
 
 model Receivable {
@@ -267,7 +267,7 @@ model OrderItem {
 model AddonGroup {
   id            String              @id @default(uuid())
   name          String
-  selectionType String              @default("SINGLE") // SINGLE, MULTIPLE
+  selectionType String              @default("SINGLE")
   isRequired    Boolean             @default(false)
   active        Boolean             @default(true)
   createdAt     DateTime            @default(now())
@@ -277,22 +277,22 @@ model AddonGroup {
 }
 
 model AddonOption {
-  id            String     @id @default(uuid())
-  groupId       String
-  name          String
-  price         Float      @default(0)
-  active        Boolean    @default(true)
-  trackStock    Boolean    @default(false)
-  stock         Int        @default(0)
-  productId     String?
-  group         AddonGroup @relation(fields: [groupId], references: [id], onDelete: Cascade)
+  id         String     @id @default(uuid())
+  groupId    String
+  name       String
+  price      Float      @default(0)
+  active     Boolean    @default(true)
+  trackStock Boolean    @default(false)
+  stock      Int        @default(0)
+  productId  String?
+  group      AddonGroup @relation(fields: [groupId], references: [id], onDelete: Cascade)
 }
 
 model ProductAddonGroup {
-  productId     String
-  addonGroupId  String
-  product       Product    @relation(fields: [productId], references: [id], onDelete: Cascade)
-  addonGroup    AddonGroup @relation(fields: [addonGroupId], references: [id], onDelete: Cascade)
+  productId    String
+  addonGroupId String
+  addonGroup   AddonGroup @relation(fields: [addonGroupId], references: [id], onDelete: Cascade)
+  product      Product    @relation(fields: [productId], references: [id], onDelete: Cascade)
 
   @@id([productId, addonGroupId])
 }
@@ -345,50 +345,50 @@ model AuditLog {
 }
 
 model BusinessSettings {
-  key                  String  @id
-  name                 String
-  cnpj                 String
-  address              String
-  phone                String
-  deliveryFee          String
-  tableCount           Int
-  appBannerUrl         String?
-  autoCloseTime        String  @default("00:00")
-  campaignLogoUrl      String?
-  cscId                String?
-  cscToken             String?
-  enableDeliveryApp    Boolean @default(true)
-  enableDigitalMenu    Boolean @default(true)
-  enableDriverApp      Boolean @default(true)
-  enableNfcEmission    Boolean @default(false)
-  enableWaiterApp      Boolean @default(true)
-  facebook             String?
-  geofenceRadius       Int     @default(30)
-  ie                   String?
-  instagram            String?
-  isManuallyClosed     Boolean @default(false)
-  isNfeProduction      Boolean @default(false)
-  maxChange            Float   @default(191)
-  operatingHours       String  @default("[]")
-  orderTimeoutMinutes  Int     @default(5)
-  printerIp            String?
-  printerType          String  @default("EPSON")
-  qrCodeBaseUrl        String?
-  restaurantLat        Float?
-  restaurantLng        Float?
-  serviceFeePercentage Float   @default(10)
-  serviceFeeStatus     Boolean @default(true)
-  waiterLockEnabled    Boolean @default(true)
-  waiterPrivacyEnabled Boolean @default(false)
-  waiterPrivacyTimer   Int     @default(60)
-  website              String?
-  appBannerUrl2        String?
-  appBannerUrl3        String?
+  key                       String  @id
+  name                      String
+  cnpj                      String
+  address                   String
+  phone                     String
+  deliveryFee               String
+  tableCount                Int
+  appBannerUrl              String?
+  autoCloseTime             String  @default("00:00")
+  campaignLogoUrl           String?
+  cscId                     String?
+  cscToken                  String?
+  enableDeliveryApp         Boolean @default(true)
+  enableDigitalMenu         Boolean @default(true)
+  enableDriverApp           Boolean @default(true)
+  enableNfcEmission         Boolean @default(false)
+  enableWaiterApp           Boolean @default(true)
+  facebook                  String?
+  geofenceRadius            Int     @default(30)
+  ie                        String?
+  instagram                 String?
+  isManuallyClosed          Boolean @default(false)
+  isNfeProduction           Boolean @default(false)
+  maxChange                 Float   @default(191)
+  operatingHours            String  @default("[]")
+  orderTimeoutMinutes       Int     @default(5)
+  printerIp                 String?
+  printerType               String  @default("EPSON")
+  qrCodeBaseUrl             String?
+  restaurantLat             Float?
+  restaurantLng             Float?
+  serviceFeePercentage      Float   @default(10)
+  serviceFeeStatus          Boolean @default(true)
+  waiterLockEnabled         Boolean @default(true)
+  waiterPrivacyEnabled      Boolean @default(false)
+  waiterPrivacyTimer        Int     @default(60)
+  website                   String?
+  appBannerUrl2             String?
+  appBannerUrl3             String?
   notificationTermsTemplate String?
-  pizzaPriceRule       String  @default("HIGHEST")
-  pizzaNfeRule         String  @default("OBSERVATION")
-  paymentMethods       Json?
-  pixKey               String?
+  pizzaPriceRule            String  @default("HIGHEST")
+  pizzaNfeRule              String  @default("OBSERVATION")
+  paymentMethods            Json?
+  pixKey                    String?
 }
 
 model ChatMessage {
