@@ -314,7 +314,7 @@ const Kitchen: React.FC = () => {
                                       Obs: {item.observations}
                                     </p>
                                   )}
-                                  <AddonDisplay showPrice onPriceFormat={(p) => new Intl.NumberFormat('pt-BR', {style: 'currency', currency: 'BRL'}).format(p)} 
+                                  <AddonDisplay 
                                     addons={item.selectedAddons || []} 
                                     products={products} 
                                     className="text-[9px] font-bold text-blue-600 dark:text-blue-400 mt-1 pl-1"
@@ -421,7 +421,6 @@ const Kitchen: React.FC = () => {
                     <th className="px-8 py-5 text-[10px] font-black text-slate-400 dark:text-slate-500 uppercase tracking-widest">Tipo / Origem</th>
                     <th className="px-8 py-5 text-[10px] font-black text-slate-400 dark:text-slate-500 uppercase tracking-widest">Atendimento</th>
                     <th className="px-8 py-5 text-[10px] font-black text-slate-400 dark:text-slate-500 uppercase tracking-widest">Data / Hora</th>
-                    <th className="px-8 py-5 text-[10px] font-black text-slate-400 dark:text-slate-500 uppercase tracking-widest">Total</th>
                     <th className="px-8 py-5 text-[10px] font-black text-slate-400 dark:text-slate-500 uppercase tracking-widest text-right">Ações</th>
                   </tr>
                 </thead>
@@ -461,11 +460,7 @@ const Kitchen: React.FC = () => {
                           </p>
                         </div>
                       </td>
-                      <td className="px-8 py-5">
-                        <p className="text-[11px] font-black text-blue-600 dark:text-blue-400">
-                          {formatCurrency(order.total || 0)}
-                        </p>
-                      </td>
+
                       <td className="px-8 py-5">
                         <div className="flex justify-end gap-2">
                           <button
@@ -680,7 +675,7 @@ const Kitchen: React.FC = () => {
                       </p>
                     )}
 
-                    <AddonDisplay showPrice onPriceFormat={(p) => new Intl.NumberFormat('pt-BR', {style: 'currency', currency: 'BRL'}).format(p)} 
+                    <AddonDisplay 
                       addons={it.selectedAddons || []} 
                       products={products} 
                       className="text-[9px] font-bold text-black mt-1 mb-2 border-l-2 border-black/10 pl-2 ml-1"
@@ -748,12 +743,7 @@ const Kitchen: React.FC = () => {
 
             <div className="section-divider"></div>
 
-            {viewTab === 'HISTORICO' && (
-              <div className="flex justify-between items-end">
-                <span className="font-bold text-[9px] uppercase">TOTAL:</span>
-                <span className="text-sm font-bold">{formatCurrency(printingOrder.total || 0)}</span>
-              </div>
-            )}
+
 
             {viewTab === 'FILA' && (
               <div className="text-center pt-1 mb-2">
