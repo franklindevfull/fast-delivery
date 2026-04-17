@@ -18,11 +18,12 @@ export interface AddonGroup {
 }
 
 export interface SelectedAddon {
-    id: string;
+    id?: string;
+    addonOptionId: string;
     name: string;
     price: number;
-    groupId: string;
-    groupName: string;
+    groupId?: string;
+    groupName?: string;
     quantity: number;
     productId?: string;
 }

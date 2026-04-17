@@ -34,12 +34,12 @@ const Home: React.FC<HomeProps> = ({ cart, addToCart, updateQuantity, onModalSta
             setSelectedAddons(prev => {
                 const withoutGroup = prev.filter(a => a.groupId !== group.id);
                 if (isAddonSelected(option.id)) return withoutGroup;
-                return [...withoutGroup, { ...option, groupId: group.id, groupName: group.name, productId: option.productId }];
+                return [...withoutGroup, { ...option, groupId: group.id, groupName: group.name, productId: option.productId, addonOptionId: option.id }];
             });
         } else {
             setSelectedAddons(prev => {
                 if (isAddonSelected(option.id)) return prev.filter(a => a.id !== option.id);
-                return [...prev, { ...option, groupId: group.id, groupName: group.name, productId: option.productId }];
+                return [...prev, { ...option, groupId: group.id, groupName: group.name, productId: option.productId, addonOptionId: option.id }];
             });
         }
     };

@@ -1054,13 +1054,13 @@ const Home: React.FC = () => {
                                                                 const otherGroupOptions = group.options.map((o: any) => o.id);
                                                                 setSelectedAddonsForProduct(prev => [
                                                                     ...prev.filter(a => !otherGroupOptions.includes(a.addonOptionId)),
-                                                                    { addonOptionId: option.id, name: option.name, price: option.price, quantity: 1, productId: option.productId }
+                                                                    { addonOptionId: option.id, name: option.name, price: option.price, quantity: 1, productId: option.productId, groupId: group.id, groupName: group.name }
                                                                 ]);
                                                             } else {
                                                                 if (isSelected) {
                                                                     setSelectedAddonsForProduct(prev => prev.filter(a => a.addonOptionId !== option.id));
                                                                 } else {
-                                                                    setSelectedAddonsForProduct(prev => [...prev, { addonOptionId: option.id, name: option.name, price: option.price, quantity: 1, productId: option.productId }]);
+                                                                    setSelectedAddonsForProduct(prev => [...prev, { addonOptionId: option.id, name: option.name, price: option.price, quantity: 1, productId: option.productId, groupId: group.id, groupName: group.name }]);
                                                                 }
                                                             }
                                                         }}

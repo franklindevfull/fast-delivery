@@ -2167,13 +2167,13 @@ const POS: React.FC<POSProps> = ({ currentUser }) => {
                           
                           if (group.selectionType === 'SINGLE' && selectedAddons.some(a => group.options.some((o: any) => o.id === a.addonOptionId) && a.addonOptionId !== option.id)) {
                              // Remove others from this group before adding
-                             setSelectedAddons(prev => [...prev.filter(a => !group.options.some((o: any) => o.id === a.addonOptionId)), { addonOptionId: option.id, name: option.name, price: option.price, quantity: 1, productId: option.productId }]);
+                             setSelectedAddons(prev => [...prev.filter(a => !group.options.some((o: any) => o.id === a.addonOptionId)), { addonOptionId: option.id, name: option.name, price: option.price, quantity: 1, productId: option.productId, groupId: group.id, groupName: group.name }]);
                           } else {
                              if (isSelected) {
                                 if (group.selectionType === 'SINGLE') return; // Cannot add more than 1 in SINGLE
                                 setSelectedAddons(prev => prev.map(a => a.addonOptionId === option.id ? { ...a, quantity: a.quantity + 1 } : a));
                              } else {
-                                setSelectedAddons(prev => [...prev, { addonOptionId: option.id, name: option.name, price: option.price, quantity: 1, productId: option.productId }]);
+                                setSelectedAddons(prev => [...prev, { addonOptionId: option.id, name: option.name, price: option.price, quantity: 1, productId: option.productId, groupId: group.id, groupName: group.name }]);
                              }
                           }
                         };

@@ -303,6 +303,11 @@ const Kitchen: React.FC = () => {
                                 <div className="flex-1 min-w-0">
                                   <p className={`font-black text-slate-700 dark:text-slate-300 uppercase text-[11px] truncate ${isReady ? 'line-through text-slate-500 dark:text-slate-500' : ''}`}>
                                     <span className="text-blue-600 dark:text-blue-400 text-xs">{item.quantity}x</span> {product?.name}
+                                    {item.selectedAddons && item.selectedAddons.length > 0 && (
+                                      <span className="ml-2 text-[8px] bg-blue-100 dark:bg-blue-900/40 text-blue-600 dark:text-blue-400 px-1.5 py-0.5 rounded-md font-black uppercase tracking-widest">
+                                        + Adicionais
+                                      </span>
+                                    )}
                                   </p>
                                   {item.observations && (
                                     <p className="inline-block text-[9px] text-orange-600 dark:text-orange-400 font-bold bg-orange-100/50 dark:bg-orange-900/20 px-2 py-0.5 rounded-md mt-1 border border-orange-200/50 dark:border-orange-900/30">
@@ -670,10 +675,16 @@ const Kitchen: React.FC = () => {
                     </div>
                     
                     {it.observations && (
-                      <p className="text-[10px] text-red-600 font-bold">
+                      <p className="text-[10px] text-red-600 font-bold mb-1">
                         * {it.observations}
                       </p>
                     )}
+
+                    <AddonDisplay 
+                      addons={it.selectedAddons || []} 
+                      products={products} 
+                      className="text-[9px] font-bold text-black mt-1 mb-2 border-l-2 border-black/10 pl-2 ml-1"
+                    />
 
                     {/* Ficha Técnica no Cupom com Suporte a Múltiplos Sabores e Filtro */}
                     {(() => {

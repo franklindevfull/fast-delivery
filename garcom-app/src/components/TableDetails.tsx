@@ -614,14 +614,14 @@ const TableDetails: React.FC<TableDetailsProps> = ({ table, user, onClose, onRef
                             if (group.type === 'SINGLE') {
                                 setSelectedOptions(prev => [
                                     ...prev.filter(o => o.groupId !== group.id),
-                                    { ...option, groupId: group.id, groupName: group.name, productId: option.productId }
+                                    { ...option, groupId: group.id, groupName: group.name, productId: option.productId, addonOptionId: option.id }
                                 ]);
                             } else {
                                 const exists = selectedOptions.find(o => o.id === option.id);
                                 if (exists) {
                                     setSelectedOptions(prev => prev.filter(o => o.id !== option.id));
                                 } else {
-                                    setSelectedOptions(prev => [...prev, { ...option, groupId: group.id, groupName: group.name, productId: option.productId }]);
+                                    setSelectedOptions(prev => [...prev, { ...option, groupId: group.id, groupName: group.name, productId: option.productId, addonOptionId: option.id }]);
                                 }
                             }
                         };

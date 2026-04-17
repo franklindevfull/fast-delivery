@@ -1086,13 +1086,13 @@ const Tables: React.FC<TablesProps> = ({ currentUser }) => {
                           
                           const handleAdd = () => {
                             if (group.selectionType === 'SINGLE' && selectedAddons.some(a => group.options.some((o: any) => o.id === a.addonOptionId) && a.addonOptionId !== option.id)) {
-                               setSelectedAddons(prev => [...prev.filter(a => !group.options.some((o: any) => o.id === a.addonOptionId)), { addonOptionId: option.id, name: option.name, price: option.price, quantity: 1, productId: option.productId }]);
+                               setSelectedAddons(prev => [...prev.filter(a => !group.options.some((o: any) => o.id === a.addonOptionId)), { addonOptionId: option.id, name: option.name, price: option.price, quantity: 1, productId: option.productId, groupId: group.id, groupName: group.name }]);
                             } else {
                                if (isSelected) {
                                   if (group.selectionType === 'SINGLE') return;
                                   setSelectedAddons(prev => prev.map(a => a.addonOptionId === option.id ? { ...a, quantity: a.quantity + 1 } : a));
                                } else {
-                                  setSelectedAddons(prev => [...prev, { addonOptionId: option.id, name: option.name, price: option.price, quantity: 1, productId: option.productId }]);
+                                  setSelectedAddons(prev => [...prev, { addonOptionId: option.id, name: option.name, price: option.price, quantity: 1, productId: option.productId, groupId: group.id, groupName: group.name }]);
                                }
                             }
                           };

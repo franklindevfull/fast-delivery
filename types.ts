@@ -272,6 +272,8 @@ export interface CartItem {
 export interface SelectedAddon {
   id?: string;
   addonOptionId: string;
+  groupId?: string;
+  groupName?: string;
   name: string;
   price: number;
   quantity: number;
