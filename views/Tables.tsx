@@ -1019,50 +1019,86 @@ const Tables: React.FC<TablesProps> = ({ currentUser }) => {
             <p className="text-center text-[10px] font-bold text-slate-400 dark:text-slate-500 uppercase mb-4">{selectedProductForLaunch.name}</p>
 
             {isPizzaSelectionMode ? (
-              <div className="space-y-4">
-                <p className="text-center text-sm font-bold text-slate-800 dark:text-white mb-2">Quantos sabores adicionais?</p>
-                <div className="flex flex-wrap gap-2 justify-center max-h-48 overflow-y-auto custom-scrollbar p-2">
-                  {(() => {
-                    const maxFlavors = selectedProductForLaunch.pizzaSize === 'P' ? 2 : selectedProductForLaunch.pizzaSize === 'M' ? 3 : selectedProductForLaunch.pizzaSize === 'G' ? 4 : 2;
-                    const canSelectMore = pizzaFlavors.length + 1 < maxFlavors;
-                    return (
-                      <div className="w-full">
-                        <div className="flex justify-between items-center bg-blue-50 dark:bg-blue-900/20 p-3 rounded-xl mb-3">
-                          <span className="text-xs font-bold text-blue-800 dark:text-blue-300">Sabores permitidos: {maxFlavors}</span>
-                          <span className="text-xs font-black text-blue-600 dark:text-blue-400">Selecionados: {pizzaFlavors.length + 1}</span>
-                        </div>
+              <div className="flex flex-col h-full max-h-[75vh]">
+                <p className="text-center text-sm font-bold text-slate-800 dark:text-white mb-4">Quantos sabores adicionais?</p>
+                
+                {(() => {
+                  const maxFlavors = selectedProductForLaunch.pizzaSize === 'P' ? 2 : selectedProductForLaunch.pizzaSize === 'M' ? 3 : selectedProductForLaunch.pizzaSize === 'G' ? 4 : 2;
+                  const canSelectMore = pizzaFlavors.length + 1 < maxFlavors;
+                  
+                  return (
+                    <>
+                      {/* Info Header - Fixed */}
+                      <div className="flex justify-between items-center bg-blue-50 dark:bg-blue-900/20 p-3 rounded-xl mb-4 shrink-0">
+                        <span className="text-xs font-bold text-blue-800 dark:text-blue-300">Sabores permitidos: {maxFlavors}</span>
+                        <span className="text-xs font-black text-blue-600 dark:text-blue-400">Selecionados: {pizzaFlavors.length + 1}</span>
+                      </div>
 
+                      {/* Main Content Area - Scrollable */}
+                      <div className="flex-1 overflow-y-auto custom-scrollbar pr-1 space-y-4 min-h-0">
+                        {/* Selected Flavors */}
                         {pizzaFlavors.length > 0 && (
-                          <div className="mb-4 space-y-2">
+                          <div className="space-y-2">
+                            <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest pl-1">Selecionados</p>
                             {pizzaFlavors.map((pf, idx) => (
-                              <div key={idx} className="flex justify-between items-center bg-slate-50 dark:bg-slate-800 p-2 rounded-xl text-xs font-bold text-slate-600 dark:text-slate-300">
-                                <span>{pf.name}</span>
-                                <button onClick={() => setPizzaFlavors(prev => prev.filter((_, i) => i !== idx))} className="text-red-500 font-black px-2">X</button>
+                              <div key={idx} className="flex justify-between items-center bg-slate-50 dark:bg-slate-800/50 p-3 rounded-xl border border-slate-100 dark:border-slate-700 animate-in slide-in-from-left-2 duration-200">
+                                <span className="text-xs font-bold text-slate-700 dark:text-slate-200 uppercase">{pf.name}</span>
+                                <button 
+                                  onClick={() => setPizzaFlavors(prev => prev.filter((_, i) => i !== idx))} 
+                                  className="w-6 h-6 bg-red-50 dark:bg-red-900/20 text-red-500 rounded-lg flex items-center justify-center hover:bg-red-500 hover:text-white transition-all shadow-sm"
+                                >
+                                  ✕
+                                </button>
                               </div>
                             ))}
                           </div>
                         )}
 
-                        {canSelectMore ? (
-                          <div className="space-y-2 max-h-[160px] overflow-y-auto custom-scrollbar pr-2 pb-2">
-                            {products.filter(p => p.isPizza && p.pizzaSize === selectedProductForLaunch.pizzaSize && p.id !== selectedProductForLaunch.id).map(p => (
-                              <button
-                                key={p.id}
-                                onClick={() => setPizzaFlavors([...pizzaFlavors, p])}
-                                className="w-full text-left p-3 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl hover:border-blue-400 transition-all text-xs font-bold dark:text-white"
-                              >
-                                {p.name} - {formatCurrency(p.price)}
-                              </button>
-                            ))}
-                          </div>
-                        ) : (
-                          <div className="text-center p-3 text-[10px] font-bold text-slate-400">Limite de sabores atingido.</div>
-                        )}
-                        <button onClick={() => setIsPizzaSelectionMode(false)} className="w-full mt-4 bg-emerald-500 hover:bg-emerald-600 text-white p-4 rounded-2xl font-black text-xs uppercase shadow-xl hover:shadow-emerald-200 transition-all">Avançar →</button>
+                        {/* Available Options */}
+                        <div className="space-y-2">
+                          <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest pl-1">
+                            {canSelectMore ? 'Adicionar Sabores' : 'Atenção'}
+                          </p>
+                          
+                          {canSelectMore ? (
+                            <div className="grid grid-cols-1 gap-2">
+                              {products.filter(p => p.isPizza && p.pizzaSize === selectedProductForLaunch.pizzaSize && p.id !== selectedProductForLaunch.id).map(p => {
+                                const isAlreadySelected = pizzaFlavors.some(pf => pf.id === p.id);
+                                if (isAlreadySelected) return null;
+                                return (
+                                  <button
+                                    key={p.id}
+                                    onClick={() => setPizzaFlavors([...pizzaFlavors, p])}
+                                    className="w-full text-left p-4 bg-white dark:bg-slate-900 border border-slate-100 dark:border-slate-800 rounded-2xl hover:border-blue-500 hover:scale-[1.01] transition-all group"
+                                  >
+                                    <div className="flex justify-between items-center">
+                                      <p className="text-xs font-black text-slate-800 dark:text-white uppercase tracking-tight">{p.name}</p>
+                                      <span className="text-[10px] font-black text-blue-600 dark:text-blue-400 group-hover:scale-110 transition-transform">{formatCurrency(p.price)}</span>
+                                    </div>
+                                  </button>
+                                );
+                              })}
+                            </div>
+                          ) : (
+                            <div className="text-center p-6 bg-slate-50 dark:bg-slate-800/50 rounded-2xl border border-dashed border-slate-200 dark:border-slate-700">
+                              <p className="text-xs font-bold text-slate-400 uppercase tracking-widest">Limite de sabores atingido.</p>
+                            </div>
+                          )}
+                        </div>
                       </div>
-                    );
-                  })()}
-                </div>
+
+                      {/* Footer - Fixed */}
+                      <div className="pt-4 mt-2 border-t border-slate-50 dark:border-slate-800 shrink-0">
+                        <button 
+                          onClick={() => setIsPizzaSelectionMode(false)} 
+                          className="w-full bg-emerald-500 hover:bg-emerald-600 text-white p-5 rounded-[2rem] font-black text-xs uppercase shadow-xl shadow-emerald-500/20 active:scale-95 transition-all flex items-center justify-center gap-2"
+                        >
+                          Avançar <Icons.ChevronRight className="w-4 h-4" />
+                        </button>
+                      </div>
+                    </>
+                  );
+                })()}
               </div>
             ) : (
               <>
