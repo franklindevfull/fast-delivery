@@ -278,25 +278,62 @@ const OrderHistory: React.FC = () => {
                         <div className="border-t border-dashed dark:border-slate-700 my-3 py-3 font-receipt">
                             {printingOrder.items.map((it: any, idx: number) => {
                                 const prodName = it.product?.name || it.productName || 'PRODUTO';
+                                const addonsTotal = it.selectedAddons ? it.selectedAddons.reduce((sum: number, a: any) => sum + (a.price * a.quantity), 0) : 0;
                                 return (
-                                    <div key={idx} className="flex justify-between font-black uppercase py-0.5 text-[11px] text-slate-700 dark:text-slate-300">
-                                        <span>{it.quantity}x {prodName.substring(0, 18)}</span>
-                                        <span>{formatCurrency(it.price || 0, false)}</span>
+                                    <div key={idx} className="mb-3 last:mb-0 border-b border-dotted border-black/10 dark:border-slate-800 pb-2">
+                                        <div className="flex justify-between font-black uppercase py-0.5 text-[11px] text-slate-700 dark:text-slate-300">
+                                            <span>{it.quantity}X {prodName.substring(0, 25)}</span>
+                                            <span>{formatCurrency(it.price * it.quantity, false)}</span>
+                                        </div>
+                                        {it.selectedAddons && it.selectedAddons.length > 0 && (
+                                            <div className="space-y-0.5 mt-1">
+                                                {it.selectedAddons.map((addon: any, aidx: number) => (
+                                                    <div key={aidx} className="flex justify-between text-[10px] font-bold text-slate-500 dark:text-slate-400 italic">
+                                                        <span>+ {addon.name}</span>
+                                                        <span>{formatCurrency(addon.price * addon.quantity * it.quantity, false)}</span>
+                                                    </div>
+                                                ))}
+                                            </div>
+                                        )}
+                                        {it.observations && (
+                                            <p className="text-[9px] font-bold text-slate-400 dark:text-slate-500 mt-1 italic">📝 {it.observations}</p>
+                                        )}
                                     </div>
                                 );
                             })}
                         </div>
 
                         <div className="flex flex-col gap-1 font-receipt">
-                            <div className="flex justify-between items-center py-1 text-slate-600 dark:text-slate-400">
+                            <div className="flex justify-between items-center py-1 text-slate-700 dark:text-slate-300 border-t border-dotted border-black/10 dark:border-slate-800 pt-2">
                                 <span className="text-[10px] font-black uppercase">SUBTOTAL:</span>
-                                <span className="font-black text-xs">{formatCurrency(printingOrder.total - (printingOrder.deliveryFee || 0))}</span>
+                                <span className="font-black text-xs">
+                                    {formatCurrency(printingOrder.items.reduce((acc: number, item: any) => {
+                                        const addons = item.selectedAddons ? item.selectedAddons.reduce((s: number, a: any) => s + (a.price * a.quantity), 0) : 0;
+                                        return acc + (item.quantity * (item.price + addons));
+                                    }, 0))}
+                                </span>
                             </div>
 
                             {((printingOrder.deliveryFee || 0) > 0) && (
-                                <div className="flex justify-between items-center py-1 text-slate-500 dark:text-slate-400">
+                                <div className="flex justify-between items-center py-1 text-slate-600 dark:text-slate-400">
                                     <span className="text-[10px] uppercase font-bold">TAXA ENTREGA:</span>
                                     <span className="font-bold text-[11px]">{formatCurrency(printingOrder.deliveryFee || 0)}</span>
+                                </div>
+                            )}
+
+                            {/* Applied Discount Check */}
+                            {printingOrder.total < (printingOrder.items.reduce((acc: number, item: any) => {
+                                const addons = item.selectedAddons ? item.selectedAddons.reduce((s: number, a: any) => s + (a.price * a.quantity), 0) : 0;
+                                return acc + (item.quantity * (item.price + addons));
+                            }, 0) + (printingOrder.deliveryFee || 0)) && (
+                                <div className="flex justify-between items-center py-1 text-rose-500 dark:text-rose-400">
+                                    <span className="text-[10px] uppercase font-bold">DESCONTO:</span>
+                                    <span className="font-bold text-[11px]">- {formatCurrency(
+                                        (printingOrder.items.reduce((acc: number, item: any) => {
+                                            const addons = item.selectedAddons ? item.selectedAddons.reduce((s: number, a: any) => s + (a.price * a.quantity), 0) : 0;
+                                            return acc + (item.quantity * (item.price + addons));
+                                        }, 0) + (printingOrder.deliveryFee || 0)) - printingOrder.total
+                                    )}</span>
                                 </div>
                             )}
                         </div>

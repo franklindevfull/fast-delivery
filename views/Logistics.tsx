@@ -687,7 +687,7 @@ const Logistics: React.FC = () => {
                 <div key={id} className="border-b border-dotted border-black/10 py-1">
                   <div className="flex justify-between font-bold uppercase text-[10px]">
                     <span className="flex-1 pr-2">{data.quantity}X {data.name.substring(0, 25)}</span>
-                    <span className="shrink-0">{formatCurrency(data.price, false)}</span>
+                    <span className="shrink-0">{formatCurrency(data.price * data.quantity, false)}</span>
                   </div>
                   <AddonDisplay showPrice onPriceFormat={(p) => new Intl.NumberFormat('pt-BR', {style: 'currency', currency: 'BRL'}).format(p)} 
                     addons={data.selectedAddons || []} 
@@ -702,6 +702,16 @@ const Logistics: React.FC = () => {
             </div>
 
             <div className="section-divider"></div>
+
+            <div className="flex justify-between items-center py-0.5 text-[9px] uppercase font-bold">
+              <span>SUBTOTAL:</span>
+              <span>
+                {formatCurrency(groupedItems.reduce((acc, [id, data]: [string, any]) => {
+                  const addons = data.selectedAddons ? data.selectedAddons.reduce((s: number, a: any) => s + (a.price * a.quantity), 0) : 0;
+                  return acc + (data.quantity * (data.price + addons));
+                }, 0))}
+              </span>
+            </div>
 
             <div className="flex justify-between items-center py-0.5 text-[9px]">
               <span className="uppercase font-bold">TAXA ENTREGA:</span>
@@ -772,7 +782,7 @@ const Logistics: React.FC = () => {
                   <div key={id} className="border-b border-dotted border-black/10 py-1">
                     <div className="flex justify-between font-bold uppercase text-[10px]">
                       <span className="flex-1 pr-2">{data.quantity}X {data.name.substring(0, 25)}</span>
-                      <span className="shrink-0">{formatCurrency(data.price, false)}</span>
+                      <span className="shrink-0">{formatCurrency(data.price * data.quantity, false)}</span>
                     </div>
                     <AddonDisplay showPrice onPriceFormat={(p) => new Intl.NumberFormat('pt-BR', {style: 'currency', currency: 'BRL'}).format(p)} 
                       addons={data.selectedAddons || []} 
@@ -788,6 +798,16 @@ const Logistics: React.FC = () => {
             )}
 
             <div className="section-divider"></div>
+
+            <div className="flex justify-between items-center py-0.5 text-[9px] uppercase font-bold">
+              <span>SUBTOTAL:</span>
+              <span>
+                {formatCurrency(groupedItems.reduce((acc, [id, data]: [string, any]) => {
+                  const addons = data.selectedAddons ? data.selectedAddons.reduce((s: number, a: any) => s + (a.price * a.quantity), 0) : 0;
+                  return acc + (data.quantity * (data.price + addons));
+                }, 0))}
+              </span>
+            </div>
 
             <div className="flex justify-between items-center py-0.5 text-[9px]">
               <span className="uppercase font-bold">TAXA ENTREGA:</span>

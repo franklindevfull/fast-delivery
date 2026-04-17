@@ -2386,7 +2386,7 @@ const POS: React.FC<POSProps> = ({ currentUser }) => {
                         <div key={id} className={`flex flex-col py-0.5 ${(data.notes || data.selectedAddons) ? 'mb-1 border-b border-dotted border-black/10 pb-1' : ''}`}>
                           <div className="flex justify-between items-start font-bold uppercase text-[8px] gap-2">
                             <span className="flex-1 leading-tight whitespace-normal">{data.quantity}X {data.product?.name.substring(0, 25)}</span>
-                            <span className="shrink-0 whitespace-nowrap">{formatCurrency(data.price + addonsTotal, false)}</span>
+                            <span className="shrink-0 whitespace-nowrap">{formatCurrency(data.price * data.quantity, false)}</span>
                           </div>
                           <AddonDisplay showPrice onPriceFormat={(p) => new Intl.NumberFormat('pt-BR', {style: 'currency', currency: 'BRL'}).format(p)} 
                             addons={data.selectedAddons} 
@@ -2404,8 +2404,19 @@ const POS: React.FC<POSProps> = ({ currentUser }) => {
                   <div className="border-t border-black pt-1">
                     <div className="flex justify-between items-center text-[8px] font-bold uppercase">
                       <span>SUBTOTAL:</span>
-                      <span>{formatCurrency(printingOrder.total - (printingOrder.appliedServiceFee || 0))}</span>
+                      <span>
+                        {formatCurrency(groupedPrintingItems.reduce((acc, [id, data]) => {
+                          const addons = data.selectedAddons ? data.selectedAddons.reduce((s: number, a: any) => s + (a.price * a.quantity), 0) : 0;
+                          return acc + (data.quantity * (data.price + addons));
+                        }, 0))}
+                      </span>
                     </div>
+                    {printingOrder.deliveryFee !== undefined && printingOrder.deliveryFee > 0 && (
+                      <div className="flex justify-between items-center text-[8px] font-bold uppercase">
+                        <span>TAXA ENTREGA:</span>
+                        <span>{formatCurrency(printingOrder.deliveryFee)}</span>
+                      </div>
+                    )}
                     {printingOrder.appliedServiceFee !== undefined && printingOrder.appliedServiceFee > 0 && (
                       <div className="flex justify-between items-center text-[8px] font-bold uppercase">
                         <span>TAXA SERVICO:</span>
