@@ -219,41 +219,41 @@ const POS: React.FC<POSProps> = ({ currentUser }) => {
 
 
   const refreshAllData = async () => {
-    const [p, o, s, c, ts, cs, recs, dz, ags] = await Promise.all([
-      db.getProducts(),
-      db.getOrders(),
-      db.getSettings(),
-      db.getClients(),
-      db.getTableSessions(),
-      db.getActiveCashSession(),
-      db.getReceivables(),
-      db.getDeliveryZones(),
-      db.getAddonGroups()
-    ]);
-    
-    // Sort products: Featured first, then alphabetical
-    const sortedProducts = p.sort((a, b) => {
-      if (a.isFeatured && !b.isFeatured) return -1;
-      if (!a.isFeatured && b.isFeatured) return 1;
-      return a.name.localeCompare(b.name);
-    });
-
-    setProducts(sortedProducts);
-    setOrders(o);
-    setBusinessSettings(s);
-    setClients(c);
-    setDeliveryZones(dz || []);
-    setPendingTables(ts.filter(t => t.status === 'billing'));
-    setPendingCounterOrders(o.filter(order => order.type === SaleType.COUNTER && order.status === OrderStatus.READY));
-    setPendingReceivables(recs?.filter((r: any) => r.status === 'PROCESSING') || []);
-    setActiveCashSession(cs);
-    setAddonGroups(ags || []);
-
     try {
+      const [p, o, s, c, ts, cs, recs, dz, ags] = await Promise.all([
+        db.getProducts(),
+        db.getOrders(),
+        db.getSettings(),
+        db.getClients(),
+        db.getTableSessions(),
+        db.getActiveCashSession(),
+        db.getReceivables(),
+        db.getDeliveryZones(),
+        db.getAddonGroups()
+      ]);
+      
+      // Sort products: Featured first, then alphabetical
+      const sortedProducts = p.sort((a, b) => {
+        if (a.isFeatured && !b.isFeatured) return -1;
+        if (!a.isFeatured && b.isFeatured) return 1;
+        return a.name.localeCompare(b.name);
+      });
+
+      setProducts(sortedProducts);
+      setOrders(o);
+      setBusinessSettings(s);
+      setClients(c);
+      setDeliveryZones(dz || []);
+      setPendingTables(ts.filter(t => t.status === 'billing'));
+      setPendingCounterOrders(o.filter(order => order.type === SaleType.COUNTER && order.status === OrderStatus.READY));
+      setPendingReceivables(recs?.filter((r: any) => r.status === 'PROCESSING') || []);
+      setActiveCashSession(cs);
+      setAddonGroups(ags || []);
+
       const fb = await db.getFeedbacks();
       setFeedbacks(fb);
     } catch (e) {
-      console.error('Error fetching feedbacks in POS', e);
+      console.error('Error refreshing POS data:', e);
     }
   };
 

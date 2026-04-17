@@ -21,17 +21,22 @@ const Dashboard: React.FC = () => {
 
   useEffect(() => {
     const fetchData = async () => {
-      // Calculamos o início do mês atual para buscar uma quantidade relevante de dados
-      const now = new Date();
-      const firstDayOfMonth = new Date(now.getFullYear(), now.getMonth(), 1).toISOString();
-      
-      const [allOrders, allClients] = await Promise.all([
-        db.getOrders(firstDayOfMonth), // Buscamos pedidos desde o início do mês para as métricas mensais
-        db.getClients()
-      ]);
-      setOrders(allOrders);
-      setClientCount(allClients.length);
-      setIsLoading(false);
+      try {
+        // Calculamos o início do mês atual para buscar uma quantidade relevante de dados
+        const now = new Date();
+        const firstDayOfMonth = new Date(now.getFullYear(), now.getMonth(), 1).toISOString();
+        
+        const [allOrders, allClients] = await Promise.all([
+          db.getOrders(firstDayOfMonth), // Buscamos pedidos desde o início do mês para as métricas mensais
+          db.getClients()
+        ]);
+        setOrders(allOrders);
+        setClientCount(allClients.length);
+      } catch (error) {
+        console.error('Error fetching dashboard data:', error);
+      } finally {
+        setIsLoading(false);
+      }
     };
     fetchData();
     setIsMounted(true);
