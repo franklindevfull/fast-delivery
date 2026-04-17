@@ -169,26 +169,39 @@ const processProductInventory = async (tx: any, product: any, productQtyMultipli
         }
     }
 
-    // 3. Combo Item (Recursion)
-    if (product.comboItems && product.comboItems.length > 0) {
-        for (const cItem of product.comboItems) {
-            if (!cItem.product) continue;
-            const subQty = cItem.quantity * productQtyMultiplier;
-            await processProductInventory(tx, cItem.product, subQty, type, orderId, productName);
         }
     }
 };
 
 const handleInventoryImpact = async (tx: any, items: any[], type: 'DECREMENT' | 'INCREMENT', orderId?: string) => {
+    const productIds = new Set<string>();
+    for (const item of items) {
+        if (item.productId) productIds.add(item.productId);
+        if (item.pizzaFlavors) {
+            try {
+                const flavors = typeof item.pizzaFlavors === 'string' ? JSON.parse(item.pizzaFlavors) : item.pizzaFlavors;
+                if (Array.isArray(flavors)) {
+                    for (const f of flavors) if (f.productId) productIds.add(f.productId);
+                }
+            } catch (e) {}
+        }
+    }
+
+    if (productIds.size === 0) return;
+
+    const productsData = await tx.product.findMany({
+        where: { id: { in: Array.from(productIds) } },
+        include: { 
+            recipe: { include: { inventoryItem: true } },
+            comboItems: { include: { product: { include: { recipe: { include: { inventoryItem: true } } } } } }
+        }
+    });
+
+    const productMap = new Map(productsData.map((p: any) => [p.id, p]));
+
     for (const item of items) {
         if (!item.productId) continue;
-        const product = await tx.product.findUnique({
-            where: { id: item.productId },
-            include: { 
-                recipe: { include: { inventoryItem: true } },
-                comboItems: { include: { product: { include: { recipe: { include: { inventoryItem: true } } } } } }
-            }
-        });
+        const product = productMap.get(item.productId);
 
         if (product) {
             const iq = parseFloat(item.quantity?.toString() || '0');
@@ -200,13 +213,7 @@ const handleInventoryImpact = async (tx: any, items: any[], type: 'DECREMENT' | 
                     if (Array.isArray(flavors)) {
                         for (const flavorRef of flavors) {
                             if (!flavorRef.productId || !flavorRef.fraction) continue;
-                            const flavorProduct = await tx.product.findUnique({
-                                where: { id: flavorRef.productId },
-                                include: { 
-                                    recipe: { include: { inventoryItem: true } },
-                                    comboItems: { include: { product: { include: { recipe: { include: { inventoryItem: true } } } } } }
-                                }
-                            });
+                            const flavorProduct = productMap.get(flavorRef.productId);
                             if (flavorProduct) {
                                 const flavorQty = iq * parseFloat(flavorRef.fraction.toString());
                                 await processProductInventory(tx, flavorProduct, flavorQty, type, orderId, `Sabor: ${flavorRef.name || 'Pizza'}`);
@@ -217,17 +224,51 @@ const handleInventoryImpact = async (tx: any, items: any[], type: 'DECREMENT' | 
                     console.error("Error processing pizza flavors inventory:", e);
                 }
             }
-
-            // --- DECREMENT/INCREMENT Addon Options stock ---
-            // Moved to a dedicated function `handleAddonInventoryImpact` to run at 'PREPARING' phase.
         }
     }
 };
 
 const handleAddonInventoryImpact = async (tx: any, items: any[], type: 'DECREMENT' | 'INCREMENT', orderId?: string) => {
+    const addonIds = new Set<string>();
+    for (const item of items) {
+        if (item.selectedAddons) {
+            try {
+                const addons = typeof item.selectedAddons === 'string' ? JSON.parse(item.selectedAddons) : item.selectedAddons;
+                if (Array.isArray(addons)) {
+                    for (const addon of addons) if (addon.id) addonIds.add(addon.id);
+                }
+            } catch (e) {}
+        }
+    }
+
+    if (addonIds.size === 0) return;
+
+    const addonsData = await tx.addonOption.findMany({
+        where: { id: { in: Array.from(addonIds) } }
+    });
+
+    const addonMap = new Map(addonsData.map((a: any) => [a.id, a]));
+    
+    // For addon options that are linked to products, we need those products too
+    const productIds = new Set<string>();
+    addonsData.forEach((a: any) => {
+        if (a.productId) productIds.add(a.productId);
+    });
+
+    let productMap = new Map();
+    if (productIds.size > 0) {
+        const productsData = await tx.product.findMany({
+            where: { id: { in: Array.from(productIds) } },
+            include: { 
+                recipe: { include: { inventoryItem: true } }, 
+                comboItems: { include: { product: { include: { recipe: { include: { inventoryItem: true } } } } } } 
+            }
+        });
+        productMap = new Map(productsData.map((p: any) => [p.id, p]));
+    }
+
     for (const item of items) {
         if (!item.productId) continue;
-        
         const iq = parseFloat(item.quantity?.toString() || '0');
 
         if (item.selectedAddons) {
@@ -236,22 +277,11 @@ const handleAddonInventoryImpact = async (tx: any, items: any[], type: 'DECREMEN
                 if (Array.isArray(addons)) {
                     for (const addon of addons) {
                         if (!addon.id) continue;
-                        
-                        // Check if this addon option exists
-                        const addonOption = await tx.addonOption.findUnique({
-                            where: { id: addon.id }
-                        });
+                        const addonOption = addonMap.get(addon.id);
 
                         if (addonOption) {
                             if (addonOption.productId) {
-                                // Addon is linked to another product (e.g. "Combo Addon")
-                                const addonProduct = await tx.product.findUnique({
-                                    where: { id: addonOption.productId },
-                                    include: { 
-                                        recipe: { include: { inventoryItem: true } }, 
-                                        comboItems: { include: { product: { include: { recipe: { include: { inventoryItem: true } } } } } } 
-                                    }
-                                });
+                                const addonProduct = productMap.get(addonOption.productId);
                                 if (addonProduct) {
                                     const addonQty = iq * (addon.quantity || 1);
                                     await processProductInventory(tx, addonProduct, addonQty, type, orderId, `Adicional: ${addon.name}`);
@@ -310,7 +340,7 @@ export const saveOrder = async (req: Request, res: Response) => {
         }
     }
 
-    console.log('Receiving order save request:', { id: order.id, type: order.type, status: order.status, waiterId: resolvedWaiterId });
+
 
     // Server-side Cash Session Enforcement for ALL Operations
     if (order.status !== 'CANCELLED') {
@@ -813,8 +843,7 @@ export const updateOrderStatus = async (req: Request, res: Response) => {
     const id = req.params.id as string;
     const { status, driverId, user, paymentMethod } = req.body;
 
-    console.log(`[OrderController] updateOrderStatus initiated for order ${id}:`, { status, driverId, paymentMethod });
-    console.log(`[OrderController] FULL BODY:`, JSON.stringify(req.body));
+
 
     try {
         // Pre-check outside transaction to save connection pool
@@ -967,7 +996,7 @@ export const updateOrderStatus = async (req: Request, res: Response) => {
                 }
             }
 
-            console.log(`[OrderController] Applying final update to order ${id} with data:`, updateData);
+            // removed verbose update log for memory safety
             const order = await tx.order.update({
                 where: { id: id as string },
                 data: updateData,

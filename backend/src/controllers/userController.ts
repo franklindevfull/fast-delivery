@@ -23,7 +23,7 @@ const generateRecoveryCode = () => {
 export const saveUser = async (req: Request, res: Response) => {
     try {
         const data = req.body;
-        console.log('Incoming user data:', JSON.stringify(data));
+
 
         // 1. Verificar se o usuário já existe no banco (por ID ou E-mail)
         let existingUser = null;
