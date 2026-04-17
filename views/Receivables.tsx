@@ -399,7 +399,7 @@ const Receivables: React.FC<ReceivablesProps> = ({ currentUser, setActiveTab }) 
                                                 </div>
                                                 <span className="text-[10px] font-black text-slate-800 dark:text-white tracking-tight">{formatCurrency(item.price * item.quantity)}</span>
                                             </div>
-                                            <AddonDisplay 
+                                            <AddonDisplay showPrice onPriceFormat={(p) => new Intl.NumberFormat('pt-BR', {style: 'currency', currency: 'BRL'}).format(p)} 
                                                 addons={item.selectedAddons || []} 
                                                 products={availableProducts} 
                                                 className="text-[10px] font-bold text-blue-500 ml-12"
@@ -551,7 +551,7 @@ const Receivables: React.FC<ReceivablesProps> = ({ currentUser, setActiveTab }) 
                                             <span className="flex-1 leading-tight">{item.quantity}x {prod?.name.substring(0, 25) || item.product?.name?.substring(0, 25) || 'Item'}</span>
                                             <span className="whitespace-nowrap">{formatCurrency(item.price, false)}</span>
                                         </div>
-                                        <AddonDisplay 
+                                        <AddonDisplay showPrice onPriceFormat={(p) => new Intl.NumberFormat('pt-BR', {style: 'currency', currency: 'BRL'}).format(p)} 
                                             addons={item.selectedAddons || []} 
                                             products={availableProducts} 
                                             className="text-[7px] font-bold uppercase text-slate-500 mt-0.5 ml-2"

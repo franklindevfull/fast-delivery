@@ -610,7 +610,7 @@ const Logistics: React.FC = () => {
                             </div>
                             <span className="text-[11px] font-black text-slate-400 dark:text-slate-500">{formatCurrency(item.price, false)}</span>
                           </div>
-                          <AddonDisplay 
+                          <AddonDisplay showPrice onPriceFormat={(p) => new Intl.NumberFormat('pt-BR', {style: 'currency', currency: 'BRL'}).format(p)} 
                             addons={item.selectedAddons || []} 
                             products={products} 
                             className="text-[10px] font-bold text-blue-500 mt-1 ml-9"
@@ -689,7 +689,7 @@ const Logistics: React.FC = () => {
                     <span className="flex-1 pr-2">{data.quantity}X {data.name.substring(0, 25)}</span>
                     <span className="shrink-0">{formatCurrency(data.price, false)}</span>
                   </div>
-                  <AddonDisplay 
+                  <AddonDisplay showPrice onPriceFormat={(p) => new Intl.NumberFormat('pt-BR', {style: 'currency', currency: 'BRL'}).format(p)} 
                     addons={data.selectedAddons || []} 
                     products={products} 
                     className="text-[7px] font-bold uppercase text-slate-500 mt-0.5 ml-2"
@@ -774,7 +774,7 @@ const Logistics: React.FC = () => {
                       <span className="flex-1 pr-2">{data.quantity}X {data.name.substring(0, 25)}</span>
                       <span className="shrink-0">{formatCurrency(data.price, false)}</span>
                     </div>
-                    <AddonDisplay 
+                    <AddonDisplay showPrice onPriceFormat={(p) => new Intl.NumberFormat('pt-BR', {style: 'currency', currency: 'BRL'}).format(p)} 
                       addons={data.selectedAddons || []} 
                       products={products} 
                       className="text-[7px] font-bold uppercase text-slate-500 mt-0.5 ml-2"

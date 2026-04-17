@@ -795,7 +795,7 @@ const App: React.FC = () => {
                     <span className="leading-tight">{data.quantity}x {data.name}</span>
                     <span className="shrink-0">{formatCurrency(data.price * data.quantity, false)}</span>
                   </div>
-                  <AddonDisplay 
+                  <AddonDisplay showPrice onPriceFormat={(p) => new Intl.NumberFormat('pt-BR', {style: 'currency', currency: 'BRL'}).format(p)} 
                     addons={data.selectedAddons || []} 
                     products={products} 
                     className="text-[8px] font-bold uppercase text-slate-500 mt-0.5 ml-2"

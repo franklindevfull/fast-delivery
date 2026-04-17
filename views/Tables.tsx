@@ -831,7 +831,7 @@ const Tables: React.FC<TablesProps> = ({ currentUser }) => {
                                   <div key={i} className="flex flex-col bg-slate-50 dark:bg-slate-700/50 p-3 rounded-xl border border-slate-100 dark:border-slate-700">
                                     <p className="font-black text-slate-800 dark:text-white text-sm">{it.quantity}x <span className="uppercase">{prod?.name || 'Item Desconhecido'}</span></p>
                                     {it.observations && <span className="text-[10px] text-orange-500 font-bold bg-orange-50 dark:bg-orange-950/40 px-2 py-1 rounded-lg mt-1 w-fit">Obs: {it.observations}</span>}
-                                    <AddonDisplay
+                                    <AddonDisplay showPrice onPriceFormat={(p) => new Intl.NumberFormat('pt-BR', {style: 'currency', currency: 'BRL'}).format(p)}
                                       addons={it.selectedAddons || []}
                                       products={products}
                                       className="text-[10px] font-bold text-blue-600 mt-1 pl-1"
@@ -955,7 +955,7 @@ const Tables: React.FC<TablesProps> = ({ currentUser }) => {
                                 {it.observations}
                               </p>
                             )}
-                            <AddonDisplay
+                            <AddonDisplay showPrice onPriceFormat={(p) => new Intl.NumberFormat('pt-BR', {style: 'currency', currency: 'BRL'}).format(p)}
                               addons={it.selectedAddons || []}
                               products={products}
                               className="text-[10px] font-bold text-blue-600 mt-1 ml-8"
@@ -1239,7 +1239,7 @@ const Tables: React.FC<TablesProps> = ({ currentUser }) => {
                         <span>{it.quantity}x {it.product?.name.substring(0, 20)}</span>
                         <span>{formatCurrency(it.quantity * it.price)}</span>
                       </div>
-                      <AddonDisplay
+                      <AddonDisplay showPrice onPriceFormat={(p) => new Intl.NumberFormat('pt-BR', {style: 'currency', currency: 'BRL'}).format(p)}
                         addons={it.selectedAddons || []}
                         products={products}
                         className="text-[7px] font-bold uppercase text-slate-500 mt-0.5 ml-2"

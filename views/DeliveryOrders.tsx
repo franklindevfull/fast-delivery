@@ -363,7 +363,7 @@ const DeliveryOrders: React.FC<DeliveryOrdersProps> = ({ currentUser }) => {
                                                     <div className="flex gap-2 text-xs font-bold text-slate-600 dark:text-slate-400">
                                                       <span className="text-indigo-600 dark:text-indigo-400">{it.quantity}x</span> {it.product?.name || 'Item'}
                                                     </div>
-                                                    <AddonDisplay 
+                                                    <AddonDisplay showPrice onPriceFormat={(p) => new Intl.NumberFormat('pt-BR', {style: 'currency', currency: 'BRL'}).format(p)} 
                                                       addons={it.selectedAddons || []} 
                                                       products={products} 
                                                       className="text-[10px] font-bold text-blue-500 mt-0.5 ml-4"
@@ -642,7 +642,7 @@ const DeliveryOrders: React.FC<DeliveryOrdersProps> = ({ currentUser }) => {
                                         <span className="flex-1 pr-2">{data.quantity}X {data.name.substring(0, 25)}</span>
                                         <span className="shrink-0">{formatCurrency(data.price, false)}</span>
                                       </div>
-                                      <AddonDisplay 
+                                      <AddonDisplay showPrice onPriceFormat={(p) => new Intl.NumberFormat('pt-BR', {style: 'currency', currency: 'BRL'}).format(p)} 
                                         addons={data.selectedAddons || []} 
                                         products={products} 
                                         className="text-[7px] font-bold uppercase text-slate-500 mt-0.5 ml-2"

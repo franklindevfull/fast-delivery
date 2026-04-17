@@ -463,7 +463,7 @@ const TableDetails: React.FC<TableDetailsProps> = ({ table, user, onClose, onRef
                                                     {formatCurrency((item.price + (item.selectedAddons?.reduce((s: number, a: any) => s + a.price, 0) || 0)) * item.quantity)}
                                                 </p>
                                             </div>
-                                            <AddonDisplay 
+                                            <AddonDisplay showPrice onPriceFormat={(p) => new Intl.NumberFormat('pt-BR', {style: 'currency', currency: 'BRL'}).format(p)} 
                                                 addons={item.selectedAddons || []} 
                                                 products={products} 
                                                 className="mt-3 text-[9px] font-black text-blue-500 uppercase tracking-widest pl-0.5"

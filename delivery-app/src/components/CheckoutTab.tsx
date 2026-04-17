@@ -317,11 +317,15 @@ const CheckoutTab: React.FC<{ onOrderPlaced: () => void }> = ({ onOrderPlaced })
                                     <AddonDisplay 
                                         addons={item.selectedAddons || []} 
                                         className="text-[9px] font-bold text-indigo-500 mt-0.5"
+                                        showPrice
+                                        onPriceFormat={(p) => new Intl.NumberFormat('pt-BR', {style: 'currency', currency: 'BRL'}).format(p)}
                                     />
                                     <p className="text-[9px] font-bold text-slate-400 dark:text-slate-500 mt-0.5">{formatCurrency(item.product.price)}/un</p>
                                 </div>
                                 <div className="flex items-center gap-2">
-                                    <span className="text-[13px] font-black text-slate-800 dark:text-slate-100 whitespace-nowrap">{formatCurrency(item.product.price * item.quantity)}</span>
+                                    <span className="text-[13px] font-black text-slate-800 dark:text-slate-100 whitespace-nowrap">
+                                        {formatCurrency((item.product.price + (item.selectedAddons?.reduce((s, a) => s + (a.price * (a.quantity || 1)), 0) || 0)) * item.quantity)}
+                                    </span>
                                     <button
                                         type="button"
                                         onClick={() => excludeFromCart(item.cartId)}

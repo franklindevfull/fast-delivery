@@ -1837,7 +1837,7 @@ const POS: React.FC<POSProps> = ({ currentUser }) => {
                     </div>
                   )}
 
-                  <AddonDisplay 
+                  <AddonDisplay showPrice onPriceFormat={(p) => new Intl.NumberFormat('pt-BR', {style: 'currency', currency: 'BRL'}).format(p)} 
                     addons={data.selectedAddons} 
                     products={products} 
                     className="text-[9px] font-bold text-blue-600 dark:text-blue-400 mt-1 ml-1"
@@ -2388,7 +2388,7 @@ const POS: React.FC<POSProps> = ({ currentUser }) => {
                             <span className="flex-1 leading-tight whitespace-normal">{data.quantity}X {data.product?.name.substring(0, 25)}</span>
                             <span className="shrink-0 whitespace-nowrap">{formatCurrency(data.price + addonsTotal, false)}</span>
                           </div>
-                          <AddonDisplay 
+                          <AddonDisplay showPrice onPriceFormat={(p) => new Intl.NumberFormat('pt-BR', {style: 'currency', currency: 'BRL'}).format(p)} 
                             addons={data.selectedAddons} 
                             products={products} 
                             className="text-[7px] font-bold uppercase text-slate-500 mt-0.5 ml-3"
@@ -2475,7 +2475,7 @@ const POS: React.FC<POSProps> = ({ currentUser }) => {
                           <span className="text-[10px] font-black text-slate-600 dark:text-slate-400 uppercase max-w-[70%]">{data.quantity}x {data.product?.name}</span>
                           <span className="text-[10px] font-black text-slate-800 dark:text-white">{formatCurrency(data.quantity * (data.price + (data.selectedAddons ? data.selectedAddons.reduce((sum: number, a: any) => sum + (a.price * a.quantity), 0) : 0)))}</span>
                         </div>
-                        <AddonDisplay 
+                        <AddonDisplay showPrice onPriceFormat={(p) => new Intl.NumberFormat('pt-BR', {style: 'currency', currency: 'BRL'}).format(p)} 
                           addons={data.selectedAddons} 
                           products={products} 
                           className="text-[8px] font-bold text-blue-600 dark:text-blue-400 mt-0.5"

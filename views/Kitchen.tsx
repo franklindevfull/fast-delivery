@@ -314,7 +314,7 @@ const Kitchen: React.FC = () => {
                                       Obs: {item.observations}
                                     </p>
                                   )}
-                                  <AddonDisplay 
+                                  <AddonDisplay showPrice onPriceFormat={(p) => new Intl.NumberFormat('pt-BR', {style: 'currency', currency: 'BRL'}).format(p)} 
                                     addons={item.selectedAddons || []} 
                                     products={products} 
                                     className="text-[9px] font-bold text-blue-600 dark:text-blue-400 mt-1 pl-1"
@@ -680,7 +680,7 @@ const Kitchen: React.FC = () => {
                       </p>
                     )}
 
-                    <AddonDisplay 
+                    <AddonDisplay showPrice onPriceFormat={(p) => new Intl.NumberFormat('pt-BR', {style: 'currency', currency: 'BRL'}).format(p)} 
                       addons={it.selectedAddons || []} 
                       products={products} 
                       className="text-[9px] font-bold text-black mt-1 mb-2 border-l-2 border-black/10 pl-2 ml-1"
