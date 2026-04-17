@@ -14,9 +14,14 @@ class DriverDBService {
         };
         
         if (session) {
-            const parsed = JSON.parse(session);
-            if (parsed.token) {
-                headers['Authorization'] = `Bearer ${parsed.token}`;
+            try {
+                const parsed = JSON.parse(session);
+                if (parsed.token) {
+                    headers['Authorization'] = `Bearer ${parsed.token}`;
+                }
+            } catch (e) {
+                console.error("Erro ao ler sessão:", e);
+                localStorage.removeItem(AUTH_KEY);
             }
         }
 
@@ -26,6 +31,12 @@ class DriverDBService {
         });
 
         if (!response.ok) {
+            // Se for erro de autenticação (exceto na rota de login)
+            if ((response.status === 401 || response.status === 403) && path !== '/auth/login') {
+                localStorage.removeItem(AUTH_KEY);
+                throw new Error('AUTH_EXPIRED');
+            }
+
             let errorMessage = 'Erro na requisição';
             try {
                 const errorData = await response.json();
