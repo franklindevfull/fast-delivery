@@ -405,6 +405,7 @@ class APIDBService {
   }
 
   public async saveSettings(s: BusinessSettings) {
+    console.log('[DB] Saving settings:', s);
     await this.request('/settings', { method: 'POST', body: JSON.stringify(s) });
     await this.logAction(this.getCurrentSession()?.user || null, 'SYSTEM_UPDATE', `Configurações da loja alteradas.`);
   }

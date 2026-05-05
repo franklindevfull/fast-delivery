@@ -1077,14 +1077,14 @@ const OperatingHoursSettings: React.FC<{ settings: BusinessSettings, setSettings
     useEffect(() => {
         let currentHours: any[] = [];
         try {
-            currentHours = JSON.parse(settings.operatingHours);
+            currentHours = JSON.parse(settings.operatingHours || '[]');
         } catch { }
 
         if (!Array.isArray(currentHours) || currentHours.length === 0) {
             const defaults = daysOfWeek.map((day, ix) => ({ dayOfWeek: ix, isOpen: true, openTime: '18:00', closeTime: '23:59' }));
             setSettings({ ...settings, operatingHours: JSON.stringify(defaults) });
         }
-    }, []);
+    }, [settings.operatingHours]); // Reage se as horas forem resetadas ou mudarem externamente
 
     const updateHour = (ix: number, field: string, value: any) => {
         const newHours = [...hours];
@@ -1150,7 +1150,7 @@ const OperatingHoursSettings: React.FC<{ settings: BusinessSettings, setSettings
                 ))}
             </div>
 
-            <button type="submit" className="w-full md:w-auto bg-blue-600 text-white px-12 py-5 rounded-2xl font-black uppercase text-xs tracking-widest hover:bg-blue-700 transition-all shadow-2xl shadow-blue-100">Salvar Horários</button>
+            <button type="submit" className="w-full md:w-auto bg-blue-600 text-white px-12 py-5 rounded-2xl font-black uppercase text-xs tracking-widest hover:bg-blue-700 active:scale-95 transition-all shadow-2xl shadow-blue-100">Salvar Horários</button>
         </form>
     );
 };
@@ -1253,8 +1253,12 @@ const Settings: React.FC<SettingsProps> = ({ settings, setSettings, onReset }) =
                                     <input type="text" className="w-full p-4 bg-slate-50 dark:bg-slate-800 border-none rounded-2xl focus:ring-4 focus:ring-blue-50 dark:focus:ring-blue-900/20 transition-all font-bold text-sm text-slate-800 dark:text-white" value={settings.name} onChange={e => setSettings({ ...settings, name: e.target.value })} />
                                 </div>
                                 <div className="space-y-2">
-                                    <label className="text-[10px] font-black text-slate-400 dark:text-slate-500 uppercase tracking-widest ml-1">CNPJ / CPF</label>
+                                    <label className="text-[10px] font-black text-slate-400 dark:text-slate-500 uppercase tracking-widest ml-1">CNPJ da Empresa</label>
                                     <input type="text" className="w-full p-4 bg-slate-50 dark:bg-slate-800 border-none rounded-2xl focus:ring-4 focus:ring-blue-50 dark:focus:ring-blue-900/20 transition-all font-bold text-sm text-slate-800 dark:text-white" value={settings.cnpj} onChange={e => setSettings({ ...settings, cnpj: e.target.value })} />
+                                </div>
+                                <div className="space-y-2">
+                                    <label className="text-[10px] font-black text-slate-400 dark:text-slate-500 uppercase tracking-widest ml-1">Telefone de Contato</label>
+                                    <input type="text" className="w-full p-4 bg-slate-50 dark:bg-slate-800 border-none rounded-2xl focus:ring-4 focus:ring-blue-50 dark:focus:ring-blue-900/20 transition-all font-bold text-sm text-slate-800 dark:text-white" value={settings.phone || ''} onChange={e => setSettings({ ...settings, phone: e.target.value })} placeholder="(00) 00000-0000" />
                                 </div>
                                 <div className="space-y-2">
                                     <h4 className="text-[10px] font-black text-slate-400 dark:text-slate-500 uppercase tracking-widest ml-1">Quantidade de Mesas</h4>
@@ -1526,7 +1530,7 @@ const Settings: React.FC<SettingsProps> = ({ settings, setSettings, onReset }) =
                                 </div>
                             </div>
 
-                            <button type="submit" className="w-full md:w-auto bg-blue-600 text-white px-12 py-5 rounded-2xl font-black uppercase text-xs tracking-widest hover:bg-blue-700 transition-all shadow-2xl shadow-blue-100">Salvar Dados da Empresa</button>
+                            <button type="submit" className="w-full md:w-auto bg-blue-600 text-white px-12 py-5 rounded-2xl font-black uppercase text-xs tracking-widest hover:bg-blue-700 active:scale-95 transition-all shadow-2xl shadow-blue-100">Salvar Dados da Empresa</button>
                         </form>
                     </div>
                 )}
