@@ -393,13 +393,13 @@ const Receivables: React.FC<ReceivablesProps> = ({ currentUser, setActiveTab }) 
                                                 <div className="flex items-center gap-4">
                                                     <div className="w-8 h-8 rounded-lg bg-white dark:bg-slate-700 flex items-center justify-center font-black text-xs text-slate-400 dark:text-slate-500">{item.quantity}x</div>
                                                     <div>
-                                                        <p className="text-xs font-black text-slate-800 dark:text-white uppercase tracking-tight">{prod?.name || item.product?.name || 'Produto'} {formatCurrency(item.price, false)}</p>
+                                                        <p className="text-xs font-black text-slate-800 dark:text-white uppercase tracking-tight">{(prod?.isPizza || (item.pizzaFlavors && item.pizzaFlavors.length > 0)) ? 'PIZZA ASSADA' : (prod?.name || item.product?.name || 'Produto')} {formatCurrency(item.price, false)}</p>
                                                         {item.observations && <p className="text-[8px] text-slate-400 dark:text-slate-500 font-bold uppercase">{item.observations}</p>}
                                                     </div>
                                                 </div>
                                                 <span className="text-[10px] font-black text-slate-800 dark:text-white tracking-tight">{formatCurrency(item.price * item.quantity)}</span>
                                             </div>
-                                            <AddonDisplay 
+                                            <AddonDisplay showPrice onPriceFormat={(p) => new Intl.NumberFormat('pt-BR', {style: 'currency', currency: 'BRL'}).format(p)} 
                                                 addons={item.selectedAddons || []} 
                                                 products={availableProducts} 
                                                 className="text-[10px] font-bold text-blue-500 ml-12"
@@ -548,10 +548,10 @@ const Receivables: React.FC<ReceivablesProps> = ({ currentUser, setActiveTab }) 
                                 return (
                                     <div key={idx} className="border-b border-dotted border-black/10 py-1">
                                         <div className="flex justify-between items-start font-black uppercase text-[8px] gap-2">
-                                            <span className="flex-1 leading-tight">{item.quantity}x {prod?.name.substring(0, 25) || item.product?.name?.substring(0, 25) || 'Item'}</span>
+                                            <span className="flex-1 leading-tight shrink-text">{item.quantity}x {(prod?.isPizza || (item.pizzaFlavors && item.pizzaFlavors.length > 0)) ? 'PIZZA ASSADA' : (prod?.name.substring(0, 25) || item.product?.name?.substring(0, 25) || 'Item')}</span>
                                             <span className="whitespace-nowrap">{formatCurrency(item.price, false)}</span>
                                         </div>
-                                        <AddonDisplay 
+                                        <AddonDisplay showPrice onPriceFormat={(p) => new Intl.NumberFormat('pt-BR', {style: 'currency', currency: 'BRL'}).format(p)} 
                                             addons={item.selectedAddons || []} 
                                             products={availableProducts} 
                                             className="text-[7px] font-bold uppercase text-slate-500 mt-0.5 ml-2"

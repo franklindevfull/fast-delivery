@@ -189,14 +189,19 @@ const SalesMonitor: React.FC = () => {
     const grouped: Record<string, { product: Product | undefined, quantity: number, price: number }> = {};
     if (printingOrder && Array.isArray(printingOrder.items)) {
       printingOrder.items.forEach(item => {
-        if (!grouped[item.productId]) {
-          grouped[item.productId] = {
-            product: products.find(p => p.id === item.productId),
+        const p = products.find(prod => prod.id === item.productId);
+        const isPizza = !!(p?.isPizza || (item.pizzaFlavors && item.pizzaFlavors.length > 0));
+        const key = item.productId + (isPizza ? '_pizza' : '');
+
+        if (!grouped[key]) {
+          grouped[key] = {
+            product: p,
             quantity: 0,
-            price: item.price
+            price: item.price,
+            isPizza
           };
         }
-        grouped[item.productId].quantity += item.quantity;
+        grouped[key].quantity += item.quantity;
       });
     }
     return Object.entries(grouped);
@@ -361,7 +366,7 @@ const SalesMonitor: React.FC = () => {
                             return (
                               <tr key={id} className="uppercase">
                                 <td>{ncmCode.substring(0, 6)}</td>
-                                <td>{prodName.substring(0, 20)}</td>
+                                <td className="shrink-text">{data.isPizza ? 'PIZZA ASSADA' : prodName.substring(0, 20)}</td>
                                 <td className="text-right">{data.quantity}</td>
                                 <td className="text-right">{formatCurrency(data.price, false)}</td>
                                 <td className="text-right">{formatCurrency(data.quantity * data.price, false)}</td>
@@ -447,7 +452,7 @@ const SalesMonitor: React.FC = () => {
                         const prodName = data.product?.name || `PROD #${id.substring(0, 5)}`;
                         return (
                           <div key={id} className="flex justify-between items-start font-bold uppercase py-0.5 text-[8px] gap-2">
-                            <span className="flex-1 leading-tight">{data.quantity}x {prodName.substring(0, 25)}</span>
+                            <span className="flex-1 leading-tight shrink-text">{data.quantity}x {data.isPizza ? 'PIZZA ASSADA' : prodName.substring(0, 25)}</span>
                             <span className="whitespace-nowrap">{formatCurrency(data.price, false)}</span>
                           </div>
                         );
@@ -458,7 +463,7 @@ const SalesMonitor: React.FC = () => {
 
                     <div className="space-y-0.5">
                       <div className="flex justify-between items-center text-[8px] font-bold uppercase">
-                        <span>SUBTOTAL:</span>
+                        <span>{printingOrder.type === SaleType.OWN_DELIVERY ? 'VALOR DO PEDIDO:' : 'SUBTOTAL:'}</span>
                         <span>{formatCurrency(printingOrder.total - (printingOrder.type === SaleType.OWN_DELIVERY ? (printingOrder.deliveryFee || 0) : 0) - (printingOrder.type === SaleType.TABLE ? (printingOrder.appliedServiceFee || 0) : 0))}</span>
                       </div>
                       {printingOrder.type === SaleType.OWN_DELIVERY && printingOrder.deliveryFee !== undefined && printingOrder.deliveryFee > 0 && (

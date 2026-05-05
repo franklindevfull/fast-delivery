@@ -302,7 +302,7 @@ const Kitchen: React.FC = () => {
                                 )}
                                 <div className="flex-1 min-w-0">
                                   <p className={`font-black text-slate-700 dark:text-slate-300 uppercase text-[11px] truncate ${isReady ? 'line-through text-slate-500 dark:text-slate-500' : ''}`}>
-                                    <span className="text-blue-600 dark:text-blue-400 text-xs">{item.quantity}x</span> {product?.name}
+                                    <span className="text-blue-600 dark:text-blue-400 text-xs">{item.quantity}x</span> {(product?.isPizza || (item.pizzaFlavors && item.pizzaFlavors.length > 0)) ? 'PIZZA ASSADA' : product?.name}
                                     {item.selectedAddons && item.selectedAddons.length > 0 && (
                                       <span className="ml-2 text-[8px] bg-blue-100 dark:bg-blue-900/40 text-blue-600 dark:text-blue-400 px-1.5 py-0.5 rounded-md font-black uppercase tracking-widest">
                                         + Adicionais
@@ -421,7 +421,6 @@ const Kitchen: React.FC = () => {
                     <th className="px-8 py-5 text-[10px] font-black text-slate-400 dark:text-slate-500 uppercase tracking-widest">Tipo / Origem</th>
                     <th className="px-8 py-5 text-[10px] font-black text-slate-400 dark:text-slate-500 uppercase tracking-widest">Atendimento</th>
                     <th className="px-8 py-5 text-[10px] font-black text-slate-400 dark:text-slate-500 uppercase tracking-widest">Data / Hora</th>
-                    <th className="px-8 py-5 text-[10px] font-black text-slate-400 dark:text-slate-500 uppercase tracking-widest">Total</th>
                     <th className="px-8 py-5 text-[10px] font-black text-slate-400 dark:text-slate-500 uppercase tracking-widest text-right">Ações</th>
                   </tr>
                 </thead>
@@ -461,11 +460,7 @@ const Kitchen: React.FC = () => {
                           </p>
                         </div>
                       </td>
-                      <td className="px-8 py-5">
-                        <p className="text-[11px] font-black text-blue-600 dark:text-blue-400">
-                          {formatCurrency(order.total || 0)}
-                        </p>
-                      </td>
+
                       <td className="px-8 py-5">
                         <div className="flex justify-end gap-2">
                           <button
@@ -579,19 +574,21 @@ const Kitchen: React.FC = () => {
                   
                   const hasFlavors = it.pizzaFlavors && Array.isArray(it.pizzaFlavors) && it.pizzaFlavors.length > 0;
                   
-                  // Adiciona o produto principal apenas se não houver sabores (evita duplicidade em pizzas)
-                  if (!hasFlavors && ((product?.recipe && product.recipe.length > 0) || product?.preparation)) {
-                    fichasMap.set(product?.id || 'main', { id: `${it.uid}-main`, name: product?.name });
+                  // Adiciona o produto principal 
+                  // Sempre adiciona se for pizza para garantir que o tamanho apareça, ou se tiver ficha
+                  if (!hasFlavors || product?.isPizza) {
+                    if ((product?.recipe && product.recipe.length > 0) || product?.preparation || product?.isPizza) {
+                      fichasMap.set(product?.id || 'main', { id: `${it.uid}-main`, name: product?.name });
+                    }
                   }
                   
                   if (it.pizzaFlavors && Array.isArray(it.pizzaFlavors)) {
                     it.pizzaFlavors.forEach((pf: any) => {
-                      // Se já adicionamos este produto (mesmo como principal), pulamos
+                      // Se já adicionamos este produto (mesmo como principal), pulamos se o nome for igual
                       if (!fichasMap.has(pf.productId)) {
                         const flavorProd = products.find(p => p.id === pf.productId);
-                        if ((flavorProd?.recipe && flavorProd.recipe.length > 0) || flavorProd?.preparation) {
-                          fichasMap.set(pf.productId, { id: `${it.uid}-${pf.productId}`, name: flavorProd?.name });
-                        }
+                        // Sempre adiciona sabores de pizza na lista de opções
+                        fichasMap.set(pf.productId, { id: `${it.uid}-${pf.productId}`, name: flavorProd?.name || pf.name });
                       }
                     });
                   }
@@ -671,7 +668,7 @@ const Kitchen: React.FC = () => {
                 return (
                   <div key={idx} className="border-b border-dotted border-black/10 last:border-0 py-1">
                     <div className={`flex justify-between font-bold uppercase ${isReady && viewTab === 'FILA' ? 'line-through opacity-50' : ''}`}>
-                      <span className="text-[11px]">{it.quantity}X {(product?.name || 'Item').substring(0, 20)}</span>
+                      <span className="text-[11px] shrink-text">{it.quantity}X {(product?.isPizza || (it.pizzaFlavors && it.pizzaFlavors.length > 0)) ? 'PIZZA ASSADA' : (product?.name || 'Item')}</span>
                     </div>
                     
                     {it.observations && (
@@ -692,27 +689,29 @@ const Kitchen: React.FC = () => {
                       
                       const hasFlavors = it.pizzaFlavors && Array.isArray(it.pizzaFlavors) && it.pizzaFlavors.length > 0;
                       
-                      // Adiciona o produto principal apenas se não houver sabores (evita duplicidade em pizzas)
-                      if (!hasFlavors && ((product?.recipe && product.recipe.length > 0) || product?.preparation)) {
-                        fichasMap.set(product?.id || 'main', { id: `${it.uid}-main`, name: product?.name, recipe: product?.recipe, preparation: product?.preparation });
+                      // Adiciona o produto principal se não houver sabores ou se for pizza
+                      if (!hasFlavors || product?.isPizza) {
+                        if ((product?.recipe && product.recipe.length > 0) || product?.preparation || product?.isPizza) {
+                          fichasMap.set(product?.id || 'main', { id: `${it.uid}-main`, name: product?.name, recipe: product?.recipe, preparation: product?.preparation });
+                        }
                       }
 
                       if (it.pizzaFlavors && Array.isArray(it.pizzaFlavors)) {
                         it.pizzaFlavors.forEach((pf: any) => {
                           if (!fichasMap.has(pf.productId)) {
                             const flavorProd = products.find(p => p.id === pf.productId);
-                            if ((flavorProd?.recipe && flavorProd.recipe.length > 0) || flavorProd?.preparation) {
-                              fichasMap.set(pf.productId, { id: `${it.uid}-${pf.productId}`, name: flavorProd?.name, recipe: flavorProd?.recipe, preparation: flavorProd?.preparation });
-                            }
+                            fichasMap.set(pf.productId, { id: `${it.uid}-${pf.productId}`, name: flavorProd?.name || pf.name, recipe: flavorProd?.recipe, preparation: flavorProd?.preparation });
                           }
                         });
                       }
 
                       const itemsWithRecipe = Array.from(fichasMap.values()).filter(f => !excludedFichas.has(f.id));
 
-                      if (itemsWithRecipe.length === 0) return null;
+                      return itemsWithRecipe.map((info, infoIdx) => {
+                        const hasContent = (info.recipe && info.recipe.length > 0) || info.preparation;
+                        if (!hasContent) return null;
 
-                      return itemsWithRecipe.map((info, infoIdx) => (
+                        return (
                         <div key={infoIdx} className="mt-1 ml-1 p-1 border-l-2 border-black/20 bg-slate-50">
                           <p className="text-[9px] font-black uppercase mb-0.5 border-b border-black/10">Ficha Técnica: {info.name}</p>
                           
@@ -739,8 +738,9 @@ const Kitchen: React.FC = () => {
                             </div>
                           )}
                         </div>
-                      ));
-                    })()}
+                      );
+                    })
+                  })()}
                   </div>
                 );
               })}
@@ -748,12 +748,7 @@ const Kitchen: React.FC = () => {
 
             <div className="section-divider"></div>
 
-            {viewTab === 'HISTORICO' && (
-              <div className="flex justify-between items-end">
-                <span className="font-bold text-[9px] uppercase">TOTAL:</span>
-                <span className="text-sm font-bold">{formatCurrency(printingOrder.total || 0)}</span>
-              </div>
-            )}
+
 
             {viewTab === 'FILA' && (
               <div className="text-center pt-1 mb-2">

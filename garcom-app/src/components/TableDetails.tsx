@@ -444,7 +444,7 @@ const TableDetails: React.FC<TableDetailsProps> = ({ table, user, onClose, onRef
                                         <div className="flex justify-between items-start gap-4">
                                             <div className="flex-1 min-w-0">
                                                 <p className="text-sm font-black text-slate-800 uppercase tracking-tight leading-tight mb-0.5 break-words">
-                                                    {item.quantity}x {item.productName || item.product?.name || 'Item'} {formatCurrency(item.price, false)}
+                                                    {item.quantity}x {(item.isPizza || (item.pizzaFlavors && item.pizzaFlavors.length > 0)) ? 'PIZZA ASSADA' : (item.productName || item.product?.name || 'Item')} {formatCurrency(item.price, false)}
                                                 </p>
 
                                                 <div className="flex flex-wrap items-center gap-x-3 gap-y-1 mt-1.5">
@@ -472,7 +472,7 @@ const TableDetails: React.FC<TableDetailsProps> = ({ table, user, onClose, onRef
                                                     {formatCurrency((item.price + (item.selectedAddons?.reduce((s: number, a: any) => s + a.price, 0) || 0)) * item.quantity)}
                                                 </p>
                                             </div>
-                                            <AddonDisplay 
+                                            <AddonDisplay showPrice onPriceFormat={(p) => new Intl.NumberFormat('pt-BR', {style: 'currency', currency: 'BRL'}).format(p)} 
                                                 addons={item.selectedAddons || []} 
                                                 products={products} 
                                                 className="mt-3 text-[9px] font-black text-blue-500 uppercase tracking-widest pl-0.5"
@@ -582,7 +582,9 @@ const TableDetails: React.FC<TableDetailsProps> = ({ table, user, onClose, onRef
                                 {pendingItems.map((item: any, ix: number) => (
                                     <div key={ix} className="premium-card p-5 flex justify-between items-center border-amber-100 bg-amber-50/20">
                                         <div>
-                                            <p className="text-sm font-black text-slate-800 uppercase tracking-tight">{item.quantity}x {item.productName || 'Item'} {formatCurrency(item.price, false)}</p>
+                                            <p className="text-sm font-black text-slate-800 uppercase tracking-tight">
+                                                {item.quantity}x {(item.isPizza || (item.pizzaFlavors && item.pizzaFlavors.length > 0)) ? 'PIZZA ASSADA' : (item.productName || 'Item')} {formatCurrency(item.price, false)}
+                                            </p>
                                             {item.observations && <p className="text-[10px] text-amber-600 font-bold uppercase mt-1 italic tracking-tight">Obs: {item.observations}</p>}
                                         </div>
                                         <div className="text-right">

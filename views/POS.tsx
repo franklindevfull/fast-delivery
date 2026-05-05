@@ -219,41 +219,41 @@ const POS: React.FC<POSProps> = ({ currentUser }) => {
 
 
   const refreshAllData = async () => {
-    const [p, o, s, c, ts, cs, recs, dz, ags] = await Promise.all([
-      db.getProducts(),
-      db.getOrders(),
-      db.getSettings(),
-      db.getClients(),
-      db.getTableSessions(),
-      db.getActiveCashSession(),
-      db.getReceivables(),
-      db.getDeliveryZones(),
-      db.getAddonGroups()
-    ]);
-    
-    // Sort products: Featured first, then alphabetical
-    const sortedProducts = p.sort((a, b) => {
-      if (a.isFeatured && !b.isFeatured) return -1;
-      if (!a.isFeatured && b.isFeatured) return 1;
-      return a.name.localeCompare(b.name);
-    });
-
-    setProducts(sortedProducts);
-    setOrders(o);
-    setBusinessSettings(s);
-    setClients(c);
-    setDeliveryZones(dz || []);
-    setPendingTables(ts.filter(t => t.status === 'billing'));
-    setPendingCounterOrders(o.filter(order => order.type === SaleType.COUNTER && order.status === OrderStatus.READY));
-    setPendingReceivables(recs?.filter((r: any) => r.status === 'PROCESSING') || []);
-    setActiveCashSession(cs);
-    setAddonGroups(ags || []);
-
     try {
+      const [p, o, s, c, ts, cs, recs, dz, ags] = await Promise.all([
+        db.getProducts(),
+        db.getOrders(),
+        db.getSettings(),
+        db.getClients(),
+        db.getTableSessions(),
+        db.getActiveCashSession(),
+        db.getReceivables(),
+        db.getDeliveryZones(),
+        db.getAddonGroups()
+      ]);
+      
+      // Sort products: Featured first, then alphabetical
+      const sortedProducts = p.sort((a, b) => {
+        if (a.isFeatured && !b.isFeatured) return -1;
+        if (!a.isFeatured && b.isFeatured) return 1;
+        return a.name.localeCompare(b.name);
+      });
+
+      setProducts(sortedProducts);
+      setOrders(o);
+      setBusinessSettings(s);
+      setClients(c);
+      setDeliveryZones(dz || []);
+      setPendingTables(ts.filter(t => t.status === 'billing'));
+      setPendingCounterOrders(o.filter(order => order.type === SaleType.COUNTER && order.status === OrderStatus.READY));
+      setPendingReceivables(recs?.filter((r: any) => r.status === 'PROCESSING') || []);
+      setActiveCashSession(cs);
+      setAddonGroups(ags || []);
+
       const fb = await db.getFeedbacks();
       setFeedbacks(fb);
     } catch (e) {
-      console.error('Error fetching feedbacks in POS', e);
+      console.error('Error refreshing POS data:', e);
     }
   };
 
@@ -1105,6 +1105,8 @@ const POS: React.FC<POSProps> = ({ currentUser }) => {
     const grouped: Record<string, { product: Product | undefined, quantity: number, price: number, isSubItem?: boolean; notes?: string; selectedAddons?: any[] }> = {};
     if (printingOrder && Array.isArray(printingOrder.items)) {
       printingOrder.items.forEach(item => {
+        const product = products.find(p => p.id === item.productId);
+        const isPizza = !!(product?.isPizza || item.pizzaFlavors?.length > 0);
         const isFractioned = businessSettings?.pizzaNfeRule === 'FRACTIONED' && item.pizzaFlavors && Array.isArray(item.pizzaFlavors) && item.pizzaFlavors.length > 0;
         
         if (isFractioned) {
@@ -1126,10 +1128,11 @@ const POS: React.FC<POSProps> = ({ currentUser }) => {
 
            if (!grouped[gKey]) {
              grouped[gKey] = {
-               product: products.find(p => p.id === item.productId),
+               product,
                quantity: 0,
                price: item.price,
                selectedAddons: item.selectedAddons,
+               isPizza,
                notes: item.pizzaFlavors && item.pizzaFlavors.length > 0 ? `Sabores: ${item.pizzaFlavors.map((f:any) => f.name).join(', ')}` : (item.observations || undefined)
              };
            }
@@ -1837,7 +1840,7 @@ const POS: React.FC<POSProps> = ({ currentUser }) => {
                     </div>
                   )}
 
-                  <AddonDisplay 
+                  <AddonDisplay showPrice onPriceFormat={(p) => new Intl.NumberFormat('pt-BR', {style: 'currency', currency: 'BRL'}).format(p)} 
                     addons={data.selectedAddons} 
                     products={products} 
                     className="text-[9px] font-bold text-blue-600 dark:text-blue-400 mt-1 ml-1"
@@ -2381,14 +2384,15 @@ const POS: React.FC<POSProps> = ({ currentUser }) => {
 
                   <div className="mb-1 border-t border-black pt-1">
                     {groupedPrintingItems.map(([id, data]) => {
-                      const addonsTotal = data.selectedAddons ? data.selectedAddons.reduce((sum: number, a: any) => sum + (a.price * a.quantity), 0) : 0;
+                      const isPizza = (data as any).isPizza;
+                      const displayName = isPizza ? 'PIZZA ASSADA' : (data.product?.name || 'PRODUTO');
                       return (
                         <div key={id} className={`flex flex-col py-0.5 ${(data.notes || data.selectedAddons) ? 'mb-1 border-b border-dotted border-black/10 pb-1' : ''}`}>
                           <div className="flex justify-between items-start font-bold uppercase text-[8px] gap-2">
-                            <span className="flex-1 leading-tight whitespace-normal">{data.quantity}X {data.product?.name.substring(0, 25)}</span>
-                            <span className="shrink-0 whitespace-nowrap">{formatCurrency(data.price + addonsTotal, false)}</span>
+                            <span className="flex-1 leading-tight whitespace-normal shrink-text">{data.quantity}X {displayName}</span>
+                            <span className="shrink-0 whitespace-nowrap">{formatCurrency(data.price * data.quantity, false)}</span>
                           </div>
-                          <AddonDisplay 
+                          <AddonDisplay showPrice onPriceFormat={(p) => new Intl.NumberFormat('pt-BR', {style: 'currency', currency: 'BRL'}).format(p)} 
                             addons={data.selectedAddons} 
                             products={products} 
                             className="text-[7px] font-bold uppercase text-slate-500 mt-0.5 ml-3"
@@ -2403,9 +2407,20 @@ const POS: React.FC<POSProps> = ({ currentUser }) => {
 
                   <div className="border-t border-black pt-1">
                     <div className="flex justify-between items-center text-[8px] font-bold uppercase">
-                      <span>SUBTOTAL:</span>
-                      <span>{formatCurrency(printingOrder.total - (printingOrder.appliedServiceFee || 0))}</span>
+                      <span>{['DELIVERY', 'OWN_DELIVERY', 'THIRD_PARTY'].includes(printingOrder.type?.toUpperCase() || '') ? 'VALOR DO PEDIDO:' : 'SUBTOTAL:'}</span>
+                      <span>
+                        {formatCurrency(groupedPrintingItems.reduce((acc, [id, data]) => {
+                          const addons = data.selectedAddons ? data.selectedAddons.reduce((s: number, a: any) => s + (a.price * a.quantity), 0) : 0;
+                          return acc + (data.quantity * (data.price + addons));
+                        }, 0))}
+                      </span>
                     </div>
+                    {printingOrder.deliveryFee !== undefined && printingOrder.deliveryFee > 0 && (
+                      <div className="flex justify-between items-center text-[8px] font-bold uppercase">
+                        <span>TAXA ENTREGA:</span>
+                        <span>{formatCurrency(printingOrder.deliveryFee)}</span>
+                      </div>
+                    )}
                     {printingOrder.appliedServiceFee !== undefined && printingOrder.appliedServiceFee > 0 && (
                       <div className="flex justify-between items-center text-[8px] font-bold uppercase">
                         <span>TAXA SERVICO:</span>
@@ -2475,7 +2490,7 @@ const POS: React.FC<POSProps> = ({ currentUser }) => {
                           <span className="text-[10px] font-black text-slate-600 dark:text-slate-400 uppercase max-w-[70%]">{data.quantity}x {data.product?.name}</span>
                           <span className="text-[10px] font-black text-slate-800 dark:text-white">{formatCurrency(data.quantity * (data.price + (data.selectedAddons ? data.selectedAddons.reduce((sum: number, a: any) => sum + (a.price * a.quantity), 0) : 0)))}</span>
                         </div>
-                        <AddonDisplay 
+                        <AddonDisplay showPrice onPriceFormat={(p) => new Intl.NumberFormat('pt-BR', {style: 'currency', currency: 'BRL'}).format(p)} 
                           addons={data.selectedAddons} 
                           products={products} 
                           className="text-[8px] font-bold text-blue-600 dark:text-blue-400 mt-0.5"

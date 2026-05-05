@@ -54,12 +54,27 @@
   font-family: 'Lucida Console', Consolas, monospace !important;
   width: 48mm !important;
   min-height: 40mm !important;
-  padding: 2mm !important;
+  padding: 5mm !important;
   box-sizing: border-box !important;
   margin: 0 auto !important;
   position: relative;
   word-wrap: break-word;
   white-space: normal;
+}
+
+.shrink-text {
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: clip;
+  display: inline-block;
+  transform-origin: left;
+  max-width: 100%;
+}
+
+@supports (font-size: clamp(1px, 1px, 1px)) {
+  .shrink-text {
+    font-size: clamp(8px, 3.5mm, 12px);
+  }
 }
 
 /* Ensure all text inside receipt is black regardless of dark mode, except for UI elements */

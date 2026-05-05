@@ -203,11 +203,12 @@ const Logistics: React.FC = () => {
   const groupedItems = useMemo(() => {
     const order = printingOrder || printingHistoryOrder;
     if (!order) return [];
-    const grouped: Record<string, { name: string, quantity: number, price: number, selectedAddons: any[], observations?: string }> = {};
+    const grouped: Record<string, { name: string, quantity: number, price: number, selectedAddons: any[], observations?: string, isPizza: boolean }> = {};
     order.items.forEach(item => {
       const prod = products.find(p => p.id === item.productId);
+      const isPizza = !!(prod?.isPizza || (item.pizzaFlavors && item.pizzaFlavors.length > 0));
       const addonKey = item.selectedAddons ? JSON.stringify(item.selectedAddons.map((a: any) => ({ id: a.id, quantity: a.quantity })).sort((a: any, b: any) => a.id.localeCompare(b.id))) : '';
-      const key = (item.productId || item.product?.id || 'unknown') + (item.observations || '') + addonKey;
+      const key = (item.productId || item.product?.id || 'unknown') + (item.observations || '') + addonKey + (isPizza ? '_pizza' : '');
       
       if (!grouped[key]) {
         grouped[key] = {
@@ -215,7 +216,8 @@ const Logistics: React.FC = () => {
           quantity: 0,
           price: item.price,
           selectedAddons: item.selectedAddons || [],
-          observations: item.observations
+          observations: item.observations,
+          isPizza
         };
       }
       grouped[key].quantity += (item.quantity || 1);
@@ -606,11 +608,11 @@ const Logistics: React.FC = () => {
                               <span className="w-6 h-6 flex items-center justify-center bg-slate-900 dark:bg-blue-600 text-white text-[10px] font-black rounded-lg">
                                 {item.quantity}x
                               </span>
-                              <span className="text-[11px] font-black text-slate-700 dark:text-slate-200 uppercase">{prod?.name || item.product?.name || '...'}</span>
+                              <span className="text-[11px] font-black text-slate-700 dark:text-slate-200 uppercase">{(prod?.isPizza || (item.pizzaFlavors && item.pizzaFlavors.length > 0)) ? 'PIZZA ASSADA' : (prod?.name || item.product?.name || '...')}</span>
                             </div>
                             <span className="text-[11px] font-black text-slate-400 dark:text-slate-500">{formatCurrency(item.price, false)}</span>
                           </div>
-                          <AddonDisplay 
+                          <AddonDisplay showPrice onPriceFormat={(p) => new Intl.NumberFormat('pt-BR', {style: 'currency', currency: 'BRL'}).format(p)} 
                             addons={item.selectedAddons || []} 
                             products={products} 
                             className="text-[10px] font-bold text-blue-500 mt-1 ml-9"
@@ -686,10 +688,10 @@ const Logistics: React.FC = () => {
               {groupedItems.map(([id, data]: [string, any]) => (
                 <div key={id} className="border-b border-dotted border-black/10 py-1">
                   <div className="flex justify-between font-bold uppercase text-[10px]">
-                    <span className="flex-1 pr-2">{data.quantity}X {data.name.substring(0, 25)}</span>
-                    <span className="shrink-0">{formatCurrency(data.price, false)}</span>
+                    <span className="flex-1 pr-2 shrink-text">{data.quantity}X {data.isPizza ? 'PIZZA ASSADA' : data.name.substring(0, 25)}</span>
+                    <span className="shrink-0">{formatCurrency(data.price * data.quantity, false)}</span>
                   </div>
-                  <AddonDisplay 
+                  <AddonDisplay showPrice onPriceFormat={(p) => new Intl.NumberFormat('pt-BR', {style: 'currency', currency: 'BRL'}).format(p)} 
                     addons={data.selectedAddons || []} 
                     products={products} 
                     className="text-[7px] font-bold uppercase text-slate-500 mt-0.5 ml-2"
@@ -702,6 +704,16 @@ const Logistics: React.FC = () => {
             </div>
 
             <div className="section-divider"></div>
+
+            <div className="flex justify-between items-center py-0.5 text-[9px] uppercase font-bold">
+              <span>{printingOrder?.type === 'OWN_DELIVERY' ? 'SUBTOTAL' : 'VALOR DO PEDIDO'}:</span>
+              <span>
+                {formatCurrency(groupedItems.reduce((acc, [id, data]: [string, any]) => {
+                  const addons = data.selectedAddons ? data.selectedAddons.reduce((s: number, a: any) => s + (a.price * a.quantity), 0) : 0;
+                  return acc + (data.quantity * (data.price + addons));
+                }, 0))}
+              </span>
+            </div>
 
             <div className="flex justify-between items-center py-0.5 text-[9px]">
               <span className="uppercase font-bold">TAXA ENTREGA:</span>
@@ -771,10 +783,10 @@ const Logistics: React.FC = () => {
                 {groupedItems.map(([id, data]: [string, any]) => (
                   <div key={id} className="border-b border-dotted border-black/10 py-1">
                     <div className="flex justify-between font-bold uppercase text-[10px]">
-                      <span className="flex-1 pr-2">{data.quantity}X {data.name.substring(0, 25)}</span>
-                      <span className="shrink-0">{formatCurrency(data.price, false)}</span>
+                      <span className="flex-1 pr-2 shrink-text">{data.quantity}X {data.isPizza ? 'PIZZA ASSADA' : data.name.substring(0, 25)}</span>
+                      <span className="shrink-0">{formatCurrency(data.price * data.quantity, false)}</span>
                     </div>
-                    <AddonDisplay 
+                    <AddonDisplay showPrice onPriceFormat={(p) => new Intl.NumberFormat('pt-BR', {style: 'currency', currency: 'BRL'}).format(p)} 
                       addons={data.selectedAddons || []} 
                       products={products} 
                       className="text-[7px] font-bold uppercase text-slate-500 mt-0.5 ml-2"
@@ -788,6 +800,16 @@ const Logistics: React.FC = () => {
             )}
 
             <div className="section-divider"></div>
+
+            <div className="flex justify-between items-center py-0.5 text-[9px] uppercase font-bold">
+              <span>SUBTOTAL:</span>
+              <span>
+                {formatCurrency(groupedItems.reduce((acc, [id, data]: [string, any]) => {
+                  const addons = data.selectedAddons ? data.selectedAddons.reduce((s: number, a: any) => s + (a.price * a.quantity), 0) : 0;
+                  return acc + (data.quantity * (data.price + addons));
+                }, 0))}
+              </span>
+            </div>
 
             <div className="flex justify-between items-center py-0.5 text-[9px]">
               <span className="uppercase font-bold">TAXA ENTREGA:</span>

@@ -204,7 +204,7 @@ const CartModal: React.FC<CartModalProps> = ({ isOpen, onClose, cart, tableNumbe
                                     {item.pizzaFlavors && item.pizzaFlavors.length > 0 && (
                                         <p className="text-[10px] font-bold text-indigo-500 line-clamp-1">+ {item.pizzaFlavors.map(f => f.name).join(', ')}</p>
                                     )}
-                                    <AddonDisplay 
+                                    <AddonDisplay showPrice onPriceFormat={(p) => new Intl.NumberFormat('pt-BR', {style: 'currency', currency: 'BRL'}).format(p)} 
                                         addons={item.selectedAddons || []} 
                                         className="text-[10px] font-bold text-blue-500 mt-1"
                                     />

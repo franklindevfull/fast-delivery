@@ -479,7 +479,7 @@ const Home: React.FC<HomeProps> = ({ cart, addToCart, updateQuantity, onModalSta
 
                                     addToCart({
                                         ...selectedPizzaForLaunch, 
-                                        price: modalSubTotal / pizzaModalQuantity,
+                                        price: modalSubTotal / pizzaModalQuantity - (selectedAddons.reduce((sum, addon) => sum + addon.price, 0)),
                                         cartId: Math.random().toString(36).substr(2, 9),
                                         quantity: pizzaModalQuantity,
                                         pizzaFlavors: allFlavors,

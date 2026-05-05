@@ -62,18 +62,22 @@ const App: React.FC = () => {
 
   useEffect(() => {
     const init = async () => {
-      const session = db.getCurrentSession();
-      if (session) {
-        setCurrentUser(session.user);
+      try {
+        const session = db.getCurrentSession();
+        if (session) {
+          setCurrentUser(session.user);
+        }
+        const s = await db.getSettings();
+        setSettings(s);
+      } catch (error) {
+        console.error('Initialization error:', error);
+      } finally {
+        setIsLoading(false);
+        // SplashScreen timer - always fire to release the UI
+        setTimeout(() => {
+          setIsSplashVisible(false);
+        }, 3000);
       }
-      const s = await db.getSettings();
-      setSettings(s);
-      setIsLoading(false);
-
-      // SplashScreen timer
-      setTimeout(() => {
-        setIsSplashVisible(false);
-      }, 3000);
     };
     init();
   }, []);

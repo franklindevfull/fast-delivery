@@ -265,8 +265,11 @@ const App: React.FC = () => {
         playNotificationSound();
       }
       previousOrderCount.current = driverOrders.length;
-    } catch (e) {
+    } catch (e: any) {
       console.error("Erro ao atualizar dados:", e);
+      if (e.message === 'AUTH_EXPIRED') {
+        handleLogout();
+      }
     }
   };
 
@@ -367,7 +370,30 @@ const App: React.FC = () => {
     }
   }, [storeStatus]);
 
-  if (isLoading) return null;
+  if (isLoading || (currentUser && !driver && previousOrderCount.current === -1)) {
+    return (
+      <div className="flex flex-col items-center justify-center h-[100dvh] bg-slate-900 select-none">
+        <div className="w-20 h-20 bg-blue-600 rounded-[1.5rem] flex items-center justify-center shadow-2xl shadow-blue-500/20 mb-8 animate-pulse">
+          <span className="text-white font-black text-2xl tracking-tighter">EA</span>
+        </div>
+        <div className="flex flex-col items-center gap-3">
+          <div className="w-12 h-1 bg-slate-800 rounded-full overflow-hidden">
+            <div className="w-full h-full bg-blue-500 animate-loading-bar" />
+          </div>
+          <span className="text-[10px] font-black text-slate-500 uppercase tracking-[0.2em]">Sincronizando...</span>
+        </div>
+        <style>{`
+          @keyframes loading-bar {
+            0% { transform: translateX(-100%); }
+            100% { transform: translateX(100%); }
+          }
+          .animate-loading-bar {
+            animation: loading-bar 1.5s infinite linear;
+          }
+        `}</style>
+      </div>
+    );
+  }
 
   if (!currentUser) {
     return <Login onLoginSuccess={setCurrentUser} />;
@@ -795,7 +821,7 @@ const App: React.FC = () => {
                     <span className="leading-tight">{data.quantity}x {data.name}</span>
                     <span className="shrink-0">{formatCurrency(data.price * data.quantity, false)}</span>
                   </div>
-                  <AddonDisplay 
+                  <AddonDisplay showPrice onPriceFormat={(p) => new Intl.NumberFormat('pt-BR', {style: 'currency', currency: 'BRL'}).format(p)} 
                     addons={data.selectedAddons || []} 
                     products={products} 
                     className="text-[8px] font-bold uppercase text-slate-500 mt-0.5 ml-2"

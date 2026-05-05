@@ -567,19 +567,23 @@ const Tables: React.FC<TablesProps> = ({ currentUser }) => {
 
   // Lógica de agrupamento para exibição em cupons de mesa
   const getGroupedItems = (items: OrderItem[]) => {
-    const grouped: Record<string, { product: Product | undefined, quantity: number, price: number, allReady: boolean, observations?: string, selectedAddons: any[] }> = {};
+    const grouped: Record<string, { product: Product | undefined, quantity: number, price: number, allReady: boolean, observations?: string, selectedAddons: any[], isPizza: boolean }> = {};
     items.forEach(item => {
+      const p = products.find(prod => prod.id === item.productId);
+      const isPizza = !!(p?.isPizza || (item.pizzaFlavors && item.pizzaFlavors.length > 0));
+      
       const addonKey = item.selectedAddons ? JSON.stringify(item.selectedAddons.map(a => ({ id: a.id, quantity: a.quantity })).sort((a, b) => a.id.localeCompare(b.id))) : '';
       const gKey = item.productId + (item.observations || '') + addonKey;
 
       if (!grouped[gKey]) {
         grouped[gKey] = {
-          product: products.find(p => p.id === item.productId),
+          product: p,
           quantity: 0,
           price: item.price,
           allReady: true,
           observations: item.observations,
-          selectedAddons: item.selectedAddons || []
+          selectedAddons: item.selectedAddons || [],
+          isPizza
         };
       }
       grouped[gKey].quantity += (item.quantity || 1);
@@ -831,7 +835,7 @@ const Tables: React.FC<TablesProps> = ({ currentUser }) => {
                                   <div key={i} className="flex flex-col bg-slate-50 dark:bg-slate-700/50 p-3 rounded-xl border border-slate-100 dark:border-slate-700">
                                     <p className="font-black text-slate-800 dark:text-white text-sm">{it.quantity}x <span className="uppercase">{prod?.name || 'Item Desconhecido'}</span></p>
                                     {it.observations && <span className="text-[10px] text-orange-500 font-bold bg-orange-50 dark:bg-orange-950/40 px-2 py-1 rounded-lg mt-1 w-fit">Obs: {it.observations}</span>}
-                                    <AddonDisplay
+                                    <AddonDisplay showPrice onPriceFormat={(p) => new Intl.NumberFormat('pt-BR', {style: 'currency', currency: 'BRL'}).format(p)}
                                       addons={it.selectedAddons || []}
                                       products={products}
                                       className="text-[10px] font-bold text-blue-600 mt-1 pl-1"
@@ -955,7 +959,7 @@ const Tables: React.FC<TablesProps> = ({ currentUser }) => {
                                 {it.observations}
                               </p>
                             )}
-                            <AddonDisplay
+                            <AddonDisplay showPrice onPriceFormat={(p) => new Intl.NumberFormat('pt-BR', {style: 'currency', currency: 'BRL'}).format(p)}
                               addons={it.selectedAddons || []}
                               products={products}
                               className="text-[10px] font-bold text-blue-600 mt-1 ml-8"
@@ -1236,10 +1240,10 @@ const Tables: React.FC<TablesProps> = ({ currentUser }) => {
                   {getGroupedItems((isConfirmingBilling ? printingPreBill : getSessForTable(selectedTable!))?.items || []).map((it, i) => (
                     <div key={i} className="flex flex-col border-b border-dotted border-black/10 py-1">
                       <div className="flex justify-between font-bold uppercase text-[9px]">
-                        <span>{it.quantity}x {it.product?.name.substring(0, 20)}</span>
+                        <span className="shrink-text">{it.quantity}x {it.isPizza ? 'PIZZA ASSADA' : (it.product?.name || 'Item').substring(0, 20)}</span>
                         <span>{formatCurrency(it.quantity * it.price)}</span>
                       </div>
-                      <AddonDisplay
+                      <AddonDisplay showPrice onPriceFormat={(p) => new Intl.NumberFormat('pt-BR', {style: 'currency', currency: 'BRL'}).format(p)}
                         addons={it.selectedAddons || []}
                         products={products}
                         className="text-[7px] font-bold uppercase text-slate-500 mt-0.5 ml-2"
@@ -1252,7 +1256,7 @@ const Tables: React.FC<TablesProps> = ({ currentUser }) => {
                 </div>
                 <div className="space-y-0.5 border-t border-dashed border-black pt-1">
                   <div className="flex justify-between items-center text-[8px] font-bold uppercase">
-                    <span>SUBTOTAL:</span>
+                    <span>{(isConfirmingBilling ? printingPreBill : getSessForTable(selectedTable!))?.type === SaleType.OWN_DELIVERY ? 'VALOR DO PEDIDO:' : 'SUBTOTAL:'}</span>
                     <span>{formatCurrency((isConfirmingBilling ? printingPreBill : getSessForTable(selectedTable!))?.items.reduce((acc, it) => acc + (it.price * it.quantity), 0) || 0)}</span>
                   </div>
                   {settings.serviceFeeStatus && (
@@ -1321,7 +1325,7 @@ const Tables: React.FC<TablesProps> = ({ currentUser }) => {
                       <div key={i} className="flex justify-between items-center p-3 bg-white dark:bg-slate-800 rounded-xl border border-slate-100 dark:border-slate-700">
                         <div className="flex-1 min-w-0">
                           <p className={`text-[11px] font-black uppercase truncate ${it.allReady ? 'text-slate-800 dark:text-white' : 'text-slate-400'}`}>
-                            {it.quantity}x {it.product?.name.toUpperCase()}
+                            {it.quantity}x {it.isPizza ? 'PIZZA ASSADA' : it.product?.name.toUpperCase()}
                           </p>
                           {it.observations && (
                             <p className="text-[9px] font-bold text-slate-400 dark:text-slate-500 uppercase mt-0.5 italic leading-tight">

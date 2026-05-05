@@ -98,11 +98,12 @@ const DeliveryOrders: React.FC<DeliveryOrdersProps> = ({ currentUser }) => {
 
     const groupedPrintingItems = React.useMemo(() => {
         if (!printingOrder) return [];
-        const grouped: Record<string, { name: string, quantity: number, price: number, selectedAddons: any[], observations?: string }> = {};
+        const grouped: Record<string, { name: string, quantity: number, price: number, selectedAddons: any[], observations?: string, isPizza: boolean }> = {};
         printingOrder.items.forEach(item => {
             const prod = products.find(p => p.id === item.productId);
+            const isPizza = !!(prod?.isPizza || (item.pizzaFlavors && item.pizzaFlavors.length > 0));
             const addonKey = item.selectedAddons ? JSON.stringify(item.selectedAddons.map((a: any) => ({ id: a.id, quantity: a.quantity })).sort((a: any, b: any) => a.id.localeCompare(b.id))) : '';
-            const key = (item.productId || item.product?.id || 'unknown') + (item.observations || '') + addonKey;
+            const key = (item.productId || item.product?.id || 'unknown') + (item.observations || '') + addonKey + (isPizza ? '_pizza' : '');
             
             if (!grouped[key]) {
                 grouped[key] = {
@@ -110,7 +111,8 @@ const DeliveryOrders: React.FC<DeliveryOrdersProps> = ({ currentUser }) => {
                     quantity: 0,
                     price: item.price,
                     selectedAddons: item.selectedAddons || [],
-                    observations: item.observations
+                    observations: item.observations,
+                    isPizza
                 };
             }
             grouped[key].quantity += (item.quantity || 1);
@@ -361,9 +363,9 @@ const DeliveryOrders: React.FC<DeliveryOrdersProps> = ({ currentUser }) => {
                                                 {order.items.map((it, idx) => (
                                                   <div key={idx} className="flex flex-col mb-1 last:mb-0">
                                                     <div className="flex gap-2 text-xs font-bold text-slate-600 dark:text-slate-400">
-                                                      <span className="text-indigo-600 dark:text-indigo-400">{it.quantity}x</span> {it.product?.name || 'Item'}
+                                                      <span className="text-indigo-600 dark:text-indigo-400">{it.quantity}x</span> {(it.isPizza || (it.pizzaFlavors && it.pizzaFlavors.length > 0)) ? 'PIZZA ASSADA' : (it.product?.name || 'Item')}
                                                     </div>
-                                                    <AddonDisplay 
+                                                    <AddonDisplay showPrice onPriceFormat={(p) => new Intl.NumberFormat('pt-BR', {style: 'currency', currency: 'BRL'}).format(p)} 
                                                       addons={it.selectedAddons || []} 
                                                       products={products} 
                                                       className="text-[10px] font-bold text-blue-500 mt-0.5 ml-4"
@@ -639,10 +641,10 @@ const DeliveryOrders: React.FC<DeliveryOrdersProps> = ({ currentUser }) => {
                                 {groupedPrintingItems.map(([id, data]: [string, any]) => (
                                     <div key={id} className="border-b border-dotted border-black/10 py-1">
                                       <div className="flex justify-between font-bold uppercase text-[10px]">
-                                        <span className="flex-1 pr-2">{data.quantity}X {data.name.substring(0, 25)}</span>
+                                        <span className="flex-1 pr-2 shrink-text">{data.quantity}X {data.isPizza ? 'PIZZA ASSADA' : data.name.substring(0, 25)}</span>
                                         <span className="shrink-0">{formatCurrency(data.price, false)}</span>
                                       </div>
-                                      <AddonDisplay 
+                                      <AddonDisplay showPrice onPriceFormat={(p) => new Intl.NumberFormat('pt-BR', {style: 'currency', currency: 'BRL'}).format(p)} 
                                         addons={data.selectedAddons || []} 
                                         products={products} 
                                         className="text-[7px] font-bold uppercase text-slate-500 mt-0.5 ml-2"
