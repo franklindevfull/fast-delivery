@@ -485,6 +485,7 @@ const Dashboard: React.FC<{ user: User }> = ({ user }) => {
             onRefresh={fetchData}
             storeStatus={storeStatus}
             resolvedWaiterId={resolvedWaiterId}
+            settings={settings as any}
           />
         )
       }

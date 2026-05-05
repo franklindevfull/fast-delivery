@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import type { TableSession, Product, User, OrderItem, StoreStatus } from '../types';
+import type { TableSession, Product, User, OrderItem, StoreStatus, BusinessSettings } from '../types';
 import { db } from '../api';
 import { X, Search, ShoppingCart, CheckCircle2, AlertCircle, Trash2, Plus, Minus, ArrowRight, LayoutGrid, RefreshCw, MessageSquare, Key, Eye, EyeOff } from 'lucide-react';
 import { formatCurrency } from '../utils';
@@ -15,9 +15,10 @@ interface TableDetailsProps {
     onRefresh: () => void;
     storeStatus?: StoreStatus;
     resolvedWaiterId?: string | null;
+    settings?: BusinessSettings;
 }
 
-const TableDetails: React.FC<TableDetailsProps> = ({ table, user, onClose, onRefresh, storeStatus, resolvedWaiterId }) => {
+const TableDetails: React.FC<TableDetailsProps> = ({ table, user, onClose, onRefresh, storeStatus, resolvedWaiterId, settings }) => {
     const isSoftRejected = (() => {
         if (!table.pendingReviewItems) return false;
         try {
@@ -37,6 +38,13 @@ const TableDetails: React.FC<TableDetailsProps> = ({ table, user, onClose, onRef
     const [showCartItems, setShowCartItems] = useState(false);
 
     const [selectedProductForAddons, setSelectedProductForAddons] = useState<Product | null>(null);
+    const [selectedPizzaForLaunch, setSelectedPizzaForLaunch] = useState<Product | null>(null);
+    const [pizzaFlavors, setPizzaFlavors] = useState<Product[]>([]);
+    const [isPizzaSelectionMode, setIsPizzaSelectionMode] = useState(false);
+    const [pizzaModalQuantity, setPizzaModalQuantity] = useState(1);
+    const [pizzaObservation, setPizzaObservation] = useState('');
+    const [selectedAddonsForProduct, setSelectedAddonsForProduct] = useState<any[]>([]);
+
     const [loading, setLoading] = useState(false);
     const [showTransfer, setShowTransfer] = useState(false);
     const [transferTarget, setTransferTarget] = useState<number | ''>('');
@@ -534,7 +542,14 @@ const TableDetails: React.FC<TableDetailsProps> = ({ table, user, onClose, onRef
                                                 ) : (
                                                     <button
                                                         onClick={() => {
-                                                            if (product.addonGroups && product.addonGroups.length > 0) {
+                                                            if (product.isPizza) {
+                                                                setSelectedPizzaForLaunch(product);
+                                                                setPizzaFlavors([]);
+                                                                setIsPizzaSelectionMode(false);
+                                                                setPizzaModalQuantity(1);
+                                                                setPizzaObservation('');
+                                                                setSelectedAddonsForProduct([]);
+                                                            } else if (product.addonGroups && product.addonGroups.length > 0) {
                                                                  setSelectedProductForAddons(product);
                                                             } else {
                                                                  addToCart(product);
@@ -702,6 +717,254 @@ const TableDetails: React.FC<TableDetailsProps> = ({ table, user, onClose, onRef
                     }}
                     onClose={() => setModal({ ...modal, isOpen: false })}
                 />
+
+                {selectedPizzaForLaunch && (() => {
+                    const maxFlavors = selectedPizzaForLaunch.pizzaSize === 'P' ? 2 : selectedPizzaForLaunch.pizzaSize === 'M' ? 3 : selectedPizzaForLaunch.pizzaSize === 'G' ? 4 : 1;
+                    const availablePizzaProducts = products.filter(p => p.isPizza && p.pizzaSize === selectedPizzaForLaunch.pizzaSize && p.id !== selectedPizzaForLaunch.id && p.price > 0 && (p.maxAvailability === undefined || p.maxAvailability > 0));
+
+                    let modalSubTotal = selectedPizzaForLaunch.price;
+                    if (pizzaFlavors.length > 0) {
+                        if (settings?.pizzaPriceRule === 'AVERAGE') {
+                            const totalPrices = selectedPizzaForLaunch.price + pizzaFlavors.reduce((sum, f) => sum + f.price, 0);
+                            modalSubTotal = totalPrices / (pizzaFlavors.length + 1);
+                        } else {
+                            // HIGHEST
+                            let highest = selectedPizzaForLaunch.price;
+                            pizzaFlavors.forEach(f => { if (f.price > highest) highest = f.price; });
+                            modalSubTotal = highest;
+                        }
+                    }
+                    
+                    const addonsTotal = selectedAddonsForProduct.reduce((sum, a) => sum + (a.price * a.quantity), 0);
+                    modalSubTotal = (modalSubTotal + addonsTotal) * pizzaModalQuantity;
+
+                    return (
+                        <div className="fixed inset-0 z-[150] flex flex-col justify-end bg-slate-900/60 backdrop-blur-sm animate-in fade-in duration-300">
+                            <div className="bg-white w-full h-[90vh] rounded-t-[2.5rem] shadow-2xl flex flex-col animate-in slide-in-from-bottom-10 border-t border-slate-100">
+                                {/* Header */}
+                                <div className="p-6 pb-4 border-b border-slate-100 flex justify-between items-start bg-slate-50/50 rounded-t-[2.5rem] sticky top-0 z-10 backdrop-blur-xl">
+                                    <div>
+                                        <span className="text-[10px] font-black uppercase text-indigo-500 tracking-widest bg-indigo-50 px-3 py-1 rounded-full mb-2 inline-block">
+                                            Pizza {selectedPizzaForLaunch.pizzaSize} (Até {maxFlavors} sabores)
+                                        </span>
+                                        <h3 className="text-xl font-black text-slate-800 leading-tight">
+                                            {selectedPizzaForLaunch.name}
+                                        </h3>
+                                    </div>
+                                    <button
+                                        onClick={() => setSelectedPizzaForLaunch(null)}
+                                        className="p-2.5 bg-white text-slate-400 rounded-full hover:bg-rose-50 hover:text-rose-500 transition-all shadow-sm border border-slate-100"
+                                    >
+                                        <X className="w-5 h-5" />
+                                    </button>
+                                </div>
+
+                                <div className="flex-1 overflow-y-auto no-scrollbar p-6 space-y-8">
+                                    {/* Base Flavor */}
+                                    <div className="space-y-3">
+                                        <h4 className="text-[10px] font-black text-slate-400 uppercase tracking-widest flex items-center gap-2">
+                                            <div className="w-1.5 h-1.5 rounded-full bg-indigo-500"></div> Sabor Principal
+                                        </h4>
+                                        <div className="p-4 bg-indigo-50 border border-indigo-100 rounded-2xl flex justify-between items-center relative overflow-hidden group">
+                                            <div className="absolute inset-0 bg-gradient-to-r from-indigo-500/5 to-transparent opacity-0 group-hover:opacity-100 transition-opacity"></div>
+                                            <div className="font-bold text-indigo-900">{selectedPizzaForLaunch.name}</div>
+                                            <div className="text-sm font-black text-indigo-600">{formatCurrency(selectedPizzaForLaunch.price)}</div>
+                                        </div>
+                                    </div>
+
+                                    {/* Additional Flavors Question */}
+                                    {maxFlavors > 1 && !isPizzaSelectionMode && pizzaFlavors.length === 0 && (
+                                        <div className="p-6 bg-slate-50 rounded-3xl border border-slate-100 flex flex-col items-center text-center space-y-4">
+                                            <div className="w-14 h-14 bg-indigo-100 text-indigo-500 rounded-2xl flex items-center justify-center mb-2">
+                                                <LayoutGrid size={28} />
+                                            </div>
+                                            <p className="text-[13px] font-bold text-slate-700">Deseja adicionar outros sabores?</p>
+                                            <p className="text-[10px] text-slate-400 font-medium uppercase tracking-widest mt-1 mb-4">Você pode adicionar até {maxFlavors - 1} sabores extras.</p>
+                                            <div className="flex w-full gap-3 mt-4">
+                                                <button onClick={() => setIsPizzaSelectionMode(true)} className="flex-1 py-4 bg-white border border-slate-200 rounded-2xl font-black text-[11px] text-slate-700 uppercase tracking-widest hover:border-indigo-500 hover:text-indigo-600 transition-all shadow-sm">
+                                                    Sim, Dividir Pizza
+                                                </button>
+                                            </div>
+                                        </div>
+                                    )}
+
+                                    {/* Flavors Selection Grid */}
+                                    {(isPizzaSelectionMode || pizzaFlavors.length > 0) && (
+                                        <div className="space-y-4 animate-in fade-in slide-in-from-bottom-4 duration-500">
+                                            <div className="flex justify-between items-center px-1">
+                                                <h4 className="text-[10px] font-black text-slate-400 uppercase tracking-widest flex items-center gap-2">
+                                                    <div className="w-1.5 h-1.5 rounded-full bg-slate-400"></div> Sabores Extras ({pizzaFlavors.length}/{maxFlavors - 1})
+                                                </h4>
+                                            </div>
+                                            <div className="grid grid-cols-1 gap-3">
+                                                {availablePizzaProducts.map(p => {
+                                                    const isSelected = pizzaFlavors.find(f => f.id === p.id);
+                                                    const canAdd = pizzaFlavors.length < maxFlavors - 1;
+                                                    return (
+                                                        <div
+                                                            key={p.id}
+                                                            onClick={() => {
+                                                                if (isSelected) {
+                                                                    setPizzaFlavors(prev => prev.filter(f => f.id !== p.id));
+                                                                } else if (canAdd) {
+                                                                    setPizzaFlavors(prev => [...prev, p]);
+                                                                }
+                                                            }}
+                                                            className={`p-4 rounded-2xl border transition-all cursor-pointer flex justify-between items-center group ${isSelected ? 'bg-indigo-50 border-indigo-500' : 'bg-white border-slate-100'}`}
+                                                            style={{ opacity: !isSelected && !canAdd ? 0.5 : 1 }}
+                                                        >
+                                                            <div className="flex items-center gap-3">
+                                                                <div className={`w-5 h-5 rounded-md border flex items-center justify-center transition-colors ${isSelected ? 'bg-indigo-500 border-indigo-500' : 'border-slate-300 bg-slate-50'}`}>
+                                                                    {isSelected && <CheckCircle2 className="w-3 h-3 text-white" />}
+                                                                </div>
+                                                                <div className={`font-bold text-sm ${isSelected ? 'text-indigo-900' : 'text-slate-700'}`}>{p.name}</div>
+                                                            </div>
+                                                            <div className={`text-xs font-black tracking-tighter ${isSelected ? 'text-indigo-600' : 'text-slate-400'}`}>
+                                                            {formatCurrency(p.price)}
+                                                            </div>
+                                                        </div>
+                                                    );
+                                                })}
+                                            </div>
+                                        </div>
+                                    )}
+                                    
+                                    {/* Addon Groups for Pizza */}
+                                    {selectedPizzaForLaunch.addonGroups?.map(({ addonGroup: group }: any) => (
+                                        <div key={group.id} className="space-y-4">
+                                            <div className="flex justify-between items-end">
+                                                <div>
+                                                    <h4 className="text-[10px] font-black text-slate-400 uppercase tracking-widest flex items-center gap-2">
+                                                        <div className="w-1.5 h-1.5 rounded-full bg-slate-400"></div> {group.name}
+                                                    </h4>
+                                                    <p className="text-[9px] text-slate-400 font-bold uppercase tracking-widest mt-1">
+                                                        {group.type === 'SINGLE' ? 'Selecione 1 opção' : 'Selecione uma ou mais'}
+                                                    </p>
+                                                </div>
+                                                {group.isRequired && (
+                                                    <span className="bg-amber-100 text-amber-600 text-[8px] font-black px-2 py-0.5 rounded-full uppercase tracking-widest">Obrigatório</span>
+                                                )}
+                                            </div>
+
+                                            <div className="grid grid-cols-1 gap-3">
+                                                {group.options.filter((o: any) => o.active !== false).map((option: any) => {
+                                                    const isSelected = selectedAddonsForProduct.find(a => a.addonOptionId === option.id);
+                                                    const isOutOfStock = option.trackStock && option.stock <= 0;
+
+                                                    return (
+                                                        <div
+                                                            key={option.id}
+                                                            onClick={() => {
+                                                                if (isOutOfStock) return;
+                                                                
+                                                                if (group.type === 'SINGLE') {
+                                                                    const otherGroupOptions = group.options.map((o: any) => o.id);
+                                                                    setSelectedAddonsForProduct(prev => [
+                                                                        ...prev.filter(a => !otherGroupOptions.includes(a.addonOptionId)),
+                                                                        { addonOptionId: option.id, name: option.name, price: option.price, quantity: 1, productId: option.productId, groupId: group.id, groupName: group.name }
+                                                                    ]);
+                                                                } else {
+                                                                    if (isSelected) {
+                                                                        setSelectedAddonsForProduct(prev => prev.filter(a => a.addonOptionId !== option.id));
+                                                                    } else {
+                                                                        setSelectedAddonsForProduct(prev => [...prev, { addonOptionId: option.id, name: option.name, price: option.price, quantity: 1, productId: option.productId, groupId: group.id, groupName: group.name }]);
+                                                                    }
+                                                                }
+                                                            }}
+                                                            className={`p-4 rounded-2xl border transition-all cursor-pointer flex justify-between items-center group ${isSelected ? 'bg-indigo-50 border-indigo-500' : 'bg-white border-slate-100'} ${isOutOfStock ? 'opacity-50 grayscale cursor-not-allowed' : 'active:scale-95'}`}
+                                                        >
+                                                            <div className="flex items-center gap-3">
+                                                                <div className={`w-5 h-5 rounded-full border-2 flex items-center justify-center transition-all ${isSelected ? 'border-indigo-500 bg-indigo-500 text-white' : 'border-slate-200'}`}>
+                                                                    {isSelected && <div className="w-2 h-2 bg-white rounded-full"></div>}
+                                                                </div>
+                                                                <div className="font-bold text-slate-700 text-sm">{option.name}</div>
+                                                            </div>
+                                                            <div className={`text-xs font-black ${isSelected ? 'text-indigo-600' : 'text-slate-500'}`}>
+                                                                {option.price > 0 ? `+ ${formatCurrency(option.price)}` : 'Grátis'}
+                                                            </div>
+                                                        </div>
+                                                    );
+                                                })}
+                                            </div>
+                                        </div>
+                                    ))}
+
+                                    {/* Observações e Quantidade */}
+                                    <div className="space-y-4 pt-4 border-t border-slate-100">
+                                        <div className="flex gap-4">
+                                            <div className="flex-1 space-y-2">
+                                                <h4 className="text-[10px] font-black text-slate-400 uppercase tracking-widest pl-1">Observações</h4>
+                                                <input
+                                                    type="text"
+                                                    placeholder="Ex: Sem cebola, massa fina..."
+                                                    className="w-full bg-slate-50 border border-slate-200 p-4 rounded-2xl font-bold text-sm focus:ring-4 focus:ring-indigo-50 outline-none text-slate-800 placeholder:text-slate-400 transition-all"
+                                                    value={pizzaObservation}
+                                                    onChange={e => setPizzaObservation(e.target.value)}
+                                                />
+                                            </div>
+                                            <div className="w-28 space-y-2">
+                                                <h4 className="text-[10px] font-black text-slate-400 uppercase tracking-widest pl-1 text-center">Qtde</h4>
+                                                <div className="flex items-center justify-between bg-slate-50 border border-slate-200 p-1.5 rounded-2xl">
+                                                    <button onClick={() => setPizzaModalQuantity(Math.max(1, pizzaModalQuantity - 1))} className="w-10 h-10 flex items-center justify-center bg-white rounded-xl text-slate-500 hover:text-indigo-500 font-bold shadow-sm transition-colors">-</button>
+                                                    <span className="font-black text-slate-700">{pizzaModalQuantity}</span>
+                                                    <button onClick={() => setPizzaModalQuantity(pizzaModalQuantity + 1)} className="w-10 h-10 flex items-center justify-center bg-white rounded-xl text-slate-500 hover:text-indigo-500 font-bold shadow-sm transition-colors">+</button>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                                
+                                {/* Footer */}
+                                <div className="p-6 bg-white border-t border-slate-100 pb-[calc(1.5rem+env(safe-area-inset-bottom))] sticky bottom-0">
+                                    <button
+                                        onClick={() => {
+                                            // Validate mandatory addons
+                                            const missingGroups = selectedPizzaForLaunch.addonGroups?.filter(({ addonGroup: group }: any) => {
+                                                if (!group.isRequired) return false;
+                                                const hasSelection = selectedAddonsForProduct.some(a => a.groupId === group.id);
+                                                return !hasSelection;
+                                            });
+
+                                            if (missingGroups && missingGroups.length > 0) {
+                                                showAlert('Atenção', `Selecione pelo menos uma opção para: ${missingGroups.map((g: any) => g.addonGroup.name).join(', ')}`, 'alert');
+                                                return;
+                                            }
+
+                                            let finalObs = pizzaObservation;
+                                            if (settings?.pizzaNfeRule === 'OBSERVATION') {
+                                                const flavoursStr = [selectedPizzaForLaunch.name, ...pizzaFlavors.map(f => f.name)].join(', ');
+                                                if (finalObs) finalObs = `${flavoursStr} | Obs: ${finalObs}`;
+                                                else finalObs = `${flavoursStr}`;
+                                            }
+
+                                            const allFlavors = [
+                                                selectedPizzaForLaunch,
+                                                ...pizzaFlavors
+                                            ].map(f => ({
+                                                ...f,
+                                                fraction: 1 / (pizzaFlavors.length + 1)
+                                            }));
+
+                                            addToCart(
+                                                {...selectedPizzaForLaunch, price: (modalSubTotal / pizzaModalQuantity) - (selectedAddonsForProduct.reduce((s, a) => s + a.price, 0))}, 
+                                                pizzaModalQuantity, 
+                                                allFlavors as any,
+                                                finalObs || undefined,
+                                                modalSubTotal / pizzaModalQuantity,
+                                                selectedAddonsForProduct
+                                            );
+                                            setSelectedPizzaForLaunch(null);
+                                        }}
+                                        className="w-full bg-indigo-600 text-white py-5 rounded-2xl font-black uppercase text-[12px] tracking-widest shadow-xl shadow-indigo-200 flex justify-between items-center px-6 active:scale-[0.98] transition-transform"
+                                    >
+                                        <span>Lançar Pizza</span>
+                                        <span>{formatCurrency(modalSubTotal)}</span>
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                    );
+                })()}
 
                 {showClientSelect && (
                     <ClientSelector
