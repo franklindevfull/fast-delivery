@@ -487,9 +487,10 @@ const Tables: React.FC<TablesProps> = ({ currentUser }) => {
           uid: `item-${Date.now()}-${Math.random().toString(36).substr(2, 4)}`,
           productId: pi.productId,
           quantity: pi.quantity,
-          price: product?.price || 0,
+          price: pi.price || product?.price || 0,
           isReady: false,
           observations: pi.orderedBy ? `(${pi.orderedBy}) ${pi.observations || ''}`.trim() : (pi.observations || ''),
+          pizzaFlavors: pi.pizzaFlavors ? pi.pizzaFlavors.map((f: any) => f.id || f) : undefined,
           selectedAddons: parsedAddons
         };
       });

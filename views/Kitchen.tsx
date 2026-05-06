@@ -574,21 +574,23 @@ const Kitchen: React.FC = () => {
                   
                   const hasFlavors = it.pizzaFlavors && Array.isArray(it.pizzaFlavors) && it.pizzaFlavors.length > 0;
                   
-                  // Adiciona o produto principal 
-                  // Sempre adiciona se for pizza para garantir que o tamanho apareça, ou se tiver ficha
-                  if (!hasFlavors || product?.isPizza) {
-                    if ((product?.recipe && product.recipe.length > 0) || product?.preparation || product?.isPizza) {
+                  // Adiciona o produto principal apenas se tiver ficha E (não tiver sabores ou se a ficha for da própria base)
+                  if (!hasFlavors) {
+                    if ((product?.recipe && product.recipe.length > 0) || product?.preparation) {
                       fichasMap.set(product?.id || 'main', { id: `${it.uid}-main`, name: product?.name });
                     }
                   }
                   
                   if (it.pizzaFlavors && Array.isArray(it.pizzaFlavors)) {
                     it.pizzaFlavors.forEach((pf: any) => {
-                      // Se já adicionamos este produto (mesmo como principal), pulamos se o nome for igual
-                      if (!fichasMap.has(pf.productId)) {
-                        const flavorProd = products.find(p => p.id === pf.productId);
-                        // Sempre adiciona sabores de pizza na lista de opções
-                        fichasMap.set(pf.productId, { id: `${it.uid}-${pf.productId}`, name: flavorProd?.name || pf.name });
+                      const flavorId = pf.productId || pf.id;
+                      if (flavorId && !fichasMap.has(flavorId)) {
+                        const flavorProd = products.find(p => p.id === flavorId);
+                        // Adiciona todos os sabores à ficha, o usuário define no checkbox se quer imprimir ou não
+                        fichasMap.set(flavorId, { 
+                          id: `${it.uid}-${flavorId}`, 
+                          name: flavorProd?.name || pf.name 
+                        });
                       }
                     });
                   }
@@ -599,7 +601,7 @@ const Kitchen: React.FC = () => {
                   return (
                     <div key={itIdx} className="space-y-3">
                       <p className="text-[11px] font-black text-blue-600 dark:text-blue-400 uppercase">
-                        {it.quantity}X {product?.name}
+                        {it.quantity}X {(product?.isPizza || (it.pizzaFlavors && it.pizzaFlavors.length > 0)) ? 'PIZZA ASSADA' : (product?.name || 'Item')}
                         {product?.isPizza && product.pizzaSize && (
                           <span className="ml-2 text-[9px] text-slate-500 dark:text-slate-400 lowercase font-bold">
                             ({getPizzaPiecesBySize(product.pizzaSize)} pedaços, {it.pizzaFlavors?.length || 1} {it.pizzaFlavors?.length > 1 ? 'sabores' : 'sabor'})
@@ -689,18 +691,24 @@ const Kitchen: React.FC = () => {
                       
                       const hasFlavors = it.pizzaFlavors && Array.isArray(it.pizzaFlavors) && it.pizzaFlavors.length > 0;
                       
-                      // Adiciona o produto principal se não houver sabores ou se for pizza
-                      if (!hasFlavors || product?.isPizza) {
-                        if ((product?.recipe && product.recipe.length > 0) || product?.preparation || product?.isPizza) {
+                      // Adiciona o produto principal se tiver ficha
+                      if (!hasFlavors) {
+                        if ((product?.recipe && product.recipe.length > 0) || product?.preparation) {
                           fichasMap.set(product?.id || 'main', { id: `${it.uid}-main`, name: product?.name, recipe: product?.recipe, preparation: product?.preparation });
                         }
                       }
 
                       if (it.pizzaFlavors && Array.isArray(it.pizzaFlavors)) {
                         it.pizzaFlavors.forEach((pf: any) => {
-                          if (!fichasMap.has(pf.productId)) {
-                            const flavorProd = products.find(p => p.id === pf.productId);
-                            fichasMap.set(pf.productId, { id: `${it.uid}-${pf.productId}`, name: flavorProd?.name || pf.name, recipe: flavorProd?.recipe, preparation: flavorProd?.preparation });
+                          const flavorId = pf.productId || pf.id;
+                          if (flavorId && !fichasMap.has(flavorId)) {
+                            const flavorProd = products.find(p => p.id === flavorId);
+                            fichasMap.set(flavorId, { 
+                              id: `${it.uid}-${flavorId}`, 
+                              name: flavorProd?.name || pf.name, 
+                              recipe: flavorProd?.recipe, 
+                              preparation: flavorProd?.preparation 
+                            });
                           }
                         });
                       }
@@ -708,11 +716,8 @@ const Kitchen: React.FC = () => {
                       const itemsWithRecipe = Array.from(fichasMap.values()).filter(f => !excludedFichas.has(f.id));
 
                       return itemsWithRecipe.map((info, infoIdx) => {
-                        const hasContent = (info.recipe && info.recipe.length > 0) || info.preparation;
-                        if (!hasContent) return null;
-
                         return (
-                        <div key={infoIdx} className="mt-1 ml-1 p-1 border-l-2 border-black/20 bg-slate-50">
+                        <div key={infoIdx} className="mt-1 ml-1 p-1 border-l-2 border-black/20">
                           <p className="text-[9px] font-black uppercase mb-0.5 border-b border-black/10">Ficha Técnica: {info.name}</p>
                           
                           {info.recipe && info.recipe.length > 0 && (
